@@ -269,6 +269,7 @@ Controlled and autonomous sidelink resource-selection algorithms.
 | `resourceAllocation.Autonomous.ReselectEveryPacketEnabled` | `dynamicScheduling` | `bool` | Probability to keep the previously selected BR |
 | `resourceAllocation.Autonomous.KeepResourceProbability` | `probResKeep` | `double` | Probability to keep the previously selected BR |
 | `resourceAllocation.Autonomous.MinimumCandidateFraction` | `ratioSelectedAutonomousMode` | `double` | Minimum fraction of resources surviving RSRP filtering |
+| `resourceAllocation.Autonomous.L2CandidateFraction` | `ratioSelectedL2` | `double` | Fraction of possible resources retained by L2 ranking |
 | `resourceAllocation.Autonomous.L2RankingEnabled` | `L2active` | `bool` | Activate or De-activate L2 in mode2/mode4 |
 | `resourceAllocation.Autonomous.AverageSensingEnabled` | `averageSensingActive` | `bool` | Activate or De-activate the average sensing mode2/mode4 |
 | `resourceAllocation.Autonomous.SensingWindowSeconds` | `TsensingPeriod` | `double` | Duration of the sensing period, in seconds |

@@ -134,10 +134,19 @@ switch simParams.BRAlgorithm
         end
 
         % [ratioSelectedAutonomousMode]
-        % Percentage of resources to be considered for random selection
-        [simParams,varargin]= addNewParam(simParams,'ratioSelectedAutonomousMode',0.2,'Percentage of resources to be considered for random selection','double',fileCfg,varargin{1});
+        % Minimum fraction of resources that must survive RSRP filtering.
+        [simParams,varargin]= addNewParam(simParams,'ratioSelectedAutonomousMode',0.2,'Minimum fraction of resources surviving RSRP filtering','double',fileCfg,varargin{1});
         if simParams.ratioSelectedAutonomousMode<0.2 || simParams.ratioSelectedAutonomousMode>1
-            error('Error: "simParams.ratioSelectedAutonomousMode" must be more than 0.2 and not more than 1 (specs: 0.2)');
+            error('Error: "simParams.ratioSelectedAutonomousMode" must be at least 0.2 and not more than 1 (specs: 0.2)');
+        end
+
+        % [ratioSelectedL2]
+        % Fraction of possible resources retained by the L2 ranking step.
+        % Following ratioSelectedAutonomousMode by default preserves the
+        % historical behavior of callers that configured only one ratio.
+        [simParams,varargin]= addNewParam(simParams,'ratioSelectedL2',simParams.ratioSelectedAutonomousMode,'Fraction of possible resources retained by L2 ranking','double',fileCfg,varargin{1});
+        if simParams.ratioSelectedL2<=0 || simParams.ratioSelectedL2>1
+            error('Error: "simParams.ratioSelectedL2" must be more than 0 and not more than 1');
         end
 
         % [L2active]

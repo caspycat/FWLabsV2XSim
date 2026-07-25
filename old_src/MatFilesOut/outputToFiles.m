@@ -368,7 +368,7 @@ if outputValues.AvgNUEsCV2X>0
         fprintf(fileMainID,"dynamicScheduling="+simParams.dynamicScheduling+",");
         fprintf(fileMainID,"resourceReEvaluation="+simParams.resourceReEvaluation+",");
         fprintf(fileMainID,"reEvalAfterEmptyResource="+simParams.reEvalAfterEmptyResource+",");
-        fprintf(fileMainID,'rRes=%.2f,minR=%d,maxR=%d,',simParams.ratioSelectedAutonomousMode,simParams.minRandValueMode4,simParams.maxRandValueMode4);
+        fprintf(fileMainID,'rRes=%.2f,rL2=%.2f,minR=%d,maxR=%d,',simParams.ratioSelectedAutonomousMode,simParams.ratioSelectedL2,simParams.minRandValueMode4,simParams.maxRandValueMode4);
         fprintf(fileMainID,'T1=%.2f,T2=%.2f,',simParams.T1autonomousMode,simParams.T2autonomousMode);
         fprintf(fileMainID,'Pthr=%d,minSCIsinr=%.2f,',10*log10(simParams.powerThresholdAutonomous)+30,10*log10(phyParams.minSCIsinr));
         fprintf(fileMainID,"L2active="+simParams.L2active+",");

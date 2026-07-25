@@ -224,12 +224,12 @@ for indexSensingV = 1:Nscheduled
     % Then, the resource above threshold are discarded to build the selection set
     % The remaining resources must be at least X% of the nPossibleAllocations
     nPossibleAllocations = sum(isfinite(sensingMatrixScheduled));                   % available allocations excluding HD and resources outside T1-T2
-    MBest = ceil(nPossibleAllocations * simParams.ratioSelectedAutonomousMode);     % minimum number of resources that must be in the selection set
-    if MBest<=0
+    minimumUsableResources = ceil(nPossibleAllocations * simParams.ratioSelectedAutonomousMode);
+    if minimumUsableResources<=0
         if simParams.resourceReEvaluation == true
             continue    % when resource re-eval is active, if the re-eval is performed on a resource at the end of the T1-T2, there is no resource available -> maintains current transmission
         end
-        error('Mbest must be a positive scalar (it is %d)',MBest);
+        error('The minimum number of usable resources must be positive (it is %d)',minimumUsableResources);
     end
 
     % The knownUsedMatrix of the scheduled users is obtained
@@ -252,10 +252,10 @@ for indexSensingV = 1:Nscheduled
     % The cycle is stopped internally; a max of 100 is used to avoid infinite loops in case of bugs
     powerThreshold = simParams.powerThresholdAutonomous;    % threshold for excluding resources
     while powerThreshold < 100
-        % If the number of acceptable BRs is lower than MBest,
+        % If the number of acceptable BRs is below the configured floor,
         % powerThreshold is increased by 3 dB
         usableBRs = ((sensingMatrixPerm*0.015)<powerThreshold) | ((sensingMatrixPerm<inf) & (knownUsedMatrixPerm<1));
-        if sum(usableBRs) < MBest
+        if sum(usableBRs) < minimumUsableResources
             powerThreshold = powerThreshold * 2;
         else
             break;
@@ -271,18 +271,22 @@ for indexSensingV = 1:Nscheduled
     % Reorder bestBRid matrix
     bestBR = rpMatrix(bestBRPerm);
     
-    % L2 is removed in mode2
-    % 5G mode2 admits all resources that are not HD or reserved with an
-    % RSRP level above threshold, or outside T1-T2. LTE takes the best X%
-    if simParams.L2active==false
-        MBest=sum(usableBRs);
+    % Without L2, Mode 2 admits every resource that survived filtering.
+    % With L2, retain the configured fraction of all possible resources,
+    % capped at the number that survived filtering.
+    if simParams.L2active
+        selectionSetSize = ceil( ...
+            nPossibleAllocations * simParams.ratioSelectedL2);
+        selectionSetSize = min(selectionSetSize,sum(usableBRs));
+    else
+        selectionSetSize = sum(usableBRs);
     end
     
-    % Keep the best M canditates
-    bestBR = bestBR(1:MBest);
+    % Keep the selected candidates
+    bestBR = bestBR(1:selectionSetSize);
 
     % Reassign, selecting a random BR among the bestBR
-    BRindex = randi(MBest);
+    BRindex = randi(selectionSetSize);
     BR = bestBR(BRindex);
 %     printDebugReallocation(timeManagement.timeNow,scheduledID(indexSensingV),positionManagement.XvehicleReal(stationManagement.activeIDs==scheduledID(indexSensingV)),'reall',BR,outParams);
     
