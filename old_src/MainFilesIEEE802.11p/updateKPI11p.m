@@ -1,4 +1,4 @@
-function [simValues,outputValues,sinrManagement,stationManagement] = updateKPI11p(idEvent,indexEvent,timeManagement,stationManagement,positionManagement,sinrManagement,simParams,phyParams,outParams,simValues,outputValues)
+function [simValues,outputValues,sinrManagement,stationManagement] = updateKPI11p(idEvent,indexEvent,timeManagement,stationManagement,positionManagement,sinrManagement,~,phyParams,outParams,simValues,outputValues)
 % KPIs: correct transmissions and errors are counted
 
 % The message is correctly received if:
@@ -22,7 +22,6 @@ indexEvent11p = find(stationManagement.activeIDs11p == idEvent);
 
 IDvehicle11p = stationManagement.activeIDs11p;
 indexVehicle11p = stationManagement.indexInActiveIDs_of11pnodes;
-neighborsID11p = stationManagement.neighborsID11p(indexEvent11p,:)';
 distance11p = positionManagement.distanceReal(stationManagement.vehicleState(stationManagement.activeIDs)~=100,stationManagement.vehicleState(stationManagement.activeIDs)~=100);
 
 % Note: I need to work with line vectors, otherwise it works differently when
@@ -86,8 +85,6 @@ for iPhyRaw = 1:length(phyParams.Raw)
     NneighborsRaw_earlier = nnz(indexInRaw_earlier);
     % number of neighbors now (includes history)
     NneighborsRaw_now = nnz(indexInRaw_now);
-    NneighborsRaw_justThisTime = nnz((indexInRaw_thisTime - indexInRaw_earlier)==1);
-
     NcorrectlyTxBeacons_earlier = nnz(rxOKRaw_earlier);
     NcorrectlyTxBeacons_now = nnz(rxOKRaw_now);
     NcorrectlyTxBeacons_jusTthisTime = nnz(rxOKRaw_justThisTime);
@@ -217,32 +214,9 @@ end
 stationManagement.pckReceived(indexVehicle11p, idEvent) =...
     stationManagement.pckReceived(indexVehicle11p, idEvent) | rxOK_thisTime;
 
-% Compute power control allocation (if enabled)
-if outParams.printPowerControl
-    % Convert linear PtxERP value to Ptx in dBm
-    P_ERP_MHz_dBm = 10*log10(phyParams.P_ERP_MHz_11p(idEvent)/phyParams.Gt)+30;
-    
-    % Convert power to powerControlCounter vector
-    P_ERP_MHz_dBm = round(P_ERP_MHz_dBm/outParams.powerResolution)+101;
-    maxP_ERP_MHz = length(outputValues.powerControlCounter);
-    
-    % Store value in powerControlCounter array
-    if P_ERP_MHz_dBm>=maxP_ERP_MHz
-        outputValues.powerControlCounter(end) = outputValues.powerControlCounter(end) + 1;
-    elseif P_ERP_MHz_dBm<=1
-        outputValues.powerControlCounter(1) = outputValues.powerControlCounter(1) + 1;
-    else
-        outputValues.powerControlCounter(P_ERP_MHz_dBm) = outputValues.powerControlCounter(P_ERP_MHz_dBm) + 1;
-    end
-end
-
 % Count correct receptions and errors up to the maximum awareness range (if enabled)
 if outParams.printPacketReceptionRatio
-    if ~simParams.neighborsSelection
-        AllNeighbors = (IDvehicle11p~=idEvent);
-    else
-        AllNeighbors = ismember(IDvehicle11p,neighborsID11p);
-    end
+    AllNeighbors = (IDvehicle11p~=idEvent);
 %    AllNeighbors(awarenessID11p~=0) = awarenessID11p(awarenessID11p~=0) .* sameChannel(awarenessID11p(awarenessID11p~=0));
     for iRaw = 1:1:floor(phyParams.RawMax11p/outParams.prrResolution)
         distance = iRaw * outParams.prrResolution;
@@ -252,11 +226,7 @@ if outParams.printPacketReceptionRatio
         RxOKiRaw_earlier = AllNeighbors .* (distance11p(:,indexEvent11p)<distance) .* rxOK_earlier .* sameChannel(stationManagement.activeIDs11p);
         % printDebugKPI(fid,timeManagement.timeNow,'RxOKiRaw',distance,idEvent,stationManagement.pckTxOccurring(idEvent), nnz(RxOKiRaw_earlier),nnz(RxOKiRaw));
         
-        if stationManagement.ifBeaconLarge
-            outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,2) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,2) - nnz(RxOKiRaw_earlier) + nnz(RxOKiRaw);
-        else
-            outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,6) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,6) - nnz(RxOKiRaw_earlier) + nnz(RxOKiRaw);
-        end
+        outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,2) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,2) - nnz(RxOKiRaw_earlier) + nnz(RxOKiRaw);
         % printDebugKPI(fid,timeManagement.timeNow,'distanceDetailsRxOK11p',distance,idEvent,stationManagement.pckTxOccurring(idEvent), -1,outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,2));
 
         % Errors
@@ -264,11 +234,7 @@ if outParams.printPacketReceptionRatio
         RxErroriRaw_earlier = AllNeighbors .* (distance11p(:,indexEvent11p)<distance) .* notRxOK_earlier .* sameChannel(stationManagement.activeIDs11p);
         % printDebugKPI(fid,timeManagement.timeNow,'RxErroriRaw',distance,idEvent,stationManagement.pckTxOccurring(idEvent), nnz(RxErroriRaw_earlier),nnz(RxErroriRaw));
 
-        if stationManagement.ifBeaconLarge
-            outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,3) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,3) - nnz(RxErroriRaw_earlier) + nnz(RxErroriRaw);
-        else
-            outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,7) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,7) - nnz(RxErroriRaw_earlier) + nnz(RxErroriRaw);
-        end
+        outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,3) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,3) - nnz(RxErroriRaw_earlier) + nnz(RxErroriRaw);
         % printDebugKPI(fid,timeManagement.timeNow,'distanceDetailsRxErr11p',distance,idEvent,stationManagement.pckTxOccurring(idEvent), -1,outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,3));
     end
 end

@@ -151,14 +151,6 @@ switch simParams.BRAlgorithm
         [simParams,varargin] = addNewParam(simParams,'averageSensingActive',(~simParams.mode5G),'Activate or De-activate the average sensing mode2/mode4','bool',fileCfg,varargin{1});
 
 
-        % This can be used with same effect as averageSensingActive to unify the two conditions
-    %     % [NsensingPeriod]
-    %     % Number of beacon periods during which performing sensing
-    %     [simParams,varargin{1}{1}]= addNewParam(simParams,'NsensingPeriod',10,'Number of beacon periods during which performing sensing','integer',fileCfg,varargin{1}{1});
-    %     if simParams.NsensingPeriod<=0
-    %         error('Error: "simParams.NsensingPeriod" must be larger than 0');
-    %     end
-
         % [TsensingPeriod]
         % Duration of the sensing period, in seconds
         [simParams,varargin]= addNewParam(simParams,'TsensingPeriod',1,'Duration of the sensing period, in seconds','double',fileCfg,varargin{1});

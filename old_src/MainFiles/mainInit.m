@@ -189,9 +189,6 @@ phyParams.P_ERP_MHz_11p(stationManagement.vehicleState == constants.V_STATE_LTE_
 stationManagement.vehicleChannel = ones(simValues.maxID,1);
 % NOTE: sinrManagement.mcoCoefficient( RECEIVER, TRANSMITTER) 
 sinrManagement.mcoCoefficient = ones(simValues.maxID,simValues.maxID);
-if phyParams.nChannels>1
-    [stationManagement,sinrManagement,phyParams] = mco_channelInit(stationManagement,sinrManagement,simValues,phyParams);
-end
 
 % Shadowing matrix
 sinrManagement.Shadowing_dB = randn(length(stationManagement.activeIDs),length(stationManagement.activeIDs))*phyParams.stdDevShadowLOS_dB;
@@ -363,25 +360,6 @@ if sum(stationManagement.vehicleState(stationManagement.activeIDs)~=constants.V_
     %    stationManagement.channelSensedBusyMatrix11p = [];
     %end
 
-    % Conversion of sensing power threshold when hidden node probability is active
-    if outParams.printHiddenNodeProb
-        %% TODO - needs update
-        error('Not updated in v5');
-        %if outParams.Pth_dBm==1000
-        %    outParams.Pth_dBm = 10*log10(phyParams.gammaMin*phyParams.PnBW*(appParams.RBsBeacon/2))+30;
-        %end
-        %outParams.Pth = 10^((outParams.Pth_dBm-30)/10);
-    end
-
-    % Initialize vector containing variable beacon periodicity
-    if simParams.technology==constants.TECH_ONLY_11P && appParams.variableBeaconSize
-        % Generate a random integer for each vehicle indicating the period of
-        % transmission (1 corresponds to the transmission of a big beacon)
-        stationManagement.variableBeaconSizePeriodicity = randi(appParams.NbeaconsSmall+1,simValues.maxID,1);
-    else
-        stationManagement.variableBeaconSizePeriodicity = 0;
-    end
-
 end % end of not only LTE
 
 %% Coexistence
@@ -482,17 +460,6 @@ if ismember(constants.V_STATE_LTE_TXRX, stationManagement.vehicleState(stationMa
         stationManagement.lambdaLTE = phyParams.sinrThresholdCV2X_LOS;
     end
 
-    % Conversion of sensing power threshold when hidden node probability is active
-    if outParams.printHiddenNodeProb
-        %% TODO - needs update
-        error('Not updated in v5');
-        %if outParams.Pth_dBm==1000
-        %    outParams.Pth_dBm = 10*log10(phyParams.gammaMin*phyParams.PnRB*(appParams.RBsBeacon/2))+30;
-        %end
-        %outParams.Pth = 10^((outParams.Pth_dBm-30)/10);
-        %outParams.PthRB = outParams.Pth/(appParams.RBsBeacon/2);
-    end
-    
     % The next instant in C-V2X will be the beginning
     % of the first TTI in 0
     timeManagement.timeNextCV2X = 0;
@@ -543,17 +510,6 @@ end
 
 % BRid set to -1 for non-LTE
 stationManagement.BRid(stationManagement.vehicleState~=constants.V_STATE_LTE_TXRX,:)=-3;
-
-% Temporary
-% %% INIT FOR MCO
-% if simParams.mco_nVehInterf>0
-%     sinrManagement.mco_shadowingInterferers_dB = [];
-%     % mco_perceivedInterference is a matrix with one line per position update step
-%     % and one column per interferer
-%     outputValues.mco_perceivedInterferenceIndex = 1;
-%     outputValues.mco_perceivedInterference = -1*ones(10000,simParams.mco_nVehInterf+1);
-%     [sinrManagement,positionManagement,outputValues] = mco_interfVehiclesCalculate(timeManagement,stationManagement,sinrManagement,positionManagement,phyParams,appParams,outputValues,simParams);
-% end
 
 %% Initialization of time variables
 % Stores the instant of the next event among all possible events;

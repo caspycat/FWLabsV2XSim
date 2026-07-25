@@ -1,7 +1,7 @@
 function distanceDetailsCounter = countDistanceDetails(correctRxListRawMax,errorRxListRawMax,distanceDetailsCounter,stationManagement,outParams,appParams,phyParams)
 % Count events for distances up to the maximum awareness range (removing border effect)
 % [distance, #Correctly received beacons, #Errors, #Blocked neighbors, #Neighbors]
-% #Neighbors will be calculated in "printDistanceDetailsCounter.m" (only one call)
+% The neighbor total is calculated when packet-reception results are written.
 
 % Cycle over channel
 for iChannel = 1:phyParams.nChannels

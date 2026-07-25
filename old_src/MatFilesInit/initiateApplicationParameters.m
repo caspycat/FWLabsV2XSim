@@ -71,17 +71,6 @@ end
 if appParams.generationIntervalAverageRandomPart>0 && appParams.variabilityGenerationInterval==-1
     error('Error: Incompatible generation interval setting');
 end
-% The beacon periodicity fB is derived - never used
-%appParams.fB = 1/appParams.averageTbeacon;
-
-% % Removed in version 5.2.10
-% if simParams.typeOfScenario==2 % traffic trace
-%     % if default value of time resolution is selected, update the value to the beacon period
-%     if simParams.positionTimeResolution==-1
-%         simParams.positionTimeResolution = appParams.averageTbeacon;
-%     end
-% end
-
 % [beaconSizeBytes]
 % Beacon size (Bytes)
 [appParams,varargin]= addNewParam(appParams,'beaconSizeBytes',190,'Beacon size (Bytes)','integer',fileCfg,varargin{1});
@@ -97,31 +86,6 @@ if simParams.technology ~= constants.TECH_ONLY_11P % not only 11p
         error('Error in the setting of "appParams.resourcesV2V". Not within 1-100%.');
     end
 end
-if simParams.technology == constants.TECH_ONLY_11P % only 11p . variable size is not supported otherwise
-    % [variableBeaconSize]
-    % Enable to use variable beacon size
-    [appParams,varargin]= addNewParam(appParams,'variableBeaconSize',false,'Varibale beacon size','bool',fileCfg,varargin{1});
-    if appParams.variableBeaconSize~=false && appParams.variableBeaconSize~=true
-        error('Error: "appParams.variableBeaconSize" must be equal to false or true');
-    end
-    
-    if appParams.variableBeaconSize
-        % [beaconSizeSmallBytes]
-        % Beacon size small (Bytes)
-        [appParams,varargin] = addNewParam(appParams,'beaconSizeSmallBytes',190,'Beacon size small (Bytes)','integer',fileCfg,varargin{1});
-        if appParams.beaconSizeSmallBytes<=0 || appParams.beaconSizeSmallBytes>10000 || appParams.beaconSizeSmallBytes>appParams.beaconSizeBytes
-            error('Error in the setting of "appParams.beaconSizeSmallBytes".');
-        end
-        
-        % [NbeaconsSmall]
-        % Number of small beacons between two large beacons
-        [appParams,varargin]= addNewParam(appParams,'NbeaconsSmall',4,'Number of small beacons between two large beacons','integer',fileCfg,varargin{1});
-        if appParams.NbeaconsSmall<=0
-            error('Error in the setting of "appParams.beaconSizeSmallBytes".');
-        end
-    end
-end
-
 % [cbrActive]
 % Duration of the interval for the CBR calculation [s]
 [simParams,varargin] = addNewParam(simParams,'cbrActive',true,'If CBR calculation enabled','bool',fileCfg,varargin{1});
@@ -141,18 +105,9 @@ if simParams.cbrActive
     end
 
     % [dcc_active]
-    % Duration of the interval for the CBR calculation [s]
-    % DCC requires "simParams.cbrActive" to be set to true
+    % DCC requires CBR calculation to be enabled.
     [simParams,varargin] = addNewParam(simParams,'dcc_active',true,'If DCC is enabled','bool',fileCfg,varargin{1});
 end
-
-% Temporary parameter
-% % [mco_nVehInterf]
-% % Number of vehicles that produce only an MCO interference
-% [simParams,varargin]= addNewParam(simParams,'mco_nVehInterf',0,'Number of vehicles that produce only an MCO interference','integer',fileCfg,varargin{1});
-% if simParams.mco_nVehInterf<0
-%     error('Error: "simParams.mco_nVehInterf" cannot be < 0');
-% end
     
 fprintf('\n');
 %

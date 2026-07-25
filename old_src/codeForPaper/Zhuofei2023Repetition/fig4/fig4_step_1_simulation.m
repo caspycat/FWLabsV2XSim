@@ -40,7 +40,7 @@ for ch = ch_model
         end
 
         if ch == 0
-            roadLength = 2000; 
+            roadLength = 2000;
             dens = dens_kms;
         elseif ch == 3
             roadLength = 8000;
@@ -67,7 +67,7 @@ end
 par_num = length(p_ch);
 parfor i = 1:par_num
     % if not complete at last time, remove files and restart
-    if exist(p_outfolder(i), "dir") 
+    if exist(p_outfolder(i), "dir")
         if ~exist(fullfile(p_outfolder(i), "MainOut.xls"), "file")
             rmdir(p_outfolder(i),"s");
         else
@@ -76,9 +76,9 @@ parfor i = 1:par_num
     end
 
     % start simulation
-    WiLabV2Xsim(configFile, 'seed', 0,...
+    WiLabV2Xsim(configFile, 'simulation.RandomSeed', 0,...
         'rho', p_dens(i), 'roadLength', p_roadL(i),...
-        'ITSNumberOfReplicasMax', p_repNum(i),...
-        'folderPERcurves', path_PERcurves, 'channelModel',p_ch(i),...
-        'outputFolder', p_outfolder(i)); 
+        'itsG5.Repetition.MaximumTransmissionCount', p_repNum(i),...
+        'channel.PacketErrorRateCurveDirectory', path_PERcurves, 'channel.PathLoss.Model',p_ch(i),...
+        'output.Directory', p_outfolder(i));
 end

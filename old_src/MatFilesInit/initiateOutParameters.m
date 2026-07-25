@@ -1,4 +1,4 @@
-function [outParams,varargin] = initiateOutParameters(simParams,phyParams,fileCfg,varargin)
+function [outParams,varargin] = initiateOutParameters(simParams,~,fileCfg,varargin)
 % function [outParams,varargin] = initiateOutParameters(fileCfg,varargin)
 %
 % Settings of the outputs
@@ -52,14 +52,6 @@ fprintf('Simulation ID = %.0f\n',outParams.simID);
 % Boolean to activate the print to file of the update delay between received beacons
 [outParams,varargin]= addNewParam(outParams,'printUpdateDelay',false,'Activate the print to file of the update delay between received beacons','bool',fileCfg,varargin{1});
 
-if simParams.technology==1 && strcmp(phyParams.duplexCV2X,'HD') % Supported only with C-V2X only
-    % [enableUpdateDelayHD]
-    % Boolean to enable the computation of the update delay caused only by concurrent transmissions on the same TTI (C-V2X and Half Duplex only)
-    [outParams,varargin]= addNewParam(outParams,'enableUpdateDelayHD',false,'Enable computation of UD only caused by tx/rx on the same subframe (C-V2X and HD only)','bool',fileCfg,varargin{1});
-else %if simParams.technology~=2 && strcmp(phyParams.duplexCV2X,'FD') % if not only 11p and 'FD'
-    outParams.enableUpdateDelayHD = false;
-end
-
 % [printWirelessBlindSpotProb]
 % Boolean to activate the print to file of the wireless blind spot probability
 if outParams.printUpdateDelay
@@ -97,11 +89,6 @@ if outParams.printUpdateDelay || outParams.printDataAge || outParams.printPacket
     end
 end
 
-% % [printDistanceDetails]
-% % Boolean to activate the print to file of the details for distances from 0
-% % up to the maximum awareness range
-% [outParams,varargin]= addNewParam(outParams,'printDistanceDetails',false,'Activate the print to file of the details for distances from 0 up to the maximum awareness range','bool',fileCfg,varargin{1});
-
 % [printPacketReceptionRatio]
 % Boolean to activate the print to file of the details for distances from 0
 % up to the maximum awareness range
@@ -115,43 +102,12 @@ if outParams.printPacketReceptionRatio
     end
 end
 
-% PRR maps were specific to the removed trace scenarios.
-outParams.printPRRmap = false;
-
-% [printPowerControl]
-% Boolean to activate the print to file of the power control allocation
-[outParams,varargin]= addNewParam(outParams,'printPowerControl',false,'Activate the print to file of the power control allocation','bool',fileCfg,varargin{1});
-
-% [powerResolution]
-% Power resolution (dBm)
-if outParams.printPowerControl
-    [outParams,varargin]= addNewParam(outParams,'powerResolution',1,'Power resolution (dBm)','double',fileCfg,varargin{1});
-    if outParams.powerResolution<=0
-        error('Error: "outParams.powerResolution" cannot be <= 0');
-    end
-end
-
 if simParams.cbrActive
   
     % [printCBR]
     % Boolean to activate the print to file of the channel busy ratio
     [outParams,varargin]= addNewParam(outParams,'printCBR',false,'Activate the print to file of the channel busy ratio','bool',fileCfg,varargin{1});
 end
-
-% [printHiddenNodeProb]
-% Boolean to activate the print to file of hidden node probability
-[outParams,varargin]= addNewParam(outParams,'printHiddenNodeProb',false,'Activate the print to file of the hidden node probability','bool',fileCfg,varargin{1});
-
-% [Pth_dBm]
-% Sensing power threshold (dBm)
-if outParams.printHiddenNodeProb
-    [outParams,varargin]= addNewParam(outParams,'Pth_dBm',1000,'Sensing power threshold (dBm)','double',fileCfg,varargin{1});
-end
-
-% Temporary code
-% if simParams.mco_nVehInterf>0
-%     [outParams,varargin]= addNewParam(outParams,'mco_printInterfStatistic',true,'Print MCO interference statistic','bool',fileCfg,varargin{1});
-% end
 
 % [message]
 [outParams,varargin]= addNewParam(outParams,'message', 'None', 'Message during simulation','string',fileCfg,varargin{1});

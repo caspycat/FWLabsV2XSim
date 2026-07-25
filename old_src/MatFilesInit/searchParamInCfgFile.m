@@ -1,7 +1,8 @@
-function value = searchParamInCfgFile(filename,paramname,paramType)
+function [value,found] = searchParamInCfgFile(filename,paramname,paramType)
 % Function used to search for a given parameter in the config file
 
 value = NaN;
+found = false;
 
 fid = fopen(filename);
 if fid==-1
@@ -15,6 +16,7 @@ values = C{2};
 for i=1:length(params)
     parameter = char(params(i));
     if parameter(1)=='[' && parameter(end)==']' && strcmpi(parameter(2:end-1),paramname)
+        found = true;
 
         if strcmpi(paramType,'integer') || strcmpi(paramType,'double')
             value = str2double(values(i));
@@ -27,12 +29,11 @@ for i=1:length(params)
             elseif strcmpi(values(i),'false')
                 value = false;
             else
-             values{i}
                 error('Error: parameter %s must be a boolean.',params(i));
             end
         elseif strcmpi(paramType,'integerOrArrayString')
-            %if ischar(values(i))
-                value = str2num(values{i});
+            % Numeric arrays are represented as one config-file string.
+                value = str2num(values{i}); %#ok<ST2NM>
             %else
             %    value = str2double(values(i));
             %end                

@@ -116,27 +116,6 @@ simValues = applyPositionErrorChain( ...
 % Update of the neighbors
 [positionManagement,stationManagement] = computeNeighbors (stationManagement,positionManagement,phyParams);
 
-% Call function to calculate effective neighbors (if enabled)
-if simParams.neighborsSelection
-    %% TODO - needs update
-    error('Significant neighbors not updated in v5');
-%     if simParams.technology ~= 2 % not only 11p
-%         % LTE
-%         [stationManagement.awarenessIDLTE,stationManagement.neighborsIDLTE,positionManagement.XvehicleRealOld,positionManagement.YvehicleRealOld,positionManagement.angleOld] = computeSignificantNeighbors(stationManagement.activeIDs,positionManagement.XvehicleReal,positionManagement.YvehicleReal,positionManagement.XvehicleRealOld,positionManagement.YvehicleRealOld,stationManagement.neighborsIDLTE,indexNewVehicles,indexOldVehicles,indexOldVehiclesToOld,positionManagement.angleOld,simParams.Mvicinity,phyParams.RawLTE,phyParams.RawMaxCV2X,stationManagement.neighborsDistance);
-%     end
-%     if simParams.technology ~= 1 % not only LTE
-%         % 11p
-%         [stationManagement.awarenessID11p,stationManagement.neighborsID11p,positionManagement.XvehicleRealOld,positionManagement.YvehicleRealOld,positionManagement.angleOld] = computeSignificantNeighbors(stationManagement.activeIDs,positionManagement.XvehicleReal,positionManagement.YvehicleReal,positionManagement.XvehicleRealOld,positionManagement.YvehicleRealOld,stationManagement.neighborsID11p,indexNewVehicles,indexOldVehicles,indexOldVehiclesToOld,positionManagement.angleOld,simParams.Mvicinity,phyParams.Raw11p,phyParams.RawMax11p,stationManagement.neighborsDistance);
-%     end
-end
-
-% Call function to compute hidden or non-hidden nodes (if enabled)
-if outParams.printHiddenNodeProb
-    %% TODO - needs update
-    error('printHiddenNodeProb not updated in v5');
-    %[outputValues.hiddenNodeSumProb,outputValues.hiddenNodeProbEvents] = computeHiddenNodeProb(stationManagement.activeIDs,positionManagement.distanceReal,sinrManagement.RXpower,phyParams.gammaMin,phyParams.PnRB,outParams.PthRB,outputValues.hiddenNodeSumProb,outputValues.hiddenNodeProbEvents);
-end
-
 % Number of UEs in the world
 outputValues.NUEs = length(stationManagement.activeIDs);
 outputValues.NUEsTOT = outputValues.NUEsTOT + outputValues.NUEs;

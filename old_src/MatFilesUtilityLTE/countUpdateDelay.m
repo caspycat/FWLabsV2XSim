@@ -27,13 +27,6 @@ for i = 1:Ntx
     IDOut = setdiff(all,IDIn);
     updateTimeMatrix(IDvehicleTX(i),IDOut,iPhyRaw)=-1;
     for j = 1:length(IDIn)
-        % If boolean 'enableUpdateDelayHD' is false, if the vehicle is not
-        % blocked and if there is no error in reception, update the matrix
-        % with the timestamp of the received beacons
-        % If boolean 'enableUpdateDelayHD' is true, compute only the update
-        % delay caused by concurrent transmissions on the same subframe
-%        if ((BRid(IDIn(j))>0 && isempty(find(errorMatrix(:,1)==IDvehicleTX(i) & errorMatrix(:,2)==IDIn(j), 1))) && ~enableUpdateDelayHD)...
-%                || ((~(BRid(IDIn(j))>0 && BRidT(IDvehicleTX(i))==BRidT(IDIn(j)))) && enableUpdateDelayHD)
         if find(correctRxList(:,1)==IDvehicleTX(i) & correctRxList(:,2)==IDIn(j),1)>0
             % Store previous timestamp
             previousTimeStamp = updateTimeMatrix(IDvehicleTX(i),IDIn(j),iPhyRaw);

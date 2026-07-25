@@ -268,7 +268,7 @@ while timeManagement.timeNow < simParams.simulationTime
             % In the case of 11p, some processing is necessary
             [timeManagement,stationManagement,sinrManagement,outputValues] = ...
                 newPacketIn11p(idEvent,indexEvent,outParams,simParams,positionManagement,...
-                phyParams,timeManagement,stationManagement,sinrManagement,outputValues,appParams);
+                phyParams,timeManagement,stationManagement,sinrManagement,outputValues);
    
             % DEBUG TX-RX
             % printDebugTxRx(timeManagement.timeNow,idEvent,'11p packet generated',stationManagement,sinrManagement,outParams);

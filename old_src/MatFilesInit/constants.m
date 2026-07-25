@@ -5,7 +5,7 @@ classdef constants
     %% ****************************************
 	%% SIMULATOR RELATED
 
-    SIM_VERSION = 'V6.2';
+    SIM_VERSION = 'V7';
 
 
     %% ****************************************

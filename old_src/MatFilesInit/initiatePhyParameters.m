@@ -232,18 +232,6 @@ if simParams.technology ~= constants.TECH_ONLY_CV2X % not only C-V2X (lte or 5g)
     phyParams.sinrThreshold11p_preamble_dB = phyParams.sensitivity11p_dBm - (phyParams.Pnoise_MHz_dBm+pow2db(phyParams.BwMHz));
     phyParams.sinrThreshold11p_preamble = db2pow(phyParams.sinrThreshold11p_preamble_dB);
     
-    if simParams.technology == constants.TECH_ONLY_11P && appParams.variableBeaconSize
-        error('This part needs revision in version 5');
-        %         if ~phyParams.pWithLTEPHY
-        %             % If variable beacon size is selected, derive small packet
-        %             % duration (11p standard PHY)
-        %             phyParams.tPck11pSmall = packetDuration11p(appParams.beaconSizeSmallBytes,phyParams.MCS_11p,-1,-1,phyParams.pWithLTEPHY);
-        %         else
-        %            % If variable beacon size is selected, derive small packet
-        %             % duration (11p with LTE PHY)
-        %             phyParams.tPck11pSmall = packetDuration11p(appParams.beaconSizeSmallBytes,-1,phyParams.NbitsHz,phyParams.BwMHz,phyParams.pWithLTEPHY);
-        %         end
-    end
 end
 
 if simParams.technology ~= constants.TECH_ONLY_11P % not only 11p
@@ -376,27 +364,10 @@ if simParams.technology ~= constants.TECH_ONLY_11P % not only 11p
         error('Error: "phyParams.cv2xCbrFactor" must be larger than 0 (set to %.2f)',phyParams.cv2xCbrFactor);
     end
     
-    % [Ksic]
-    % Parameter Successive interference cancellation
-    [phyParams,varargin] = addNewParam(phyParams,'Ksic',1,'Successive interference cancellation','double',fileCfg,varargin{1});
-    if phyParams.Ksic<0
-        error('Error: "phyParams.Ksic" must be larger than 0');
-    end
-
     % [haveIBE]
     % To state simulator considering the In-Band Emission (IBE) or not
     [phyParams,varargin]= addNewParam(phyParams,'haveIBE', true, 'Simulator considers the In-Band Emission','bool',fileCfg,varargin{1});
-        
-    % [nsic]
-    % Parameter Successive interference cancellation
-    [phyParams,varargin]= addNewParam(phyParams,'nsic',inf,'Maximum SIC iterations','double',fileCfg,varargin{1});
-    if phyParams.nsic<1
-        error('Error: "phyParams.nsic" must be larger than 0');
-    end
 
-    % [forwardSIC]
-    % Remove already decoded replicas
-    [phyParams,varargin]= addNewParam(phyParams,'forwardSIC',false,'Activates forward SIC replicas cancellation','bool',fileCfg,varargin{1});
 end
 
 % parameters for IEEE 802.11p repetition
@@ -455,13 +426,6 @@ end
 % [fadingRayleigh]
 [phyParams,varargin] = addNewParam(phyParams,'fadingRayleigh',false,'Activates uncorrelated Rayleigh fading','bool',fileCfg,varargin{1});
 
-
-% % [winnerModel]
-% % Boolean to activate the use of WINNER+ B1 channel model (3GPP specifications)
-% [phyParams,varargin] = addNewParam(phyParams,'winnerModel',true,'If using Winner+ channel model','bool',fileCfg,varargin{1});
-% if phyParams.winnerModel < 0
-%     error('Error: "phyParams.winnerModel" must be equal to false or true');
-% end
 
 % [channelModel]
 % Integer to selecct the channel model
@@ -678,26 +642,6 @@ end
 % [stdDevShadowNLOS_dB]
 % Standard deviation of shadowing in NLOS (dB)
 [phyParams,varargin] = addNewParam(phyParams,'stdDevShadowNLOS_dB',4,'Standard deviation of shadowing in NLOS (dB)','integer',fileCfg,varargin{1});
-
-% Temporary parameters
-% %% MCO additional settings
-% if simParams.mco_nVehInterf>0
-%     % [mco_interfERP]
-%     % Power of MCO interferers
-%     [phyParams,varargin] = addNewParam(phyParams,'mco_interfERP',0,'Power of MCO interferers (dBm)','double',fileCfg,varargin{1});
-%     % From dBm to linear
-%     phyParams.mco_interfERP = 10^((phyParams.mco_interfERP-30)/10);
-%     % [mco_interfERP]
-%     % Residual power from adjacent channel
-%     [phyParams,varargin] = addNewParam(phyParams,'mco_resPowerFromAdjacent',-33,'Residual power from main to adjacent channel  (dB)','double',fileCfg,varargin{1});
-%     if phyParams.mco_resPowerFromAdjacent > 0
-%         error('phyParams.mco_resPowerFromAdjacent must be <= 0');
-%     end
-%     % From dBm to linear
-%     phyParams.mco_resPowerFromAdjacent = 10^(phyParams.mco_resPowerFromAdjacent/10);
-%
-%     [phyParams,varargin] = addNewParam(phyParams,'mco_interfNeglectedToMainChannel',false,'If interference from adjacent to main should be neglected','bool',fileCfg,varargin{1});
-% end
 
 fprintf('\n');
 

@@ -39,7 +39,7 @@ if Xdiff>=Ydiff && Xdiff && Ydiff
         Y = (((X-Xstart)/(Xend-Xstart))+(Ystart/(Yend-Ystart)))*(Yend-Ystart);
         % If there is a building
         if ~GridMap(floor(Y),floor(X))
-            if channelModel==0 %winnerModel
+            if channelModel==0
                 Nwalls = 1;
                 return;
             end
@@ -81,7 +81,7 @@ elseif Xdiff<Ydiff && Xdiff && Ydiff
         X = (((Y-Ystart)/(Yend-Ystart))+(Xstart/(Xend-Xstart)))*(Xend-Xstart);
         % If there is a building
         if ~GridMap(floor(Y),floor(X))
-            if channelModel==0 %winnerModel
+            if channelModel==0
                 Nwalls = 1;
                 return;
             end
@@ -121,7 +121,7 @@ elseif Xdiff && ~Ydiff
         Y = Ystart;
         % If there is a building
         if ~GridMap(floor(Y),floor(X))
-            if channelModel==0 %winnerModel
+            if channelModel==0
                 Nwalls = 1;
                 return;
             end
@@ -161,7 +161,7 @@ elseif ~Xdiff && Ydiff
         X = Xstart;
         % If there is a building
         if ~GridMap(floor(Y),floor(X))
-            if channelModel==0 %winnerModel
+            if channelModel==0
                 Nwalls = 1;
                 return;
             end

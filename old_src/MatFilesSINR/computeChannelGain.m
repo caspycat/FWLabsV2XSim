@@ -5,7 +5,7 @@ function [sinrManagement,X,Y,LOS] = computeChannelGain(sinrManagement,stationMan
 distance = positionManagement.distanceReal;
 Nvehicles = length(distance(:,1));   % Number of vehicles
 LOS = ones(Nvehicles,Nvehicles);
-if phyParams.channelModel>0 %~phyParams.winnerModel
+if phyParams.channelModel>0
     A = ones(Nvehicles,Nvehicles);  
 end
 
@@ -65,7 +65,7 @@ else
             for j = i+1:Nvehicles
                 if positionManagement.XvehicleReal(j)~=Inf
                     [Nwalls,Nsteps,granularity] = computeGrid(X(i),Y(i),X(j),Y(j),positionManagement.StepMap,positionManagement.GridMap,phyParams.channelModel);
-                    if phyParams.channelModel==0 %phyParams.winnerModel
+                    if phyParams.channelModel==0
                         LOS(i,j) = 1-(Nwalls>0);
                         LOS(j,i) = LOS(i,j);
                     else
@@ -104,11 +104,10 @@ else
     
 end
 
-if phyParams.channelModel==constants.CH_WINNER_PLUS_B1 %phyParams.winnerModel
+if phyParams.channelModel==constants.CH_WINNER_PLUS_B1
     PL = (LOS>0).*PLOS+(LOS==0).*PNLOS;
 else
     % PL and LOS derivation in case of non-winner model
-    %if phyParams.channelModel>0 %~phyParams.winnerModel
     PL = (PLOS./A).*(PNLOSv.^NLOSv);
     % In non-winner model, LOS was set to 1 not to modify the PL
     % Now LOS needs to be correctly set for the shadowing calculation

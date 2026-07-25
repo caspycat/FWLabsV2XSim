@@ -19,17 +19,10 @@ else
 end
 appParams = rmfield( appParams , 'RSUcfg' );
 
-% [MCOcfg]
-[phyParams,varargin]= addNewParam(phyParams,'nChannels',1,'Number of channels','integer',fileCfg,varargin{1});
-if phyParams.nChannels==-1
-    error('Missing field in MCO config file %s: "NumberOfChannels"',fileName);
-end
-if phyParams.nChannels<1
-    error('Number of channels must be positive');
-end
-if phyParams.nChannels>1
-    [appParams,phyParams,varargin] = mco_initiateParameters(fileCfg,appParams,phyParams,varargin{1});    
-end
+% The removed multi-channel initializer never had an implementation in
+% this codebase. Keep the internal dimension explicit for the single
+% supported channel.
+phyParams.nChannels = 1;
 
 fprintf('\n');
 %

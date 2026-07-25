@@ -85,14 +85,6 @@ elseif ismember(simParams.coexMethod, constants.COEX_METHODS_IMPLEMENTED)
                 % Note: "-1" is acceptable. It means automatically set to the
                 % duration of an IEEE 802.11p packet
             end
-            %% Could be added in case
-            % % TX power level
-            %[simParams,varargin] = addNewParam(simParams,'coexB_portionOfPower',1,'Coex B: ERP of energy signals referred to other LTE signals (1 means the same)','double',fileCfg,varargin{1});
-            %if simParams.coexB_portionOfPower<=0
-            %    error('simParams.coexB_portionOfPower must be higher than 0');
-            %    % Note: in prinicple, it can be higher than 1
-            %end
-
             % If all LTE nodes should transmit the energy signal in empty
             % SF (true) or only those with something to transmit in the
             % future (false)
@@ -128,5 +120,4 @@ if simParams.coex_cbrTotVariant~=1 && simParams.coex_cbrTotVariant~=2 && simPara
     error('simParams.coex_cbrTotVariant must be set to 1 or 2');
 end
 %%
-
 

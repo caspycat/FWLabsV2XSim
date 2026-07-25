@@ -1,4 +1,4 @@
-function [stationManagement,sinrManagement,outputValues,simValues] = updateKPICV2X(activeIDsTXLTE,indexInActiveIDsOnlyLTE,awarenessID_LTE,neighborsID_LTE,timeManagement,stationManagement,positionManagement,sinrManagement,outputValues,outParams,simParams,appParams,phyParams,simValues)
+function [stationManagement,sinrManagement,outputValues,simValues] = updateKPICV2X(activeIDsTXLTE,indexInActiveIDsOnlyLTE,awarenessID_LTE,neighborsID_LTE,timeManagement,stationManagement,positionManagement,sinrManagement,outputValues,outParams,~,appParams,phyParams,simValues)
 
 % Update the counter for transmissions and retransmissions
 outputValues.cv2xTransmissionsIncHarq = outputValues.cv2xTransmissionsIncHarq + length(activeIDsTXLTE);
@@ -8,7 +8,7 @@ outputValues.cv2xTransmissionsFirst = outputValues.cv2xTransmissionsFirst + sum(
 % Each line corresponds to an error [TX, RX, BR, distance] within RawMax
 %errorMatrixRawMax = findErrors_TEMP(activeIDsTXLTE,indexInActiveIDsOnlyLTE,neighborsID_LTE,sinrManagement,stationManagement,positionManagement,phyParams);
 % From v 5.4.14
-[fateRxListRawMax,stationManagement,sinrManagement] = elaborateFateRxCV2X(timeManagement,activeIDsTXLTE,indexInActiveIDsOnlyLTE,neighborsID_LTE,sinrManagement,stationManagement,positionManagement,appParams,phyParams);
+[fateRxListRawMax,stationManagement,sinrManagement] = elaborateFateRxCV2X(timeManagement,activeIDsTXLTE,indexInActiveIDsOnlyLTE,neighborsID_LTE,sinrManagement,stationManagement,positionManagement,phyParams);
 
 % Error detection (within each value of Raw)
 for iPhyRaw=1:length(phyParams.Raw)
@@ -56,7 +56,6 @@ for iPhyRaw=1:length(phyParams.Raw)
     
     % Compute update delay (if enabled)
     if outParams.printUpdateDelay
-        %[simValues.updateTimeMatrixCV2X,outputValues.updateDelayCounterCV2X] = countUpdateDelay(stationManagement,iPhyRaw,activeIDsTXLTE,indexInActiveIDsOnlyLTE,stationManagement.BRid,appParams.NbeaconsF,awarenessID_LTE(:,:,iPhyRaw),errorMatrix,timeManagement.timeNow,simValues.updateTimeMatrixCV2X,outputValues.updateDelayCounterCV2X,outParams.delayResolution,outParams.enableUpdateDelayHD);
         [simValues.updateTimeMatrixCV2X,outputValues.updateDelayCounterCV2X] = countUpdateDelay(stationManagement,iPhyRaw,activeIDsTXLTE,indexInActiveIDsOnlyLTE,awarenessID_LTE(:,:,iPhyRaw),correctRxList,timeManagement.timeNow,simValues.updateTimeMatrixCV2X,outputValues.updateDelayCounterCV2X,outParams.delayResolution,simValues);
     end
 
@@ -69,14 +68,6 @@ for iPhyRaw=1:length(phyParams.Raw)
     % Compute packet delay (if enabled)
     if outParams.printPacketDelay
         outputValues.packetDelayCounterCV2X = countPacketDelay(stationManagement,iPhyRaw,activeIDsTXLTE,timeManagement.timeNow,timeManagement.timeGeneratedPacketInTxLTE,correctRxList,outputValues.packetDelayCounterCV2X,outParams.delayResolution);
-    end
-
-    % Compute power control allocation (if enabled)
-    if outParams.printPowerControl
-        error('Output not updated in v5');
-        %   % Convert linear PtxERP values to Ptx in dBm
-        %	Ptx_dBm = 10*log10((phyParams.PtxERP_RB*appParams.RBsBeacon)/(2*phyParams.Gt))+30;
-        %	outputValues.powerControlCounter = countPowerControl(IDvehicleTX,Ptx_dBm,outputValues.powerControlCounter,outParams.powerResolution);
     end
 
 end

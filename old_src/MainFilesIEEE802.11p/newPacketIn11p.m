@@ -1,4 +1,4 @@
-function [timeManagement,stationManagement,sinrManagement,outputValues] = newPacketIn11p(idEvent,indexEvent,outParams,simParams,positionManagement,phyParams,timeManagement,stationManagement,sinrManagement,outputValues,appParams)
+function [timeManagement,stationManagement,sinrManagement,outputValues] = newPacketIn11p(idEvent,indexEvent,outParams,simParams,positionManagement,phyParams,timeManagement,stationManagement,sinrManagement,outputValues)
 % A new packet is generated in IEEE 802.11p
 
 % The queue is updated
@@ -23,15 +23,9 @@ if stationManagement.pckBuffer(idEvent)>1
     % program not going to this "if" state, when the copy of packet has
     % been transmitted one or more times
     if stationManagement.pckTxOccurring(idEvent)==0
-        if ~simParams.neighborsSelection
-            allNeighbors = (stationManagement.activeIDs11p~=idEvent);
-        else
-            % stationManagement.activeIDs(indexEvent) -> idEvent, same
-            indexEvent11p = (stationManagement.activeIDs11p == idEvent);
-            allNeighbors = ismember(stationManagement.activeIDs11p,stationManagement.neighborsID11p(indexEvent11p,:));
-        end
+        allNeighbors = (stationManagement.activeIDs11p~=idEvent);
         distance11pFromTx = positionManagement.distanceReal(stationManagement.vehicleState(stationManagement.activeIDs)~=constants.V_STATE_LTE_TXRX,indexEvent);
-        % remove self (or non "selected", if "neighborsSelection" is active)
+        % Remove the transmitting vehicle.
         distance11pFromTx = distance11pFromTx(allNeighbors);
         % count 
         pckType = stationManagement.pckType(idEvent);
@@ -50,26 +44,10 @@ if stationManagement.pckBuffer(idEvent)>1
                 error('Not expected to arrive here...');
                 %outputValues.distanceDetailsCounterCV2X(iRaw,4) = outputValues.distanceDetailsCounterCV2X(iRaw,4) + nnz(positionManagement.distanceReal(:,indexEvent)<iRaw);
             else
-                if simParams.technology == constants.TECH_ONLY_11P && appParams.variableBeaconSize % if ONLY 11p
-                    % If variable beacon size is selected, find if small or large packet is
-                    % currently transmitted (1 stays for large, 0 for small)
-                    error('This feature has not been tested in this version of the simulator.');
-                    %stationManagement.ifBeaconLarge = (mod(stationManagement.variableBeaconSizePeriodicity(indexEvent)+floor(timeManagement.timeNow/appParams.Tbeacon),appParams.NbeaconsSmall+1))==0;
-                else
-                    % Always large
-                    stationManagement.ifBeaconLarge = 1;
-                end
-                
                 %pckType = stationManagement.pckType(idEvent);
                 %iChannel = stationManagement.vehicleChannel(idEvent);
-                if stationManagement.ifBeaconLarge
-                    for iRaw = 1:floor(phyParams.RawMax11p/outParams.prrResolution)
-                        outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,4) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,4) + nnz(distance11pFromTx<(iRaw*outParams.prrResolution));
-                    end
-                else
-                    for iRaw = 1:floor(phyParams.RawMax11p/outParams.prrResolution)
-                        outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,8) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,8) + nnz(distance11pFromTx<(iRaw*outParams.prrResolution));
-                    end
+                for iRaw = 1:floor(phyParams.RawMax11p/outParams.prrResolution)
+                    outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,4) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,4) + nnz(distance11pFromTx<(iRaw*outParams.prrResolution));
                 end
             end
         end
@@ -131,6 +109,4 @@ stationManagement.pckNextAttempt(idEvent) = 1;
 % reset index of activeIDs11p in the range of Raw earlier (during one packet
 % and it's retransmission)
 stationManagement.indexInRaw_earler(:, idEvent, :) = 0;
-
-
 

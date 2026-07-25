@@ -1,4 +1,4 @@
-function [resultingList,stationManagement,sinrManagement] = elaborateFateRxCV2X(timeManagement,IDvehicleTXLTE,indexVehicleTX,neighborsID,sinrManagement,stationManagement,positionManagement,appParams,phyParams)
+function [resultingList,stationManagement,sinrManagement] = elaborateFateRxCV2X(~,IDvehicleTXLTE,indexVehicleTX,neighborsID,sinrManagement,stationManagement,positionManagement,phyParams)
 % Detect correctly decoded beacons and create the list of correct
 % transmissions
 % [ID TX, ID RX, BRid, distance]
@@ -9,10 +9,6 @@ Ntx = length(IDvehicleTXLTE);              % Number of tx vehicles
 %resultingList = zeros(Ntx*length(neighborsID(1,:)),5);        % Initialize error matrix
 resultingList = zeros(0,5);        % Initialize error matrix
 indexRaw = 0;                              % Initialize number of errors
-
-if phyParams.Ksic<1
-    [sinrManagement] = successiveInterferenceCancellationicCV2X(stationManagement,sinrManagement,appParams,phyParams);
-end
 
 for i = 1:Ntx
 

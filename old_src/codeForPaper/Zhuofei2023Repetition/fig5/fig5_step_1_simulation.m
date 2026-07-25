@@ -34,7 +34,7 @@ p_reptype = [];
 p_repnum = [];
 p_outfolder = [];
 
-for ch = ch_model       
+for ch = ch_model
     for rType = repType
         if rType == 0
             repNumbers = 1:4;
@@ -50,15 +50,15 @@ for ch = ch_model
                 else
                     times = 1;          % 20
                 end
-    
+
                 if ch == 0
-                    roadLength = 2000; 
+                    roadLength = 2000;
                     dens = dens_km;
                 elseif ch == 3
                     roadLength = 8000;
                     dens = dens_km/4;
                 end
-    
+
                 for t = 1:times
                     p_ch = [p_ch, ch];
                     p_roadL = [p_roadL, roadLength];
@@ -75,13 +75,13 @@ for ch = ch_model
         end
     end
 end
-           
+
 
 %% simulation
 par_num = length(p_ch);
 parfor i = 1:par_num
     % if not complete at last time, remove files and restart
-    if exist(p_outfolder(i), "dir") 
+    if exist(p_outfolder(i), "dir")
         if ~exist(fullfile(p_outfolder(i), "MainOut.xls"), "file")
             rmdir(p_outfolder(i),"s");
         else
@@ -89,11 +89,11 @@ parfor i = 1:par_num
         end
     end
 
-    WiLabV2Xsim(configFile, 'seed', 0,...
+    WiLabV2Xsim(configFile, 'simulation.RandomSeed', 0,...
         'rho', p_dens(i), 'roadLength', p_roadL(i),...
-        'retransType', p_reptype(i), 'ITSNumberOfReplicasMax', p_repnum(i),...
-        'ITSReplicasThreshold1', thre1, 'ITSReplicasThreshold2', thre2,...
-        'ITSReplicasThreshold3', thre3,...
-        'folderPERcurves', path_PERcurves,'channelModel',p_ch(i),...
-        'outputFolder', p_outfolder(i)); 
+        'itsG5.Repetition.Mode', p_reptype(i), 'itsG5.Repetition.MaximumTransmissionCount', p_repnum(i),...
+        'itsG5.Repetition.LowCbrThreshold', thre1, 'itsG5.Repetition.MediumCbrThreshold', thre2,...
+        'itsG5.Repetition.HighCbrThreshold', thre3,...
+        'channel.PacketErrorRateCurveDirectory', path_PERcurves,'channel.PathLoss.Model',p_ch(i),...
+        'output.Directory', p_outfolder(i));
 end

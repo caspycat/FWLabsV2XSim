@@ -18,7 +18,7 @@ if fseek(fileMainID, 1, 'bof') == -1
     %2 Scenario
     fprintf(fileMainID,'Vehicles position\tFile obstacles map\t');
     fprintf(fileMainID,'Sim (positionTimeResolution,Limits)\t');
-    fprintf(fileMainID,'Sim (PosError,Tupdate,neighborsSelection,Mvicinity)\t');
+    fprintf(fileMainID,'Sim (PosError,Tupdate)\t');
     %3 App settings
     fprintf(fileMainID,'App (AllocationPeriod,PacketSize,%%ofRes)\t');
     fprintf(fileMainID,'App (Available BRs,PRBlocks,nSubcBeacon*sizeSubc,AdjSCI)\t');
@@ -80,7 +80,6 @@ elseif simParams.technology == constants.TECH_COEX_STD_INTERF
         else
             fprintf(fileMainID,', B dynamic (Tsf=%.3f',simParams.coex_superFlength);
         end
-        %fprintf(fileMainID,',Tg=%.6f,dPw=%.2f',simParams.coexB_timeBeforeLTEstarts,simParams.coexB_portionOfPower);
         fprintf(fileMainID,',Tg=%.6f',simParams.coexB_timeBeforeLTEstarts);
         if simParams.coexB_allToTransmitInEmptySF
             fprintf(fileMainID,',allTx');
@@ -115,12 +114,6 @@ elseif simParams.technology == constants.TECH_COEX_STD_INTERF
     end
     if simParams.coexMethod ~= constants.COEX_METHOD_NON && simParams.coex_slotManagement == constants.COEX_SLOT_DYNAMIC
         fprintf(fileMainID,',dyn:vT%d',simParams.coex_cbrTotVariant);        
-        %% Removed in v5.2.10
-        %fprintf(fileMainID,',dyn:vT%d,vL%d',coex_cbrTotVariant,simParams.coex_cbrLteVariant);
-        %if simParams.coex_cbrTotVariant==2 
-        %    fprintf(fileMainID,',Pt%d',10*log10(simParams.coex_powerStopSensing11p));
-        %end
-        %%
     end
     fprintf(fileMainID,'\t');
 else
@@ -151,18 +144,12 @@ if outputValues.AvgNUEsCV2X>0
 %if simParams.technology ~= 2 % not only 11p
     fprintf(fileMainID,'%.1f,',simParams.posError95);
     if simParams.Tupdate > simParams.simulationTime
-        fprintf(fileMainID,'inf,');
+        fprintf(fileMainID,'inf');
     else
-        fprintf(fileMainID,'%f,',simParams.Tupdate);
+        fprintf(fileMainID,'%f',simParams.Tupdate);
     end
 else
-    fprintf(fileMainID,'-,-,');
-end
-
-if simParams.neighborsSelection
-    fprintf(fileMainID,'true,%0.f',simParams.Mvicinity);
-else
-    fprintf(fileMainID,'false,-');
+    fprintf(fileMainID,'-,-');
 end
 
 fprintf(fileMainID,'\t');
@@ -181,11 +168,7 @@ elseif appParams.variabilityGenerationInterval ~= constants.PACKET_GENERATION_PE
     fprintf(fileMainID,'(+/-%.3f,11p)',appParams.variabilityGenerationInterval/2);
 end
 fprintf(fileMainID,',');
-if simParams.technology == 2 && appParams.variableBeaconSize  % only 11p with variable size
-    fprintf(fileMainID,'%.0f(1)-%.0f(%d),',appParams.beaconSizeBytes,appParams.beaconSizeSmallBytes,appParams.NbeaconsSmall);
-else
-    fprintf(fileMainID,'%.0f,',appParams.beaconSizeBytes);
-end
+fprintf(fileMainID,'%.0f,',appParams.beaconSizeBytes);
 if outputValues.AvgNUEsCV2X>0
 %if simParams.technology~=2 % not only 11p
     fprintf(fileMainID,'%.0f\t',appParams.resourcesV2V);
@@ -261,7 +244,7 @@ fprintf(fileMainID,',%.0f,',phyParams.Pnoise_MHz_dBm);
 fprintf(fileMainID,',%.1f,',phyParams.F_dB);
 fprintf(fileMainID,'%.0f,%.0f,',phyParams.Gt_dB,phyParams.Gr_dB);
 
-if phyParams.channelModel>0 %~phyParams.winnerModel
+if phyParams.channelModel>0
     fprintf(fileMainID,'%.0f,%.3f,%.2f',phyParams.L0_dB,phyParams.beta);
     if simParams.fileObstaclesMap == true
         fprintf(fileMainID,' (Abuild=%.2fdB,Awall=%.2fdB)',phyParams.Abuild_dB,phyParams.Awall_dB);
@@ -297,10 +280,6 @@ else
         end
     end    
 end
-% Temporary
-% if simParams.mco_nVehInterf>0
-%     fprintf(fileMainID,'+%dMCO(Tx%ddBm,res%ddB)',10*log10(phyParams.mco_interfERP+30),10*log10(phyParams.mco_resPowerFromAdjacent));
-% end
 fprintf(fileMainID,'\t');
 
 %if simParams.technology ~= 2 % not only 11p
@@ -329,7 +308,7 @@ if outputValues.AvgNUEs11p>0
     fprintf(fileMainID,'%.0f',phyParams.RawMaxLOS11p);
 end 
 fprintf(fileMainID,',');
-if phyParams.channelModel==0 %phyParams.winnerModel
+if phyParams.channelModel==0
     if simParams.technology ~= 2 % not only 11p
         fprintf(fileMainID,'%.0f',phyParams.RawMaxNLOSCV2X);
     end
@@ -393,11 +372,7 @@ if outputValues.AvgNUEsCV2X>0
         fprintf(fileMainID,'T1=%.2f,T2=%.2f,',simParams.T1autonomousMode,simParams.T2autonomousMode);
         fprintf(fileMainID,'Pthr=%d,minSCIsinr=%.2f,',10*log10(simParams.powerThresholdAutonomous)+30,10*log10(phyParams.minSCIsinr));
         fprintf(fileMainID,"L2active="+simParams.L2active+",");
-        fprintf(fileMainID,"averageSensingActive="+simParams.averageSensingActive+",");
-        fprintf(fileMainID,'Ksic=%f',phyParams.Ksic);
-        if phyParams.Ksic<1
-            fprintf(fileMainID,',%0.f sic iterations',phyParams.nsic);
-        end
+        fprintf(fileMainID,"averageSensingActive="+simParams.averageSensingActive);
     end
     if simParams.BRAlgorithm==10
         if simParams.knownShadowing
@@ -407,11 +382,7 @@ if outputValues.AvgNUEsCV2X>0
         end
     end
     if simParams.BRAlgorithm==101
-        fprintf(fileMainID,'T1=%.2f,T2=%.2f,',simParams.T1autonomousMode,simParams.T2autonomousMode);
-        fprintf(fileMainID,'Ksic=%f',phyParams.Ksic);
-        if phyParams.Ksic<1
-            fprintf(fileMainID,',%0.f sic iterations',phyParams.nsic);
-        end
+        fprintf(fileMainID,'T1=%.2f,T2=%.2f',simParams.T1autonomousMode,simParams.T2autonomousMode);
     end
     fprintf(fileMainID,'\t');
 else

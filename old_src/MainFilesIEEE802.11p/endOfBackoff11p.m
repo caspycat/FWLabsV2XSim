@@ -13,24 +13,8 @@ if phyParams.fadingRayleigh
     sinrManagement.P_RX_MHz(:,indexEvent) = sinrManagement.P_RX_MHz_no_fading(:,indexEvent).*fadingVector;
 end
 
-if simParams.technology == 2 && appParams.variableBeaconSize % if ONLY 11p
-    % If variable beacon size is selected, find if small or large packet is
-    % currently transmitted (1 stays for large, 0 for small)
-    error('This feature has not been tested in this version of the simulator.');
-    %stationManagement.ifBeaconLarge = (mod(stationManagement.variableBeaconSizePeriodicity(indexEvent)+floor(timeManagement.timeNow/appParams.Tbeacon),appParams.NbeaconsSmall+1))==0;
-else
-    % Always large
-    stationManagement.ifBeaconLarge = 1;
-end
-
-if stationManagement.ifBeaconLarge 
-    % If the vehicle transmits a large packet
-    timeManagement.timeNextTxRx11p(idEvent) = round(timeManagement.timeNow + phyParams.tPck11p, 10);
-else
-    % if only 11p and variable beacons
-    % If the vehicle transmits a small packet
-    timeManagement.timeNextTxRx11p(idEvent) = round(timeManagement.timeNow + phyParams.tPck11pSmall, 10);
-end
+timeManagement.timeNextTxRx11p(idEvent) = round( ...
+    timeManagement.timeNow + phyParams.tPck11p,10);
 
 % The average SINR is updated
 sinrManagement = updateSINR11p(timeManagement,sinrManagement,stationManagement,phyParams);
@@ -65,5 +49,4 @@ end
 
 stationManagement.pckTxOccurring(idEvent) = stationManagement.pckNextAttempt(idEvent);
 stationManagement.pckNextAttempt(idEvent) = stationManagement.pckNextAttempt(idEvent) + 1;
-
 

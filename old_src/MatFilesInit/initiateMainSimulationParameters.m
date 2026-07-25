@@ -7,11 +7,14 @@ function [simParams,varargin] = initiateMainSimulationParameters(fileCfg,varargi
 % It returns the structure "simParams"
 
 fprintf('Simulation settings\n');
-% [CheckVersion]
+% [simulation.RequiredVersion]
 % check if the simulation tasks are running on the right simulator verion
 [simParams,varargin] = addNewParam([],'CheckVersion',constants.SIM_VERSION,'Simulator version needed','string',fileCfg,varargin{1});
-if simParams.CheckVersion ~= constants.SIM_VERSION
-    error('You are using a wrong version!');
+if ~strcmp(simParams.CheckVersion,constants.SIM_VERSION)
+    error( ...
+        'v2xsim:parameters:WrongVersion', ...
+        'Configuration requires simulator %s, but this is %s.', ...
+        simParams.CheckVersion,constants.SIM_VERSION);
 end
 
 % [seed]
@@ -228,23 +231,6 @@ end
 
 [simParams,varargin] = initiatePositionErrorChain( ...
     simParams,fileCfg,varargin{1});
-
-% [neighborsSelection]
-% Choose whether to use significant neighbors selection
-[simParams,varargin] = addNewParam(simParams,'neighborsSelection',false,'If using significant neighbors selection','bool',fileCfg,varargin{1});
-if simParams.neighborsSelection~=false && simParams.neighborsSelection~=true
-    error('Error: "simParams.neighborsSelection" must be equal to false or true');
-end
-
-if simParams.neighborsSelection
-    error('This version of the simulator has not been tested with "neighborsSelection"');
-    % [Mvicinity]
-    % Margin for trajectory vicinity (m)
-    %[simParams,varargin] = addNewParam(simParams,'Mvicinity',10,'Margin for trajectory vicinity (m)','integer',fileCfg,varargin{1});
-    %if simParams.Mvicinity < 0
-    %    error('Error: "simParams.Mvicinity" cannot be negative.');
-    %end
-end
 
 fprintf('\n');
 

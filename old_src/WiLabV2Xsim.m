@@ -42,7 +42,7 @@ function WiLabV2Xsim(varargin)
 % line; the priority is: 1) command line; 2) config file; 3) default value.
 %
 % Example call:
-% WiLabV2Xsim('default','seed',0,'MCS_LTE',2);
+% WiLabV2Xsim('default','simulation.RandomSeed',0,'lteV2x.Mcs',2);
 % In this example, the seed for random numbers is randomly selected and the
 % MCS 2 is set. Then the other parameters take the value from the default
 % config file if the file is present and the parameter is set; otherwise
@@ -162,19 +162,10 @@ if outParams.printPacketDelay
 end
 
 if outParams.printPacketReceptionRatio
-    % If simulating variable beacon size (currently 802.11p only)
     if simParams.technology~=constants.TECH_ONLY_CV2X % not only C-V2X 
-        if simParams.technology==constants.TECH_ONLY_11P && appParams.variableBeaconSize
-            % Initialize 9 columns in distanceDetailsCounter (for smaller beacons)
-            % The matrix becomes:
-            % [distance, #Correctly decoded beacons (big), #Errors (big), #Blocked neighbors (big), #Neighbors (big),
-            % #Correctly decoded beacons (small), #Errors (small), #Blocked neighbors (small), #Neighbors (small)]
-%            outputValues.distanceDetailsCounter11p = zeros(appParams.nPckTypes,floor(phyParams.RawMax11p/outParams.prrResolution),9);
-            outputValues.distanceDetailsCounter11p = zeros(phyParams.nChannels,appParams.nPckTypes,floor(phyParams.RawMax11p/outParams.prrResolution),9);
-        else
-%            outputValues.distanceDetailsCounter11p = zeros(appParams.nPckTypes,floor(phyParams.RawMax11p/outParams.prrResolution),5);
-            outputValues.distanceDetailsCounter11p = zeros(phyParams.nChannels,appParams.nPckTypes,floor(phyParams.RawMax11p/outParams.prrResolution),5);
-        end
+        outputValues.distanceDetailsCounter11p = zeros( ...
+            phyParams.nChannels,appParams.nPckTypes, ...
+            floor(phyParams.RawMax11p/outParams.prrResolution),5);
         for iChannel = 1:phyParams.nChannels
             for pckType=1:appParams.nPckTypes
                 outputValues.distanceDetailsCounter11p(iChannel,pckType,:,1) = (outParams.prrResolution:outParams.prrResolution:floor(phyParams.RawMax11p))';
@@ -184,7 +175,8 @@ if outParams.printPacketReceptionRatio
     
     if simParams.technology~=constants.TECH_ONLY_11P % not only 11p
         % Initialize array with the counters of Rx details vs. distance (up to RawMax)
-        % [distance, #Correctly decoded beacons, #Errors, #Blocked neighbors, #Neighbors (computed in printDistanceDetailsCounter)]
+        % [distance, #Correctly decoded beacons, #Errors,
+        %  #Blocked neighbors, #Neighbors]
         
 %        outputValues.distanceDetailsCounterCV2X = zeros(appParams.nPckTypes,floor(phyParams.RawMaxCV2X/outParams.prrResolution),5);
         outputValues.distanceDetailsCounterCV2X = zeros(phyParams.nChannels,appParams.nPckTypes,floor(phyParams.RawMaxCV2X/outParams.prrResolution),5);
@@ -195,27 +187,6 @@ if outParams.printPacketReceptionRatio
             end
         end
     end
-end
-
-if outParams.printPowerControl
-    %
-    error('Power control output not updated in v5');
-    % NOTE: needs check regarding the new power per MHz parameter
-%     % Initialize array with the counters of power control events
-%     % (max Ptx/powerResolution + 10dBm margin -> TX power higher than
-%     % PtxMax + 10 dBm are registered in the last element of the array)
-%     % (min -100 dBm -> TX power lower than -100dBm are registered in the
-%     % first element of the array)
-%     NpowerControlEvents = round(101/outParams.powerResolution) + round(phyParams.P_ERP_MHz_dBm/outParams.powerResolution);
-%     outputValues.powerControlCounter = zeros(NpowerControlEvents,1);
-end
-
-if outParams.printHiddenNodeProb
-    % TODO - not updated
-    error('not supported in v5');
-    % Initialize arrays for hidden node probability
-    %outputValues.hiddenNodeSumProb = zeros(floor(phyParams.RawMax)+1,1);
-    %outputValues.hiddenNodeProbEvents = zeros(floor(phyParams.RawMax)+1,1);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -257,12 +228,6 @@ for pckType = 1:appParams.nPckTypes
         end
     end
 end
-
-% Temporary
-% OUTPUT FOR MCO
-% if simParams.mco_nVehInterf>0 && outParams.mco_printInterfStatistic
-%     mco_printOutput(stationManagement,simParams,outParams,outputValues);
-% end
 
 % Average Blocking Rate
 % outputValues.blockingRateCV2X = sum(outputValues.NblockedCV2X,1) ./ (sum(outputValues.NcorrectlyTxBeaconsCV2X+outputValues.NerrorsCV2X+outputValues.NblockedCV2X,1));
@@ -341,22 +306,12 @@ end
 % Print details for distances up to the maximum awareness range (if enabled)
 if outParams.printPacketReceptionRatio
     if sum(stationManagement.vehicleState == constants.V_STATE_LTE_TXRX)>0
-        printPacketReceptionRatio(simParams.stringCV2X,outputValues.distanceDetailsCounterCV2X,outParams,appParams,simParams,phyParams);
+        printPacketReceptionRatio(simParams.stringCV2X,outputValues.distanceDetailsCounterCV2X,outParams,appParams,phyParams);
     end
     if sum(stationManagement.vehicleState ~= constants.V_STATE_LTE_TXRX)>0
     %if simParams.technology~=1 % 11p or coexistence, not LTE
-        printPacketReceptionRatio('11p',outputValues.distanceDetailsCounter11p,outParams,appParams,simParams,phyParams);
+        printPacketReceptionRatio('11p',outputValues.distanceDetailsCounter11p,outParams,appParams,phyParams);
     end
-end
-
-% Print power control allocation to file (if enabled)
-if outParams.printPowerControl
-    printPowerControl(outputValues,outParams);
-end
-
-% Print hidden node probability to file (if enabled)
-if outParams.printHiddenNodeProb
-    printHiddenNodeProb(outputValues,outParams);
 end
 
 % Print to XLS file
