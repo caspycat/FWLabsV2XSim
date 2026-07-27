@@ -127,69 +127,10 @@ outputValues.NUEs11p = outputValues.NUEs11p + ...
 % Number of neighbors
 [outputValues,~,NneighborsRawLTE,NneighborsRaw11p] = updateAverageNeighbors(simParams,stationManagement,outputValues,phyParams);
 
-% Print number of neighbors per UE to file (if enabled)
-if outParams.printNeighbors
-    printNeighborsToFile(timeManagement.timeNow,positionManagement, ...
-        outputValues.NUEs, ...
-        NneighborsRawLTE/length(stationManagement.activeIDsCV2X), ...
-        NneighborsRaw11p/length(stationManagement.activeIDs11p), ...
-        outParams,phyParams);
-end
-
-% Prepare matrix for update delay computation (if enabled)
-if outParams.printUpdateDelay
-    % Reset update time of vehicles that are outside the scenario
-    allIDOut = setdiff(1:simValues.maxID,stationManagement.activeIDs);
-    simValues.updateTimeMatrix11p(allIDOut,:,:) = -1;
-    simValues.updateTimeMatrix11p(:,allIDOut,:) = -1;
-    simValues.updateTimeMatrixCV2X(allIDOut,:,:) = -1;
-    simValues.updateTimeMatrixCV2X(:,allIDOut,:) = -1;
-end
-
-% Prepare matrix for update delay computation (if enabled)
-if outParams.printDataAge
-    % Reset update time of vehicles that are outside the scenario
-    allIDOut = setdiff(1:simValues.maxID,stationManagement.activeIDs);
-    simValues.dataAgeTimestampMatrix11p(allIDOut,:,:) = -1;
-    simValues.dataAgeTimestampMatrix11p(:,allIDOut,:) = -1;
-    simValues.dataAgeTimestampMatrixCV2X(allIDOut,:,:) = -1;
-    simValues.dataAgeTimestampMatrixCV2X(:,allIDOut,:) = -1;
-end
-
-% Compute wireless blind spot probability (if enabled - update delay is required)
-% The WBSP is calculated at every position update
-if outParams.printUpdateDelay && outParams.printWirelessBlindSpotProb
-%     %error('Not updated in v. 5.X');
-%     %% TODO with coexistence
-%     if simParams.technology~=1 && simParams.technology~=2
-%         error('Not implemented');
-%     end
-%     if simParams.technology==2 || elapsedTime_subframes>appParams.NbeaconsT
-%         if simParams.technology==1
-%             outputValues.wirelessBlindSpotCounter = countWirelessBlindSpotProb(simValues.updateTimeMatrixCV2X,outputValues.wirelessBlindSpotCounter,timeManagement.timeNow);
-%         else
-%             outputValues.wirelessBlindSpotCounter = countWirelessBlindSpotProb(simValues.updateTimeMatrix11p,outputValues.wirelessBlindSpotCounter,timeManagement.timeNow);
-%         end
-%     end       
-    if ~isempty(stationManagement.activeIDsCV2X)
-        for iRaw = 1:length(phyParams.Raw)
-            valuesEnteredInRange = outputValues.enteredInRangeLTE(:,:,iRaw);
-            valuesEnteredInRange(stationManagement.activeIDsCV2X,stationManagement.activeIDsCV2X) = (valuesEnteredInRange(stationManagement.activeIDsCV2X,stationManagement.activeIDsCV2X)<0 & positionManagement.distanceReal(stationManagement.activeIDsCV2X,stationManagement.activeIDsCV2X)<=phyParams.Raw(iRaw))*(1+timeManagement.timeNow)-1;
-            valuesEnteredInRange( positionManagement.distanceReal > phyParams.Raw(iRaw) ) = -1;
-            outputValues.enteredInRangeLTE(:,:,iRaw) = valuesEnteredInRange - (diag(diag(valuesEnteredInRange+1)));
-        end
-    	outputValues.wirelessBlindSpotCounterCV2X = countWirelessBlindSpotProb(simValues.updateTimeMatrixCV2X,outputValues.enteredInRangeLTE,outputValues.wirelessBlindSpotCounterCV2X,timeManagement.timeNow,phyParams);
-    end
-    if ~isempty(stationManagement.activeIDs11p)
-        for iRaw = 1:length(phyParams.Raw)
-            valuesEnteredInRange = outputValues.enteredInRange11p(:,:,iRaw);
-            valuesEnteredInRange(stationManagement.activeIDs11p,stationManagement.activeIDs11p) = (valuesEnteredInRange(stationManagement.activeIDs11p,stationManagement.activeIDs11p)<0 & positionManagement.distanceReal(stationManagement.activeIDs11p,stationManagement.activeIDs11p)<=phyParams.Raw(iRaw))*(1+timeManagement.timeNow)-1;
-            valuesEnteredInRange( positionManagement.distanceReal > phyParams.Raw(iRaw) ) = -1;
-            outputValues.enteredInRange11p(:,:,iRaw) = valuesEnteredInRange - (diag(diag(valuesEnteredInRange+1)));
-        end
-    	outputValues.wirelessBlindSpotCounter11p = countWirelessBlindSpotProb(simValues.updateTimeMatrix11p,outputValues.enteredInRange11p,outputValues.wirelessBlindSpotCounter11p,timeManagement.timeNow,phyParams);
-    end
-end
+dispatchAfterNeighborGraphUpdated( ...
+    simValues,timeManagement,stationManagement, ...
+    positionManagement,phyParams, ...
+    NneighborsRawLTE,NneighborsRaw11p);
 
 % Update of parameters related to transmissions in IEEE 802.11p to cope
 % with vehicles exiting the scenario
@@ -239,7 +180,7 @@ stationManagement.pckNextAttempt(stationManagement.activeIDsExit) = 1;
 stationManagement.pckTxOccurring(stationManagement.activeIDsExit) = 0;
 
 %% CBR settings for the new vehicles
-if simParams.cbrActive && (outParams.printCBR || (simParams.technology==constants.TECH_COEX_STD_INTERF && simParams.coexMethod~=constants.COEX_METHOD_NON && simParams.coex_slotManagement==constants.COEX_SLOT_DYNAMIC))
+if simParams.cbrActive
     timeManagement.cbr11p_timeStartMeasInterval(stationManagement.activeIDs(indexNewVehicles)) = timeManagement.timeNow;
     if simParams.technology==constants.TECH_COEX_STD_INTERF && simParams.coexMethod==constants.COEX_METHOD_A    
         timeManagement.cbr11p_timeStartBusy(stationManagement.activeIDs(indexNewVehicles) .* timeManagement.coex_superframeThisIsLTEPart(stationManagement.activeIDs(indexNewVehicles))) = timeManagement.timeNow;

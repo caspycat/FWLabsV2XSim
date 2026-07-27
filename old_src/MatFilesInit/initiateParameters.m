@@ -1,4 +1,5 @@
-function [simParams,appParams,phyParams,outParams] = initiateParameters(varargin)
+function [simParams,appParams,phyParams,outParams,outputHookOptions] = ...
+        initiateParameters(varargin)
 % Function to initialize simulator parameters
 
 nArgs = length(varargin{1});
@@ -39,7 +40,8 @@ simParams.fileCfg = fileCfg;
 [phyParams,varargin] = initiatePhyParameters(simParams,appParams,fileCfg,varargin{1});
 
 % Initialize Output parameters
-[outParams,varargin] = initiateOutParameters(simParams,phyParams,fileCfg,varargin{1});
+[outParams,varargin,outputHookOptions] = ...
+    initiateOutParameters(simParams,phyParams,fileCfg,varargin{1});
     
 % C-V2X derived parameters
 if simParams.technology ~= constants.TECH_ONLY_11P % not only 11p

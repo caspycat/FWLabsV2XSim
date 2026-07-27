@@ -1,4 +1,4 @@
-function [simValues,outputValues,sinrManagement,stationManagement] = updateKPI11p(idEvent,indexEvent,timeManagement,stationManagement,positionManagement,sinrManagement,~,phyParams,outParams,simValues,outputValues)
+function [simValues,outputValues,sinrManagement,stationManagement] = updateKPI11p(idEvent,indexEvent,timeManagement,stationManagement,positionManagement,sinrManagement,~,phyParams,simValues,outputValues)
 % KPIs: correct transmissions and errors are counted
 
 % The message is correctly received if:
@@ -6,7 +6,6 @@ function [simValues,outputValues,sinrManagement,stationManagement] = updateKPI11
 % 2) the node is receiving from idEvent
 % 3) the average SINR is above the threshold
 % Values are counted within a circle of radius raw
-% filename = sprintf('%s/_DebugKPI_%d.xls',outParams.outputFolder,outParams.simID);
 
 %% printDebugKPI
 % if ~isfile(filename)
@@ -22,7 +21,6 @@ indexEvent11p = find(stationManagement.activeIDs11p == idEvent);
 
 IDvehicle11p = stationManagement.activeIDs11p;
 indexVehicle11p = stationManagement.indexInActiveIDs_of11pnodes;
-distance11p = positionManagement.distanceReal(stationManagement.vehicleState(stationManagement.activeIDs)~=100,stationManagement.vehicleState(stationManagement.activeIDs)~=100);
 
 % Note: I need to work with line vectors, otherwise it works differently when
 % sinrVector11p is a vector and when sinrVector11p is a scalar
@@ -47,15 +45,41 @@ rxOK_thisTime = (stationManagement.vehicleState(IDvehicle11p)==constants.V_STATE
     .* (totalSINR >= sinrThr');
 rxOK_now = rxOK_earlier | rxOK_thisTime;
 
-if stationManagement.pckTxOccurring(idEvent) == 1
-    notRxOK_earlier = zeros(size(indexVehicle11p));
-else
-    notRxOK_earlier = ~rxOK_earlier;
-end
-notRxOK_now = ~rxOK_now;
-
 % From version 5.3.1, multiple channels may be present
 sameChannel = (stationManagement.vehicleChannel==stationManagement.vehicleChannel(idEvent));
+
+fateCandidateReceiverIds = ...
+    stationManagement.neighborsID11p(indexEvent11p,:);
+isCandidateOnSameChannel = false(size(fateCandidateReceiverIds));
+isCandidate = fateCandidateReceiverIds>0;
+isCandidateOnSameChannel(isCandidate) = ...
+    sameChannel(fateCandidateReceiverIds(isCandidate));
+fateCandidateReceiverIds = fateCandidateReceiverIds( ...
+    isCandidateOnSameChannel);
+newCorrectReceiverIds = intersect( ...
+    IDvehicle11p( ...
+        ~logical(rxOK_earlier) & logical(rxOK_thisTime)), ...
+    fateCandidateReceiverIds,"stable");
+correctPairs = [ ...
+    repmat(idEvent,numel(newCorrectReceiverIds),1), ...
+    newCorrectReceiverIds(:)];
+errorPairs = zeros(0,2);
+if stationManagement.pckTxOccurring(idEvent) >= ...
+        stationManagement.ITSNumberOfReplicas(idEvent)
+    errorReceiverIds = intersect( ...
+        IDvehicle11p(~logical(rxOK_now)), ...
+        fateCandidateReceiverIds,"stable");
+    errorPairs = [ ...
+        repmat(idEvent,numel(errorReceiverIds),1), ...
+        errorReceiverIds(:)];
+end
+candidateReceiverIds = stationManagement.activeIDs11p(:).';
+candidateReceiverIds(candidateReceiverIds==idEvent) = 0;
+dispatchAfterPacketFatesDetermined( ...
+    simValues,timeManagement.timeNow,"11p",phyParams.Raw, ...
+    stationManagement,positionManagement,idEvent, ...
+    timeManagement.timeLastPacket(idEvent),candidateReceiverIds, ...
+    correctPairs,errorPairs,"none");
 
 pckType = stationManagement.pckType(idEvent);
 iChannel = stationManagement.vehicleChannel(idEvent);
@@ -78,16 +102,12 @@ for iPhyRaw = 1:length(phyParams.Raw)
     rxOKRaw_earlier = indexInRaw_earlier & stationManagement.pckReceived(indexVehicle11p, idEvent);
     rxOKRaw_thisTime = indexInRaw_thisTime & rxOK_thisTime;
     rxOKRaw_now = rxOKRaw_thisTime | rxOKRaw_earlier;
-    % Rx OK of "just this time" 
-    rxOKRaw_justThisTime = (rxOKRaw_thisTime - rxOKRaw_earlier) == 1;
-
     % number of neighbors in history
     NneighborsRaw_earlier = nnz(indexInRaw_earlier);
     % number of neighbors now (includes history)
     NneighborsRaw_now = nnz(indexInRaw_now);
     NcorrectlyTxBeacons_earlier = nnz(rxOKRaw_earlier);
     NcorrectlyTxBeacons_now = nnz(rxOKRaw_now);
-    NcorrectlyTxBeacons_jusTthisTime = nnz(rxOKRaw_justThisTime);
     % printDebugKPI(fid,timeManagement.timeNow,'NcorrTxBeacon',phyParams.Raw(iPhyRaw),idEvent,stationManagement.pckTxOccurring(idEvent), NcorrectlyTxBeacons_earlier,NcorrectlyTxBeacons_now);
     
     outputValues.NcorrectlyTxBeacons11p(iChannel,pckType,iPhyRaw) =...
@@ -122,90 +142,6 @@ for iPhyRaw = 1:length(phyParams.Raw)
         NneighborsRaw_earlier + NneighborsRaw_now;
     % printDebugKPI(fid,timeManagement.timeNow,'NtxBeaconsTOT',phyParams.Raw(iPhyRaw),idEvent,stationManagement.pckTxOccurring(idEvent), -1,outputValues.NtxBeaconsTOT(iChannel,pckType,iPhyRaw));
 
-    % Compute update delay (if enabled)
-    if outParams.printUpdateDelay
-        % Find maximum delay in updateDelayCounter
-        delayMax = length(outputValues.updateDelayCounter11p(1,1,:,1))*outParams.delayResolution;
-
-        % ID of vehicles that are outside the awareness range of vehicle i
-        all = (1:length(simValues.updateTimeMatrix11p(:,1,iPhyRaw)))';
-        IDOut = setdiff(all,IDIn_thisTime);
-        simValues.updateTimeMatrix11p(idEvent,IDOut,iPhyRaw)=-1;
-        for iRaw = 1:length(IDIn_thisTime)
-            % If the beacon is currently correctly received by the neighbor
-            % inside the awareness range
-            if find(IDvehicle11p(rxOKRaw_justThisTime)==IDIn_thisTime(iRaw))
-                % Store previous timestamp
-                previousTimeStamp = simValues.updateTimeMatrix11p(idEvent,IDIn_thisTime(iRaw),iPhyRaw);
-                % If there was a previous timestamp
-                if previousTimeStamp>0
-                    % Compute update delay
-                    updateDelay = timeManagement.timeNow - previousTimeStamp;
-                    if updateDelay>=delayMax
-                        % Increment last counter
-                        outputValues.updateDelayCounter11p(iChannel,pckType,end,iPhyRaw) = outputValues.updateDelayCounter11p(iChannel,pckType,end,iPhyRaw) + 1;
-                    else
-                        % Increment counter corresponding to the current delay
-                        outputValues.updateDelayCounter11p(iChannel,pckType,ceil(updateDelay/outParams.delayResolution),iPhyRaw) = ...
-                            outputValues.updateDelayCounter11p(iChannel,pckType,ceil(updateDelay/outParams.delayResolution),iPhyRaw) + 1;
-                    end
-                end
-            end
-        end
-        % Update updateTimeMatrix with timeNow
-        simValues.updateTimeMatrix11p(idEvent,IDvehicle11p(rxOKRaw_justThisTime),iPhyRaw) = timeManagement.timeNow;
-    end
-
-    % Compute data age (if enabled)
-    if outParams.printDataAge
-        % Find maximum delay in updateDelayCounter
-        delayMax = length(outputValues.dataAgeCounter11p(1,1,:,1))*outParams.delayResolution;
-
-        % ID of vehicles that are outside the awareness range of vehicle i
-        all = (1:length(simValues.dataAgeTimestampMatrix11p(:,1,iPhyRaw)))';
-        IDOut = setdiff(all,IDIn_thisTime);
-        simValues.dataAgeTimestampMatrix11p(idEvent,IDOut,iPhyRaw)=-1;
-        for iRaw = 1:length(IDIn_thisTime)
-            % If the beacon is currently correctly received by the neighbor
-            % inside the awareness range
-            if find(IDvehicle11p(rxOKRaw_justThisTime)==IDIn_thisTime(iRaw))
-                % Store previous timestamp
-                previousTimeStamp = simValues.dataAgeTimestampMatrix11p(idEvent,IDIn_thisTime(iRaw),iPhyRaw);
-                % If there was a previous timestamp
-                if previousTimeStamp>0
-                    % Compute update delay
-                    dataAge = timeManagement.timeNow - previousTimeStamp;
-                    if dataAge>=delayMax
-                        % Increment last counter
-                        outputValues.dataAgeCounter11p(iChannel,pckType,end,iPhyRaw) = outputValues.dataAgeCounter11p(iChannel,pckType,end,iPhyRaw) + 1;
-                    else
-                        % Increment counter corresponding to the current delay
-                        outputValues.dataAgeCounter11p(iChannel,pckType,ceil(dataAge/outParams.delayResolution),iPhyRaw) = ...
-                            outputValues.dataAgeCounter11p(iChannel,pckType,ceil(dataAge/outParams.delayResolution),iPhyRaw) + 1;
-                    end
-                end
-            end
-        end
-        % Update updateTimeMatrix with timeNow
-        simValues.dataAgeTimestampMatrix11p(idEvent,IDvehicle11p(rxOKRaw_justThisTime),iPhyRaw) = timeManagement.timeLastPacket(idEvent);
-    end
-
-    % Compute packet delay (if enabled)
-    if outParams.printPacketDelay
-        % Find maximum delay in updateDelayCounter
-        delayMax = length(outputValues.packetDelayCounter11p(1,1,:,1))*outParams.delayResolution;
-        % Compute packet delay
-        packetDelay = timeManagement.timeNow - timeManagement.timeLastPacket(idEvent);
-        if packetDelay>=delayMax
-            % Increment last counter
-            outputValues.packetDelayCounter11p(iChannel,pckType,end,iPhyRaw) = outputValues.packetDelayCounter11p(iChannel,pckType,end,iPhyRaw) + NcorrectlyTxBeacons_jusTthisTime;
-        else
-            % Increment counter corresponding to the current delay
-            outputValues.packetDelayCounter11p(iChannel,pckType,ceil(packetDelay/outParams.delayResolution),iPhyRaw) = ...
-                outputValues.packetDelayCounter11p(iChannel,pckType,ceil(packetDelay/outParams.delayResolution),iPhyRaw) + NcorrectlyTxBeacons_jusTthisTime;
-        end
-    end
-
     % update index of activeIDs11p in the range of Raw earlier (during one packet
     % and it's retransmission)
     stationManagement.indexInRaw_earler(:, idEvent, iPhyRaw) = indexInRaw_now;
@@ -213,31 +149,6 @@ end
 % update packet Rx OK
 stationManagement.pckReceived(indexVehicle11p, idEvent) =...
     stationManagement.pckReceived(indexVehicle11p, idEvent) | rxOK_thisTime;
-
-% Count correct receptions and errors up to the maximum awareness range (if enabled)
-if outParams.printPacketReceptionRatio
-    AllNeighbors = (IDvehicle11p~=idEvent);
-%    AllNeighbors(awarenessID11p~=0) = awarenessID11p(awarenessID11p~=0) .* sameChannel(awarenessID11p(awarenessID11p~=0));
-    for iRaw = 1:1:floor(phyParams.RawMax11p/outParams.prrResolution)
-        distance = iRaw * outParams.prrResolution;
-
-        % Correctly decoded beacons
-        RxOKiRaw = AllNeighbors .* (distance11p(:,indexEvent11p)<distance) .* rxOK_now .* sameChannel(stationManagement.activeIDs11p);
-        RxOKiRaw_earlier = AllNeighbors .* (distance11p(:,indexEvent11p)<distance) .* rxOK_earlier .* sameChannel(stationManagement.activeIDs11p);
-        % printDebugKPI(fid,timeManagement.timeNow,'RxOKiRaw',distance,idEvent,stationManagement.pckTxOccurring(idEvent), nnz(RxOKiRaw_earlier),nnz(RxOKiRaw));
-        
-        outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,2) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,2) - nnz(RxOKiRaw_earlier) + nnz(RxOKiRaw);
-        % printDebugKPI(fid,timeManagement.timeNow,'distanceDetailsRxOK11p',distance,idEvent,stationManagement.pckTxOccurring(idEvent), -1,outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,2));
-
-        % Errors
-        RxErroriRaw = AllNeighbors .* (distance11p(:,indexEvent11p)<distance) .* notRxOK_now .* sameChannel(stationManagement.activeIDs11p);
-        RxErroriRaw_earlier = AllNeighbors .* (distance11p(:,indexEvent11p)<distance) .* notRxOK_earlier .* sameChannel(stationManagement.activeIDs11p);
-        % printDebugKPI(fid,timeManagement.timeNow,'RxErroriRaw',distance,idEvent,stationManagement.pckTxOccurring(idEvent), nnz(RxErroriRaw_earlier),nnz(RxErroriRaw));
-
-        outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,3) = outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,3) - nnz(RxErroriRaw_earlier) + nnz(RxErroriRaw);
-        % printDebugKPI(fid,timeManagement.timeNow,'distanceDetailsRxErr11p',distance,idEvent,stationManagement.pckTxOccurring(idEvent), -1,outputValues.distanceDetailsCounter11p(iChannel,pckType,iRaw,3));
-    end
-end
 %% printDebugKPI
 % fclose(fid);
 %% printDebugKPI

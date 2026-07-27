@@ -247,26 +247,13 @@ timeManagement.timeNextPosUpdate = round(simParams.positionTimeResolution, 10);
 positionManagement.NposUpdates = 1;
 
 % Number of neighbors
-[outputValues,~,~,~] = updateAverageNeighbors(simParams,stationManagement,outputValues,phyParams);
-
-% Init of matrixes counting vehicles in range
-if outParams.printUpdateDelay && outParams.printWirelessBlindSpotProb
-    outputValues.enteredInRangeLTE = -1 * ones(simValues.maxID,simValues.maxID,length(phyParams.Raw));
-    for iRaw = 1:length(phyParams.Raw)
-        valuesEnteredInRange = outputValues.enteredInRangeLTE(:,:,iRaw);
-        % fixme: when using tracefile, there may not be consecutive
-        % activeIDs (e.g. max ID in 140 cars is 150). But distanceReal has
-        % the number of activesIDs' rows and columns
-        valuesEnteredInRange(stationManagement.activeIDsCV2X,stationManagement.activeIDsCV2X) = (positionManagement.distanceReal(stationManagement.activeIDsCV2X,stationManagement.activeIDsCV2X)<=phyParams.Raw(iRaw))-1;
-        outputValues.enteredInRangeLTE(:,:,iRaw) = valuesEnteredInRange - diag(diag(valuesEnteredInRange+1));        
-    end
-    outputValues.enteredInRange11p = -1 * ones(simValues.maxID,simValues.maxID,length(phyParams.Raw));
-    for iRaw = 1:length(phyParams.Raw)
-        valuesEnteredInRange = outputValues.enteredInRange11p(:,:,iRaw);
-        valuesEnteredInRange(stationManagement.activeIDs11p,stationManagement.activeIDs11p) = (positionManagement.distanceReal(stationManagement.activeIDs11p,stationManagement.activeIDs11p)<=phyParams.Raw(iRaw))-1;
-        outputValues.enteredInRange11p(:,:,iRaw) = valuesEnteredInRange - diag(diag(valuesEnteredInRange+1));        
-    end
-end
+[outputValues,~,NneighborsRawLTE,NneighborsRaw11p] = ...
+    updateAverageNeighbors( ...
+        simParams,stationManagement,outputValues,phyParams);
+dispatchAfterNeighborGraphUpdated( ...
+    simValues,timeManagement,stationManagement, ...
+    positionManagement,phyParams, ...
+    NneighborsRawLTE,NneighborsRaw11p);
 
 %% Initialization of variables related to transmission in IEEE 802.11p
 % 'timeNextTxRx11p' stores the instant of the next backoff or
@@ -331,35 +318,6 @@ if sum(stationManagement.vehicleState(stationManagement.activeIDs)~=constants.V_
             error('Something wrong with the packet type of RSUs');
         end
     end
-    
-    % Prepare matrix for update delay computation (if enabled)
-    if outParams.printUpdateDelay
-        % Reset update time of vehicles that are outside the scenario
-        allIDOut = setdiff(1:simValues.maxID,stationManagement.activeIDs);
-        simValues.updateTimeMatrix11p(allIDOut,:) = -1;
-        simValues.updateTimeMatrix11p(:,allIDOut) = -1;
-    end
-
-    % Prepare matrix for data age computation (if enabled)
-    if outParams.printDataAge
-        % Reset update time of vehicles that are outside the scenario
-        allIDOut = setdiff(1:simValues.maxID,stationManagement.activeIDs);
-        simValues.dataAgeTimestampMatrix11p(allIDOut,:) = -1;
-        simValues.dataAgeTimestampMatrix11p(:,allIDOut) = -1;
-    end
-    
-    % Initialization of a matrix containing the duration the channel has
-    % been sensed as busy, if used
-    % Note: 11p CBR is calculated over a fixed number of beacon periods; 
-    % this implies that if they are not all the same among vehciles, then 
-    % the duration of the sensing interval is not the same
-    %if outParams.printCBR || (simParams.technology==4 && simParams.coexMethod~=0 && simParams.coex_slotManagement==2 && simParams.coex_cbrTotVariant==2)
-    %    stationManagement.channelSensedBusyMatrix11p = zeros(ceil(simParams.cbrSensingInterval/appParams.averageTbeacon),simValues.maxID);        
-    %else
-    %    % set to empty if not used
-    %    stationManagement.channelSensedBusyMatrix11p = [];
-    %end
-
 end % end of not only LTE
 
 %% Coexistence

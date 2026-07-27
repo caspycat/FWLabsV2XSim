@@ -72,10 +72,15 @@ if nargin == 1 && strcmp(varargin{1},'help')
 end
 
 % Simulator parameters and initial settings
-[simParams,appParams,phyParams,outParams] = initiateParameters(varargin);
+[simParams,appParams,phyParams,outParams,outputHookOptions] = ...
+    initiateParameters(varargin);
 
 % Update PHY structure with the ranges
 [phyParams] = deriveRanges(phyParams,simParams);
+
+% Compose optional outputs once. Runtime code receives only the dispatcher.
+[hookRegistry,hookDispatcher] = composeOutputHooks( ...
+    outputHookOptions,outParams,simParams,appParams,phyParams);
 
 % Simulator output inizialization
 outputValues = struct('computationTime',-1,...
@@ -100,94 +105,12 @@ outputValues = struct('computationTime',-1,...
 %% Scenario Description
 
 % Load scenario from Trace File or generate initial positions of vehicles
-[simParams,simValues,positionManagement,appParams] = initVehiclePositions(simParams,appParams);
+[simParams,simValues,positionManagement,appParams] = ...
+    initVehiclePositions(simParams,appParams,hookDispatcher);
 
 % Obstacle maps and PRR maps belonged to the removed trace scenarios.
 [positionManagement.XminMap,positionManagement.YmaxMap, ...
     positionManagement.StepMap,positionManagement.GridMap] = deal(-1);
-
-if outParams.printUpdateDelay
-    % Initialize matrix containing update time of the received beacons
-    simValues.updateTimeMatrix11p = -1*ones(simValues.maxID,simValues.maxID,length(phyParams.Raw));
-    simValues.updateTimeMatrixCV2X = -1*ones(simValues.maxID,simValues.maxID,length(phyParams.Raw));
-    
-    % Initialize array with the counters of update delay events
-    % (max 10 s + delayResolution -> delays larger than 10 s are
-    % registered in the last element of the array)
-    NupdateDelayEvents = round(10/outParams.delayResolution)+1;
-%     outputValues.updateDelayCounter11p = zeros(appParams.nPckTypes,NupdateDelayEvents,length(phyParams.Raw));
-%     outputValues.updateDelayCounterCV2X = zeros(appParams.nPckTypes,NupdateDelayEvents,length(phyParams.Raw));
-    outputValues.updateDelayCounter11p = zeros(phyParams.nChannels,appParams.nPckTypes,NupdateDelayEvents,length(phyParams.Raw));
-    outputValues.updateDelayCounterCV2X = zeros(phyParams.nChannels,appParams.nPckTypes,NupdateDelayEvents,length(phyParams.Raw));
-    
-    if outParams.printWirelessBlindSpotProb
-        % Initialize matrix containing the counters needed for computation
-        % of wireless blind spot probability
-        % last dimension has size 3: [Time interval - # delay events larger or equal than time interval - #
-        % delay events shorter than time interval]
-%        outputValues.wirelessBlindSpotCounter = zeros(length(delayValues),4);
-        NupdateWBSevents = ceil(outParams.delayWBSmax/outParams.delayWBSresolution);
-
-        outputValues.wirelessBlindSpotCounterCV2X = zeros(NupdateWBSevents,length(phyParams.Raw),3);
-        outputValues.wirelessBlindSpotCounterCV2X(:,:,1) = repmat((outParams.delayWBSresolution*(1:NupdateWBSevents))',1,length(phyParams.Raw));
-        outputValues.wirelessBlindSpotCounter11p = zeros(NupdateWBSevents,length(phyParams.Raw),3);
-        outputValues.wirelessBlindSpotCounter11p(:,:,1) = repmat((outParams.delayWBSresolution*(1:NupdateWBSevents))',1,length(phyParams.Raw));
-    end
-end
-
-if outParams.printDataAge
-    % Initialize matrix containing update time of the received beacons
-    simValues.dataAgeTimestampMatrix11p = -1*ones(simValues.maxID,simValues.maxID,length(phyParams.Raw));
-    simValues.dataAgeTimestampMatrixCV2X = -1*ones(simValues.maxID,simValues.maxID,length(phyParams.Raw));
-    
-    % Initialize array with the counters of update delay events
-    % (max 10 s + delayResolution -> delays larger than 10 s are
-    % registered in the last element of the array)
-    NdataAgeEvents = round(10/outParams.delayResolution)+1;
-%     outputValues.dataAgeCounter11p = zeros(appParams.nPckTypes,NdataAgeEvents,length(phyParams.Raw));
-%     outputValues.dataAgeCounterCV2X = zeros(appParams.nPckTypes,NdataAgeEvents,length(phyParams.Raw));
-    outputValues.dataAgeCounter11p = zeros(phyParams.nChannels,appParams.nPckTypes,NdataAgeEvents,length(phyParams.Raw));
-    outputValues.dataAgeCounterCV2X = zeros(phyParams.nChannels,appParams.nPckTypes,NdataAgeEvents,length(phyParams.Raw));
-end
-
-if outParams.printPacketDelay
-    % Initialize array with the counters of packet delay events
-    % (max Tbeacon/delayResolution -> delays larger than Tbeacon are
-    % registered in the last element of the array)
-    NpacketDelayEvents = round((2*appParams.allocationPeriod)/outParams.delayResolution);
-%     outputValues.packetDelayCounter11p = zeros(appParams.nPckTypes,NpacketDelayEvents,length(phyParams.Raw));
-%     outputValues.packetDelayCounterCV2X = zeros(appParams.nPckTypes,NpacketDelayEvents,length(phyParams.Raw));
-    outputValues.packetDelayCounter11p = zeros(phyParams.nChannels,appParams.nPckTypes,NpacketDelayEvents,length(phyParams.Raw));
-    outputValues.packetDelayCounterCV2X = zeros(phyParams.nChannels,appParams.nPckTypes,NpacketDelayEvents,length(phyParams.Raw));
-end
-
-if outParams.printPacketReceptionRatio
-    if simParams.technology~=constants.TECH_ONLY_CV2X % not only C-V2X 
-        outputValues.distanceDetailsCounter11p = zeros( ...
-            phyParams.nChannels,appParams.nPckTypes, ...
-            floor(phyParams.RawMax11p/outParams.prrResolution),5);
-        for iChannel = 1:phyParams.nChannels
-            for pckType=1:appParams.nPckTypes
-                outputValues.distanceDetailsCounter11p(iChannel,pckType,:,1) = (outParams.prrResolution:outParams.prrResolution:floor(phyParams.RawMax11p))';
-            end
-        end
-    end
-    
-    if simParams.technology~=constants.TECH_ONLY_11P % not only 11p
-        % Initialize array with the counters of Rx details vs. distance (up to RawMax)
-        % [distance, #Correctly decoded beacons, #Errors,
-        %  #Blocked neighbors, #Neighbors]
-        
-%        outputValues.distanceDetailsCounterCV2X = zeros(appParams.nPckTypes,floor(phyParams.RawMaxCV2X/outParams.prrResolution),5);
-        outputValues.distanceDetailsCounterCV2X = zeros(phyParams.nChannels,appParams.nPckTypes,floor(phyParams.RawMaxCV2X/outParams.prrResolution),5);
-        for iChannel = 1:phyParams.nChannels
-            for pckType=1:appParams.nPckTypes
-%            outputValues.distanceDetailsCounterCV2X(pckType,:,1) = (outParams.prrResolution:outParams.prrResolution:floor(phyParams.RawMaxCV2X))';
-                outputValues.distanceDetailsCounterCV2X(iChannel,pckType,:,1) = (outParams.prrResolution:outParams.prrResolution:floor(phyParams.RawMaxCV2X))';
-            end
-        end
-    end
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Start Simulation
@@ -286,33 +209,8 @@ end
 % save(fname, "ITSReplicasLog", "positionLog");
 % %% =========
 
-% Print to file of the CBR statistics
-if simParams.cbrActive == true
-    if outParams.printCBR
-        if sum(stationManagement.vehicleState ~= constants.V_STATE_LTE_TXRX)>0
-            printCBRToFileITSG5(stationManagement,simParams,outParams,phyParams);
-        end
-        if sum(stationManagement.vehicleState == constants.V_STATE_LTE_TXRX)>0
-            printCBRToFileCV2X(stationManagement,simParams,outParams,phyParams);
-        end
-    end
-end
-
-% Print update delay to file (if enabled)
-if outParams.printUpdateDelay || outParams.printDataAge || outParams.printPacketDelay
-    printDelay(stationManagement,outputValues,appParams,outParams,phyParams,simParams);
-end
-
-% Print details for distances up to the maximum awareness range (if enabled)
-if outParams.printPacketReceptionRatio
-    if sum(stationManagement.vehicleState == constants.V_STATE_LTE_TXRX)>0
-        printPacketReceptionRatio(simParams.stringCV2X,outputValues.distanceDetailsCounterCV2X,outParams,appParams,phyParams);
-    end
-    if sum(stationManagement.vehicleState ~= constants.V_STATE_LTE_TXRX)>0
-    %if simParams.technology~=1 % 11p or coexistence, not LTE
-        printPacketReceptionRatio('11p',outputValues.distanceDetailsCounter11p,outParams,appParams,phyParams);
-    end
-end
+% Finalize hook-owned optional outputs.
+hookRegistry.cleanup();
 
 % Print to XLS file
 outputToFiles(stationManagement,simParams,appParams,phyParams,sinrManagement,outParams,outputValues);

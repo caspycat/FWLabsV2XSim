@@ -30,10 +30,17 @@ if sum(stationManagement.vehicleState(stationManagement.activeIDs)==constants.V_
     
     % Vehicles in order of distance
     %allNeighborsID = IDvehicle(neighborsIndexLTE);
-    stationManagement.allNeighborsID = stationManagement.activeIDs(neighborsIndexLTE);
+    stationManagement.allNeighborsID = reshape( ...
+        stationManagement.activeIDs(neighborsIndexLTE), ...
+        size(neighborsIndexLTE));
     
     % Vehicles in the maximum awareness range
-    stationManagement.neighborsIDLTE = (neighborsDistanceLTE_ofLTE < phyParams.RawMaxCV2X) .*stationManagement.activeIDs(neighborsIndexLTE_ofLTE);
+    neighborIdsLTE = reshape( ...
+        stationManagement.activeIDs(neighborsIndexLTE_ofLTE), ...
+        size(neighborsIndexLTE_ofLTE));
+    stationManagement.neighborsIDLTE = ...
+        (neighborsDistanceLTE_ofLTE < phyParams.RawMaxCV2X) .* ...
+        neighborIdsLTE;
     
     % Vehicles in awareness range
     if ~isempty(stationManagement.neighborsIDLTE)
@@ -79,7 +86,12 @@ if sum(stationManagement.vehicleState(stationManagement.activeIDs)~=constants.V_
     neighborsIndex11p_of11p = neighborsIndex11p(stationManagement.vehicleState(stationManagement.activeIDs)~=100,:);
     
     % Vehicles in the maximum awareness range
-    stationManagement.neighborsID11p = (neighborsDistance11p_of11p < phyParams.RawMax11p) .*stationManagement.activeIDs(neighborsIndex11p_of11p);
+    neighborIds11p = reshape( ...
+        stationManagement.activeIDs(neighborsIndex11p_of11p), ...
+        size(neighborsIndex11p_of11p));
+    stationManagement.neighborsID11p = ...
+        (neighborsDistance11p_of11p < phyParams.RawMax11p) .* ...
+        neighborIds11p;
 
     % Vehicles in awareness range
     if ~isempty(stationManagement.neighborsID11p)

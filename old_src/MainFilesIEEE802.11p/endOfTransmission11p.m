@@ -11,7 +11,7 @@ sinrManagement = updateSINR11p(timeManagement,sinrManagement,stationManagement,p
 printDebugTx(timeManagement.timeNow,false,idEvent,stationManagement,positionManagement,sinrManagement,outParams,phyParams);            
 
 % Update KPIs
-[simValues,outputValues,sinrManagement,stationManagement] = updateKPI11p(idEvent,indexEvent,timeManagement,stationManagement,positionManagement,sinrManagement,simParams,phyParams,outParams,simValues,outputValues);
+[simValues,outputValues,sinrManagement,stationManagement] = updateKPI11p(idEvent,indexEvent,timeManagement,stationManagement,positionManagement,sinrManagement,simParams,phyParams,simValues,outputValues);
 
 % The nodes that may stop receiving must be checked
 [timeManagement,stationManagement,sinrManagement,outputValues] = checkVehiclesStopReceiving11p(timeManagement,stationManagement,sinrManagement,simParams,phyParams,outParams,outputValues);
@@ -46,4 +46,3 @@ if simParams.technology == constants.TECH_COEX_STD_INTERF % COEXISTENCE IN THE S
         error('Negative interference');
     end
 end
-

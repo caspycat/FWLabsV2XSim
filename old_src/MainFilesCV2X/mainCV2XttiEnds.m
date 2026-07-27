@@ -9,7 +9,7 @@ function [phyParams,simValues,outputValues,sinrManagement,stationManagement,time
 % not correctly managed
 for idLte = stationManagement.activeIDsCV2X'   
     if stationManagement.pckBuffer(idLte)>1
-        [stationManagement,outputValues] = bufferOverflowLTE(idLte,timeManagement,positionManagement,stationManagement,phyParams,appParams,outputValues,outParams);
+        [stationManagement,outputValues] = bufferOverflowLTE(idLte,timeManagement,positionManagement,stationManagement,phyParams,appParams,outputValues,simValues,simParams.stringCV2X);
         stationManagement.pckNextAttempt(idLte) = 1;     
     end
 end
@@ -127,22 +127,27 @@ end
 outputValues.NreassignCV2X = outputValues.NreassignCV2X + Nreassign;
 
 % Update KPIs for blocked vehicles
-blockedIndex = find(stationManagement.BRid(stationManagement.transmittingIDsCV2X,1)==-1);
-Nblocked = length(blockedIndex);
+blockedPositions = find( ...
+    stationManagement.BRid( ...
+        stationManagement.transmittingIDsCV2X,1)==-1);
+blockedIds = stationManagement.transmittingIDsCV2X(blockedPositions);
+Nblocked = length(blockedIds);
 for iBlocked = 1:Nblocked
-    pckType = stationManagement.pckType(blockedIndex(iBlocked));
-    iChannel = stationManagement.vehicleChannel(blockedIndex(iBlocked));
+    blockedId = blockedIds(iBlocked);
+    pckType = stationManagement.pckType(blockedId);
+    iChannel = stationManagement.vehicleChannel(blockedId);
     for iPhyRaw=1:length(phyParams.Raw)
         % Count as a blocked transmission (previous packet is discarded)
-        outputValues.NblockedCV2X(iChannel,pckType,iPhyRaw) = outputValues.NblockedCV2X(iChannel,pckType,iPhyRaw) + nnz(positionManagement.distanceReal(blockedIndex,stationManagement.activeIDsCV2X) < phyParams.Raw(iPhyRaw)) - 1; % -1 to remove self
-        outputValues.NblockedTOT(iChannel,pckType,iPhyRaw) = outputValues.NblockedTOT(iChannel,pckType,iPhyRaw) + nnz(positionManagement.distanceReal(blockedIndex,stationManagement.activeIDsCV2X) < phyParams.Raw(iPhyRaw)) - 1; % -1 to remove self
+        outputValues.NblockedCV2X(iChannel,pckType,iPhyRaw) = outputValues.NblockedCV2X(iChannel,pckType,iPhyRaw) + nnz(positionManagement.distanceReal(blockedId,stationManagement.activeIDsCV2X) < phyParams.Raw(iPhyRaw)) - 1; % -1 to remove self
+        outputValues.NblockedTOT(iChannel,pckType,iPhyRaw) = outputValues.NblockedTOT(iChannel,pckType,iPhyRaw) + nnz(positionManagement.distanceReal(blockedId,stationManagement.activeIDsCV2X) < phyParams.Raw(iPhyRaw)) - 1; % -1 to remove self
     end
-    if outParams.printPacketReceptionRatio
-        for iRaw = 1:1:floor(phyParams.RawMaxCV2X/outParams.prrResolution)
-            distance = iRaw * outParams.prrResolution;
-            outputValues.distanceDetailsCounterCV2X(iChannel,pckType,iRaw,4) = outputValues.distanceDetailsCounterCV2X(iChannel,pckType,iRaw,4) + nnz(positionManagement.distanceReal(blockedIndex,stationManagement.activeIDsCV2X) < distance) - 1; % -1 to remove self
-        end
-    end
+    candidateReceiverIds = stationManagement.activeIDsCV2X(:).';
+    candidateReceiverIds( ...
+        candidateReceiverIds==blockedId) = 0;
+    dispatchAfterPacketFatesDetermined( ...
+        simValues,timeManagement.timeNow,simParams.stringCV2X, ...
+        phyParams.Raw,stationManagement,positionManagement, ...
+        blockedId, ...
+        max(0,timeManagement.timeLastPacket(blockedId)), ...
+        candidateReceiverIds,zeros(0,2),zeros(0,2),"blocked");
 end
-
-

@@ -1,6 +1,10 @@
 function [simParams,simValues,positionManagement,appParams] = ...
-        initVehiclePositions(simParams,appParams)
+        initVehiclePositions(simParams,appParams,hookDispatcher)
 %INITVEHICLEPOSITIONS Bridge Scenario initialization into legacy structs.
+
+if nargin < 3
+    hookDispatcher = [];
+end
 
 scenario = createScenario( ...
     simParams.typeOfScenario,simParams.scenarioOptions);
@@ -34,6 +38,15 @@ simValues.XvehicleEstimated = ...
     simValues.XvehicleEstimatedLegacy;
 simValues.YvehicleEstimated = ...
     simValues.YvehicleEstimatedLegacy;
+if ~isempty(hookDispatcher)
+    simValues.hookDispatcher = hookDispatcher;
+    initialVehicleKinematics = ...
+        world.TrafficScenario.VehicleKinematics( ...
+            cellstr(world.VehicleIds), ...
+            ["X","Y","vX","vY","aX","aY"]);
+    dispatchAfterVehicleKinematicsUpdated( ...
+        simValues,0,initialVehicleKinematics);
+end
 simValues = applyPositionErrorChain(simParams,simValues,0);
 
 % Legacy asynchronous-transmitter selection is independent of mobility.

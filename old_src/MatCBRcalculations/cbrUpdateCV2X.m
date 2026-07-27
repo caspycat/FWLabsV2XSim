@@ -1,4 +1,4 @@
-function [timeManagement,stationManagement,sinrManagement,CBRvalues,coex_cbrLTEonlyValues] = cbrUpdateCV2X(timeManagement,vehiclesToConsider,stationManagement,positionManagement,sinrManagement,appParams,simParams,phyParams,outParams,outputValues)
+function [timeManagement,stationManagement,sinrManagement,CBRvalues,coex_cbrLTEonlyValues] = cbrUpdateCV2X(timeManagement,vehiclesToConsider,stationManagement,positionManagement,sinrManagement,appParams,simParams,phyParams,outParams,outputValues,simValues)
 
 % Controlled mode-1 scheduling does not maintain the autonomous sensing
 % matrix used by this legacy CBR implementation. Keep its initialized CBR
@@ -201,7 +201,7 @@ if simParams.technology == constants.TECH_COEX_STD_INTERF
                 elseif simParams.coex_cbrTotVariant==9
                     % todo:
                     error("Following code need to be checked in case of NR-V2X");
-                    BRfree = reshape(sensingMatrix(1:nAllocationPeriodsCBR,:,iV) <= threshCBR_perMHz, 1, []);
+                    BRfree = reshape(sensingMatrix(1:nAllocationPeriodsCBR,:,iV) <= threshCBR_perMHz, 1, []); %#ok<UNRCH>
                     TTIFree = true(1,length(BRfree)/appParams.NbeaconsF);
                     for i=1:appParams.NbeaconsF
                         TTIFree(1,:) = subchannelFree(1,:) & BRfree(i:appParams.NbeaconsF:end);
@@ -273,7 +273,7 @@ if simParams.dcc_active
             % need to remove current packets from the queue
             if stationManagement.pckBuffer(vehiclesToConsider(i))>0 && ... 
                 stationManagement.pckNextAttempt(vehiclesToConsider(i)) > stationManagement.cv2xNumberOfReplicas(vehiclesToConsider(i))
-                [stationManagement,outputValues] = bufferOverflowLTE(vehiclesToConsider(i),timeManagement,positionManagement,stationManagement,phyParams,appParams,outputValues,outParams);
+                [stationManagement,outputValues] = bufferOverflowLTE(vehiclesToConsider(i),timeManagement,positionManagement,stationManagement,phyParams,appParams,outputValues,simValues,simParams.stringCV2X);
             end
         end
     end

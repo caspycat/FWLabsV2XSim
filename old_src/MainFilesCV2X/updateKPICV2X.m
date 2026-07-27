@@ -1,4 +1,4 @@
-function [stationManagement,sinrManagement,outputValues,simValues] = updateKPICV2X(activeIDsTXLTE,indexInActiveIDsOnlyLTE,awarenessID_LTE,neighborsID_LTE,timeManagement,stationManagement,positionManagement,sinrManagement,outputValues,outParams,~,appParams,phyParams,simValues)
+function [stationManagement,sinrManagement,outputValues,simValues] = updateKPICV2X(activeIDsTXLTE,indexInActiveIDsOnlyLTE,neighborsID_LTE,timeManagement,stationManagement,positionManagement,sinrManagement,outputValues,simParams,appParams,phyParams,simValues)
 
 % Update the counter for transmissions and retransmissions
 outputValues.cv2xTransmissionsIncHarq = outputValues.cv2xTransmissionsIncHarq + length(activeIDsTXLTE);
@@ -10,6 +10,24 @@ outputValues.cv2xTransmissionsFirst = outputValues.cv2xTransmissionsFirst + sum(
 % From v 5.4.14
 [fateRxListRawMax,stationManagement,sinrManagement] = elaborateFateRxCV2X(timeManagement,activeIDsTXLTE,indexInActiveIDsOnlyLTE,neighborsID_LTE,sinrManagement,stationManagement,positionManagement,phyParams);
 
+candidateReceiverIds = repmat( ...
+    stationManagement.activeIDsCV2X(:).', ...
+    numel(activeIDsTXLTE),1);
+for transmitterIndex = 1:numel(activeIDsTXLTE)
+    candidateReceiverIds( ...
+        transmitterIndex, ...
+        candidateReceiverIds(transmitterIndex,:)== ...
+            activeIDsTXLTE(transmitterIndex)) = 0;
+end
+dispatchAfterPacketFatesDetermined( ...
+    simValues,timeManagement.timeNow,simParams.stringCV2X, ...
+    phyParams.Raw,stationManagement,positionManagement, ...
+    activeIDsTXLTE, ...
+    timeManagement.timeGeneratedPacketInTxLTE(activeIDsTXLTE), ...
+    candidateReceiverIds, ...
+    fateRxListRawMax(fateRxListRawMax(:,5)==1,1:2), ...
+    fateRxListRawMax(fateRxListRawMax(:,5)==0,1:2),"none");
+
 % Error detection (within each value of Raw)
 for iPhyRaw=1:length(phyParams.Raw)
     
@@ -20,9 +38,6 @@ for iPhyRaw=1:length(phyParams.Raw)
 
     % Call function to create awarenessMatrix
     % [#Correctly transmitted beacons, #Errors, #Neighbors]
-    %awarenessMatrix = counterTX(activeIDsTXLTE,indexInActiveIDsOnlyLTE,awarenessID_LTE(:,:,iPhyRaw),errorMatrix);
-    %awarenessMatrix = counterTX(activeIDsTXLTE,indexInActiveIDsOnlyLTE,awarenessID_LTE(:,:,iPhyRaw),correctRxList);
-
     % Number of errors
     for iChannel = 1:phyParams.nChannels
         for pckType = 1:appParams.nPckTypes
@@ -53,27 +68,4 @@ for iPhyRaw=1:length(phyParams.Raw)
             outputValues.NtxBeaconsTOT(iChannel,pckType,iPhyRaw) = outputValues.NtxBeaconsTOT(iChannel,pckType,iPhyRaw) + NtxBeacons;
         end
     end
-    
-    % Compute update delay (if enabled)
-    if outParams.printUpdateDelay
-        [simValues.updateTimeMatrixCV2X,outputValues.updateDelayCounterCV2X] = countUpdateDelay(stationManagement,iPhyRaw,activeIDsTXLTE,indexInActiveIDsOnlyLTE,awarenessID_LTE(:,:,iPhyRaw),correctRxList,timeManagement.timeNow,simValues.updateTimeMatrixCV2X,outputValues.updateDelayCounterCV2X,outParams.delayResolution,simValues);
-    end
-
-    % Compute data age (if enabled)
-    if outParams.printDataAge
-        %[simValues.dataAgeTimestampMatrixCV2X,outputValues.dataAgeCounterCV2X] = countDataAge(stationManagement,iPhyRaw,timeManagement,activeIDsTXLTE,indexInActiveIDsOnlyLTE,stationManagement.BRid,appParams.NbeaconsF,awarenessID_LTE(:,:,iPhyRaw),errorMatrix,timeManagement.timeNow,simValues.dataAgeTimestampMatrixCV2X,outputValues.dataAgeCounterCV2X,outParams.delayResolution,appParams);
-        [simValues.dataAgeTimestampMatrixCV2X,outputValues.dataAgeCounterCV2X] = countDataAge(stationManagement,iPhyRaw,timeManagement,activeIDsTXLTE,indexInActiveIDsOnlyLTE,awarenessID_LTE(:,:,iPhyRaw),correctRxList,timeManagement.timeNow,simValues.dataAgeTimestampMatrixCV2X,outputValues.dataAgeCounterCV2X,outParams.delayResolution,simValues);
-    end
-
-    % Compute packet delay (if enabled)
-    if outParams.printPacketDelay
-        outputValues.packetDelayCounterCV2X = countPacketDelay(stationManagement,iPhyRaw,activeIDsTXLTE,timeManagement.timeNow,timeManagement.timeGeneratedPacketInTxLTE,correctRxList,outputValues.packetDelayCounterCV2X,outParams.delayResolution);
-    end
-
-end
-
-% Count distance details for distances up to the maximum awareness range (if enabled)
-if outParams.printPacketReceptionRatio
-    %outputValues.distanceDetailsCounterCV2X = countDistanceDetails(indexInActiveIDsOnlyLTE,activeIDsTXLTE,neighborsID_LTE,stationManagement.neighborsDistanceLTE,errorMatrixRawMax,outputValues.distanceDetailsCounterCV2X,stationManagement,outParams,appParams,phyParams);
-    outputValues.distanceDetailsCounterCV2X = countDistanceDetails(fateRxListRawMax(fateRxListRawMax(:,5)==1,:),fateRxListRawMax(fateRxListRawMax(:,5)==0,:),outputValues.distanceDetailsCounterCV2X,stationManagement,outParams,appParams,phyParams);
 end

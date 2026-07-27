@@ -68,7 +68,9 @@ for iCycle=1:3
     rho=100*iCycle;
 
     % Loads packet reception ratio output file
-    xMode2_periodic=load(outputFolder + "/packet_reception_ratio_"+num2str(iCycle)+"_5G.xls");
+    xMode2_periodic=readmatrix( ...
+        outputFolder + "/packet_reception_ratio_" + ...
+        num2str(iCycle) + "_5G.csv");
 
     % PRR plot
     % it takes the first column and the last column

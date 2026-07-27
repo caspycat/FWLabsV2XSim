@@ -2,8 +2,7 @@ function [phyParams,simValues,outputValues,sinrManagement,stationManagement,time
             mainCV2XtransmissionEnds(appParams,simParams,phyParams,outParams,simValues,outputValues,timeManagement,positionManagement,sinrManagement,stationManagement)
 % some C-V2X transmissions end 
      
-% local variables for simpler reading
-awarenessID_LTE = stationManagement.awarenessIDLTE;
+% local variable for simpler reading
 neighborsID_LTE = stationManagement.neighborsIDLTE;
 
 % Compute elapsed time [the unit of measure is the subframe time i.e. phyParams.Tsf]
@@ -84,7 +83,7 @@ if ~isempty(stationManagement.transmittingIDsCV2X)
     end
     
     %% KPIs Computation (Snapshot)
-    [stationManagement,sinrManagement,outputValues,simValues] = updateKPICV2X(activeIDsTXLTE,indexInActiveIDsOnlyLTE,awarenessID_LTE,neighborsID_LTE,timeManagement,stationManagement,positionManagement,sinrManagement,outputValues,outParams,simParams,appParams,phyParams,simValues);
+[stationManagement,sinrManagement,outputValues,simValues] = updateKPICV2X(activeIDsTXLTE,indexInActiveIDsOnlyLTE,neighborsID_LTE,timeManagement,stationManagement,positionManagement,sinrManagement,outputValues,simParams,appParams,phyParams,simValues);
 
             
 else
@@ -103,4 +102,3 @@ else
         end
     end
 end 
-
