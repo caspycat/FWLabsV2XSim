@@ -37,7 +37,9 @@ for ch = ch_model
                 fileList = fileList(3:end);
                 for i = 1:length(fileList)
                     try
-                        datatemp = load(fullfile(fileList(i).folder, fileList(i).name, "packet_reception_ratio_1_11p.xls"));
+                        datatemp = readmatrix(fullfile( ...
+                            fileList(i).folder, fileList(i).name, ...
+                            "packet_reception_ratio_1_11p.csv"));
                     catch
                         continue;
                     end

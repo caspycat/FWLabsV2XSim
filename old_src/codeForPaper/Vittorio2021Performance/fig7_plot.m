@@ -28,8 +28,9 @@ for i_SCS = 1:length(SCS_NR)
             mfc = "none";
         end
         dataFile = fullfile(path_task, "Output", "data_fig_7", ...
-            sprintf("SCS_%d_IBE_%s",SCS_NR(i_SCS), IBE), "packet_reception_ratio_1_5G.xls");
-        data = load(dataFile);
+            sprintf("SCS_%d_IBE_%s",SCS_NR(i_SCS), IBE), ...
+            "packet_reception_ratio_1_5G.csv");
+        data = readmatrix(dataFile);
         legend_name = sprintf("SCS=%d kHz %s IBE", SCS_NR(i_SCS), lgd_ibe);
         
         plot(data(:,1), data(:,6), "displayname", legend_name, "LineWidth",1.5,...

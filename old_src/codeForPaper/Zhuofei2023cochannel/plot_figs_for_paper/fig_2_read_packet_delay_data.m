@@ -49,10 +49,13 @@ for tech = ["IEEE11p", "NR"]
                 sims = dir(fullfile(path_prr, "sim_*"));
                 for i_sim = 1:length(sims)
                     res_folder = fullfile(sims(i_sim).folder, sims(i_sim).name);
-                    res_files = dir(fullfile(res_folder, sprintf("%s_*_%s.xls", n_file, add_name)));
+                    res_files = dir(fullfile(res_folder, sprintf("%s_*_%s.csv", n_file, add_name)));
                     for i_f = 1:length(res_files)
                         if ~exist(fullfile(res_files(i_f).folder, sprintf("test_error_log_%d.txt", i_f)), "file")
-                            data_temp = load(fullfile(path_prr, sims(i_sim).name, sprintf("%s_%d_%s.xls",n_file, i_f, add_name)));
+                            data_temp = readmatrix(fullfile( ...
+                                path_prr, sims(i_sim).name, ...
+                                sprintf("%s_%d_%s.csv", ...
+                                    n_file, i_f, add_name)));
                             if ~issorted(data_temp(:,1))
                                 data_temp = [];
                                 continue;

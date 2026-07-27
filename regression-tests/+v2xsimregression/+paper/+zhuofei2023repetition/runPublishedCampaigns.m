@@ -351,8 +351,8 @@ end
 function validateSimulationOutputs(outputDirectory)
 expectedFiles = [ ...
     "MainOut.xls", ...
-    "packet_reception_ratio_1_11p.xls", ...
-    "CBRstatistic_1_11p.xls"];
+    "packet_reception_ratio_1_11p.csv", ...
+    "CBRstatistic_1_11p.csv"];
 for expectedFile = expectedFiles
     expectedPath = fullfile(outputDirectory, expectedFile);
     if ~isfile(expectedPath)
@@ -374,8 +374,8 @@ function summary = summarizeConfiguration( ...
 vehicleCount = round( ...
     simulatedDensity .* roadLengthMeters ./ 1000);
 prrFiles = fullfile( ...
-    seedDirectories, "packet_reception_ratio_1_11p.xls");
-cbrFiles = fullfile(seedDirectories, "CBRstatistic_1_11p.xls");
+    seedDirectories, "packet_reception_ratio_1_11p.csv");
+cbrFiles = fullfile(seedDirectories, "CBRstatistic_1_11p.csv");
 [normalizedPrrScore, rangeAt90Meters] = summarizePrr( ...
     prrFiles, maximumScoreDistanceMeters);
 meanNetCbr = summarizeCbr(cbrFiles);
@@ -414,7 +414,7 @@ allDistancesMeters = zeros(0, 1);
 fileData = cell(numel(prrFiles), 1);
 for fileIndex = 1:numel(prrFiles)
     prrData = readmatrix( ...
-        prrFiles(fileIndex), FileType="text", Delimiter="\t");
+        prrFiles(fileIndex), FileType="text", Delimiter=",");
     fileData{fileIndex} = prrData;
     allDistancesMeters = [ ...
         allDistancesMeters; prrData(:, 1)]; %#ok<AGROW>
@@ -490,7 +490,7 @@ function meanNetCbr = summarizeCbr(cbrFiles)
 seedMeans = zeros(numel(cbrFiles), 1);
 for fileIndex = 1:numel(cbrFiles)
     cbrData = readmatrix( ...
-        cbrFiles(fileIndex), FileType="text", Delimiter="\t");
+        cbrFiles(fileIndex), FileType="text", Delimiter=",");
     isFiniteRow = all(isfinite(cbrData(:, 1:2)), 2);
     cbrValues = cbrData(isFiniteRow, 1);
     empiricalCdf = cbrData(isFiniteRow, 2);

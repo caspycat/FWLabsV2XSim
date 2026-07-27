@@ -16,11 +16,13 @@ for sens = sensitivity
         sim_list = dir(fullfile(path_mataData, scenario));
         sim_list = sim_list(3:end);
         for i = 1:length(sim_list)
-            fileName = fullfile(sim_list(i).folder, sim_list(i).name, "packet_reception_ratio_1_11p.xls");
+            fileName = fullfile( ...
+                sim_list(i).folder, sim_list(i).name, ...
+                "packet_reception_ratio_1_11p.csv");
             if ~exist(fileName, "file")
                 continue;
             end
-            datatemp = load(fileName);
+            datatemp = readmatrix(fileName);
             if ~isfield(data, scenario)
                 data.(scenario) = [datatemp(:,1), datatemp(:,6)];
             else

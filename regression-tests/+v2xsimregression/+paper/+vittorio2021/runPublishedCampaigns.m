@@ -271,7 +271,7 @@ simulationArguments = configuredArguments; %#ok<NASGU>
 evalc("WiLabV2Xsim(simulationArguments{:});");
 
 expectedOutputFile = fullfile( ...
-    outputDirectory, "packet_reception_ratio_1_5G.xls");
+    outputDirectory, "packet_reception_ratio_1_5G.csv");
 if ~isfile(expectedOutputFile)
     error( ...
         "v2xsimregression:vittorio2021:MissingPrrOutput", ...
@@ -299,9 +299,9 @@ averagesRsrp = double(averagesRsrp);
 hasCoherentArrivals = double(hasCoherentArrivals);
 
 prrFile = fullfile( ...
-    outputDirectory, "packet_reception_ratio_1_5G.xls");
+    outputDirectory, "packet_reception_ratio_1_5G.csv");
 prrData = readmatrix( ...
-    prrFile, FileType="text", Delimiter="\t");
+    prrFile, FileType="text", Delimiter=",");
 distancesMeters = prrData(:, 1);
 packetReceptionRatios = prrData(:, 6);
 isFiniteSample = ...

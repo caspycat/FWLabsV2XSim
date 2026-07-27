@@ -291,7 +291,7 @@ Output directory and optional metrics or reports.
 |---|---|---|---|
 | `output.Directory` | `outputFolder` | `string` | Folder for the output files |
 | `output.NeighborCount.Enabled` | `printNeighbors` | `bool` | Activate the print to file of the number of neighbors |
-| `output.VehicleSpeed.Enabled` | `printSpeed` | `bool` | Activate the print to file of the speed (trace files) |
+| `output.VehicleKinematics.Enabled` | — | `bool` | Record long-form vehicle kinematics (`X`, `Y`, `vX`, `vY`, `aX`, and `aY`) |
 | `output.UpdateDelay.Enabled` | `printUpdateDelay` | `bool` | Activate the print to file of the update delay between received beacons |
 | `output.WirelessBlindSpot.Enabled` | `printWirelessBlindSpotProb` | `bool` | Activate the print to file of the wireless blind spot probability |
 | `output.WirelessBlindSpot.MaximumDelaySeconds` | `delayWBSmax` | `double` | Maximum recordable delay for wireless blind spot probability (s) |
@@ -303,6 +303,14 @@ Output directory and optional metrics or reports.
 | `output.PacketReceptionRatio.DistanceBinWidthMeters` | `prrResolution` | `integer` | Step of the distance for the calculation of the pdr [m] |
 | `output.ChannelBusyRatio.Enabled` | `printCBR` | `bool` | Activate the print to file of the channel busy ratio |
 | `output.CoexistenceTechnologyShare.Enabled` | `coex_printTechPercentage` | `bool` | Coex: print technology percentage to file |
+
+When channel-busy-ratio output is enabled in a coexistence mode, the
+simulator also writes
+`coex_cv2xOnly_CBRstatistic_<simulation-id>_<LTE-or-5G>.csv` when
+CV2X-only CBR samples are available. This separate CSV contains two
+columns: the CV2X-only CBR sample and its cumulative ECDF probability.
+It does not add a column to the standard CBR CSV files and is not
+produced in single-technology modes.
 
 ### `coexistence`
 
