@@ -290,7 +290,7 @@ Output directory and optional metrics or reports.
 | V7 field | V6 field | Type | Description |
 |---|---|---|---|
 | `output.Directory` | `outputFolder` | `string` | Folder for the output files |
-| `output.NeighborCount.Enabled` | `printNeighbors` | `bool` | Activate the print to file of the number of neighbors |
+| `output.AverageNeighborCount.Enabled` | — | `bool` | Record average neighbor counts over time and across the simulation |
 | `output.VehicleKinematics.Enabled` | — | `bool` | Record long-form vehicle kinematics (`X`, `Y`, `vX`, `vY`, `aX`, and `aY`) |
 | `output.UpdateDelay.Enabled` | `printUpdateDelay` | `bool` | Activate the print to file of the update delay between received beacons |
 | `output.WirelessBlindSpot.Enabled` | `printWirelessBlindSpotProb` | `bool` | Activate the print to file of the wireless blind spot probability |
@@ -303,6 +303,41 @@ Output directory and optional metrics or reports.
 | `output.PacketReceptionRatio.DistanceBinWidthMeters` | `prrResolution` | `integer` | Step of the distance for the calculation of the pdr [m] |
 | `output.ChannelBusyRatio.Enabled` | `printCBR` | `bool` | Activate the print to file of the channel busy ratio |
 | `output.CoexistenceTechnologyShare.Enabled` | `coex_printTechPercentage` | `bool` | Coex: print technology percentage to file |
+
+When average-neighbor-count output is enabled, each applicable technology
+produces an over-time file and a simulation-wide file. C-V2X-only simulations
+produce the `cv2x` files, ITS-G5-only simulations produce the `itsg5` files,
+and coexistence simulations produce the `all`, `cv2x`, and `itsg5` files:
+
+```text
+average_neighbor_count_over_time_<technology>_<simulation-id>.csv
+average_neighbor_count_simulation_wide_<technology>_<simulation-id>.csv
+```
+
+The `<technology>` component is one of `all`, `cv2x`, or `itsg5`; the
+simulation identifier is always the final filename component. The `all`
+output represents the technology-agnostic coexistence population, including
+cross-technology neighbors.
+
+The over-time files use this long-form schema and contain one row per
+awareness-range bin per neighbor-graph snapshot:
+
+```text
+SimulationTimeSeconds,AwarenessRangeLowerBoundMeters,AwarenessRangeUpperBoundMeters,AverageNeighborCount
+```
+
+The simulation-wide files are written at cleanup and contain one row per
+awareness-range bin:
+
+```text
+AwarenessRangeLowerBoundMeters,AwarenessRangeUpperBoundMeters,AverageNeighborCount
+```
+
+Bins are `[0, first range)` followed by `[previous range, current range)`.
+Simulation-wide averages are weighted by UE observations across snapshots;
+snapshots without UEs for the selected technology do not contribute to the
+denominator. A technology with no UE observations records zero rather than
+`NaN`.
 
 When channel-busy-ratio output is enabled in a coexistence mode, the
 simulator also writes

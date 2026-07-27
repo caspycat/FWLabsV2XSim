@@ -20,10 +20,20 @@ if outputHookOptions.VehicleKinematicsEnabled
         v2xsim.hooks.common.VehicleKinematicsRecorder(), ...
         v2xsim.hook.points.AfterVehicleKinematicsUpdated);
 end
-if outputHookOptions.NeighborCountEnabled
-    registry.register( ...
-        v2xsim.hooks.common.NeighborCountRecorder(), ...
-        v2xsim.hook.points.AfterNeighborGraphUpdated);
+if outputHookOptions.AverageNeighborCountEnabled
+    if simParams.technology == constants.TECH_ONLY_CV2X
+        neighborCountTechnologies = "cv2x";
+    elseif simParams.technology == constants.TECH_ONLY_11P
+        neighborCountTechnologies = "itsg5";
+    else
+        neighborCountTechnologies = ["all", "cv2x", "itsg5"];
+    end
+    for technology = neighborCountTechnologies
+        registry.register( ...
+            v2xsim.hooks.common. ...
+                AverageNeighborCountRecorder(technology), ...
+            v2xsim.hook.points.AfterNeighborGraphUpdated);
+    end
 end
 if outputHookOptions.UpdateDelayEnabled
     registry.register( ...
