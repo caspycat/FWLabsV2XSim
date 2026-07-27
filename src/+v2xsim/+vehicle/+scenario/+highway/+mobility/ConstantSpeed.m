@@ -3,14 +3,16 @@ classdef ConstantSpeed < ...
     %CONSTANTSPEED Fixed-speed lane motion with periodic wraparound.
 
     methods
-        function obj = ConstantSpeed(speed)
+        function obj = ConstantSpeed(speed, options)
             arguments (Input)
                 speed (1, 1) double ...
                     {mustBeReal, mustBeFinite, mustBeNonnegative}
+                options.RandomStream (1, 1) RandStream = ...
+                    RandStream.getGlobalStream()
             end
 
             obj = obj@v2xsim.vehicle.scenario.highway.MobilityModel( ...
-                speed, 0, false, RandStream.getGlobalStream());
+                speed, 0, false, options.RandomStream);
         end
 
         function [obj, vehicleKinematics, vehicleLaneStates] = ...

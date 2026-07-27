@@ -84,8 +84,9 @@ regression does not execute or repair those scripts: its namespaced runner
 defines the V7 method settings and calibrated duration explicitly.
 
 The old placement balanced lane and direction counts exactly. The refactored
-scenario samples lanes and directions, so the regression uses paired seeds and
-pooled counts rather than expecting identical numerical curves.
+scenario samples lanes and directions, so the regression pairs each
+`simulation.RandomSeed` with the same `scenarioOptions.RandomSeed` and pools
+counts rather than expecting identical numerical curves.
 
 ## Run
 

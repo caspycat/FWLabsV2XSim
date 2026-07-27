@@ -69,9 +69,13 @@ Scenario selection and global mobility-update timing.
 ### `scenarioOptions`
 
 Constructor options passed directly to the selected traffic scenario.
+`scenarioOptions.RandomSeed` initializes a scenario-owned random stream and is
+independent of `simulation.RandomSeed`; keep it fixed across a parameter sweep
+to reproduce the same traffic realization.
 
 | V7 field | V6 field | Type | Description |
 |---|---|---|---|
+| `scenarioOptions.RandomSeed` | `scenarioOptions.RandomSeed` | `integer` | Seed for the traffic scenario's independent random stream |
 | `scenarioOptions.VehicleCount` | `scenarioOptions.VehicleCount` | `integer` | Number of vehicles |
 | `scenarioOptions.SimulationAreaSize` | `scenarioOptions.SimulationAreaSize` | `double` | Square simulation area side length (m) |
 | `scenarioOptions.MeanVehicleSpeed` | `scenarioOptions.MeanVehicleSpeed` | `double` | Mean vehicle speed (m/s) |

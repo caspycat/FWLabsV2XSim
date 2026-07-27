@@ -110,7 +110,7 @@ sweep directly.
 | `vMean = 120`, `vStDev = 12` km/h | `scenarioOptions.MeanVehicleSpeed = 120/3.6`, `VehicleSpeedStandardDeviation = 12/3.6` m/s |
 | `averageTbeacon` | `application.ResourceReservationIntervalSeconds` and `application.PacketGeneration.IntervalSeconds` |
 | implicit CBR schedule | `channelLoad.Enabled`, `MeasurementWindowSeconds`, and `UpdateStepsPerWindow` |
-| seed `0` | deterministic positive `simulation.RandomSeed` values |
+| seed `0` | matching deterministic positive `simulation.RandomSeed` and `scenarioOptions.RandomSeed` values |
 
 `BidirectionalHighwayScenario` is intentional. `EtsiHighwayScenario` exposes
 the standardized ETSI traffic points, while this paper varies density at
@@ -119,7 +119,8 @@ the standardized ETSI traffic points, while this paper varies density at
 The paper scripts use a 2 km WINNER+ road at density `D`. For ECC rural they
 use an 8 km road at density `D/4`; both cases therefore contain `2D` vehicles.
 The current scenario samples lanes and travel directions rather than enforcing
-the legacy script's exact balance, so the regression pools paired seeds.
+the legacy script's exact balance, so the regression pairs the simulation and
+scenario seeds and pools those replicates.
 
 Keeping the migrated runner and fixtures here prevents a V7-only test harness
 from making the historical paper scripts appear compatible with the current

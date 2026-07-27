@@ -126,8 +126,9 @@ end
 simParams.fileObstaclesMap = false;
 % Required positional constructor inputs are stored beside the name-value
 % options so the compatibility layer has all scenario initialization data.
-% RandomStream is intentionally omitted: [seed] configures the global
-% stream used by each scenario's default RandomStream option.
+[simParams,varargin] = addNewParam( ...
+    simParams,'scenarioOptions.RandomSeed',0, ...
+    'Traffic scenario random seed','integer',fileCfg,varargin{1});
 switch simParams.typeOfScenario
     case 'BrownianMotionScenario'
         [simParams,varargin] = addNewParam( ...
