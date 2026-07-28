@@ -38,7 +38,7 @@ New configurations must use V7 names.
 | `lteV2x` | LTE-V2X-specific sidelink physical-layer settings. |
 | `nrV2x` | NR-V2X-specific sidelink physical-layer settings. |
 | `sidelink` | Behavior shared by LTE-V2X and NR-V2X direct PC5 communication. |
-| `resourceAllocation` | Controlled and autonomous sidelink resource-selection algorithms. |
+| `resourceAllocation` | Slice-scoped controlled, autonomous, and benchmark cellular-sidelink resource allocation. See the [BR resource-allocation architecture](br-resource-allocation.md). |
 | `output` | Output directory and optional metrics or reports. |
 | `coexistence` | Joint IEEE 802.11p/ITS-G5 and cellular-sidelink coexistence methods. |
 | `infrastructure` | Roadside-unit configuration. |
@@ -257,20 +257,24 @@ Behavior shared by LTE-V2X and NR-V2X direct PC5 communication.
 
 ### `resourceAllocation`
 
-Controlled and autonomous sidelink resource-selection algorithms.
+Slice-scoped cellular-sidelink resource allocation. See the
+[BR resource-allocation architecture](br-resource-allocation.md) for the
+allocator contracts, current single-slice limitation, coexistence boundary,
+and migration from numeric algorithm IDs.
 
 | V7 field | V6 field | Type | Description |
 |---|---|---|---|
 | `resourceAllocation.FullDuplex.SelfInterferenceThresholdMultiplier` | `PDelta` | `double` | Multiplicative SelfI factor to set FD reselection threshold |
-| `resourceAllocation.Algorithm` | `BRAlgorithm` | `integer` | Assignment algorithm |
+| `resourceAllocation.Type` | — | `string` | Named allocator: `ReuseDistance`, `MaximumReuseDistance`, `MinimumReusePower`, `ThreeGppAutonomous`, `RandomBenchmark`, or `OrderedBenchmark`; default `ThreeGppAutonomous` |
+| `resourceAllocation.RandomSeed` | — | `integer` | Nonnegative seed for the allocator-owned random stream; defaults to `simulation.RandomSeed` |
 | `resourceAllocation.Controlled.PositionError95PercentileMeters` | `posError95` | `double` | LTE positioning error - 95th percentile (only controlled) (m) |
 | `resourceAllocation.Controlled.PositionUpdateIntervalSeconds` | `Tupdate` | `double` | Time interval between position updates at the eNodeBs (s) |
-| `resourceAllocation.Controlled.ReuseMarginMeters` | `Mreuse` | `integer` | Reuse margin (m) |
-| `resourceAllocation.Controlled.ReassignmentIntervalSeconds` | `Treassign` | `double` | Interval of scheduled reassignment (BRAlgorithm 2,7,9,10) (s) |
+| `resourceAllocation.Controlled.ReuseMarginMeters` | `Mreuse` | `double` | Reuse margin (m) |
+| `resourceAllocation.Controlled.ReassignmentIntervalSeconds` | `Treassign` | `double` | Scheduled reassignment interval for centralized allocators; must be an exact multiple of the reservation interval (s) |
 | `resourceAllocation.Controlled.KnownShadowingEnabled` | `knownShadowing` | `bool` | if shadowing is estimated at the eNB side |
 | `resourceAllocation.Autonomous.ReevaluationEnabled` | `resourceReEvaluation` | `bool` | Activates the resource re-evaluation in NR-V2X |
 | `resourceAllocation.Autonomous.ReevaluateAfterSkippedTransmissionEnabled` | `reEvalAfterEmptyResource` | `bool` | Activates the resource re-evaluation in NR-V2X after empty transmission |
-| `resourceAllocation.Autonomous.ReselectEveryPacketEnabled` | `dynamicScheduling` | `bool` | Probability to keep the previously selected BR |
+| `resourceAllocation.Autonomous.ReselectEveryPacketEnabled` | `dynamicScheduling` | `bool` | Reselect a resource for every packet |
 | `resourceAllocation.Autonomous.KeepResourceProbability` | `probResKeep` | `double` | Probability to keep the previously selected BR |
 | `resourceAllocation.Autonomous.MinimumCandidateFraction` | `ratioSelectedAutonomousMode` | `double` | Minimum fraction of resources surviving RSRP filtering |
 | `resourceAllocation.Autonomous.L2CandidateFraction` | `ratioSelectedL2` | `double` | Fraction of possible resources retained by L2 ranking |
@@ -279,13 +283,19 @@ Controlled and autonomous sidelink resource-selection algorithms.
 | `resourceAllocation.Autonomous.SensingWindowSeconds` | `TsensingPeriod` | `double` | Duration of the sensing period, in seconds |
 | `resourceAllocation.Autonomous.ReselectionCounterMinimum` | `minRandValueMode4` | `integer` | Minimum duration keeping the same allocation |
 | `resourceAllocation.Autonomous.ReselectionCounterMaximum` | `maxRandValueMode4` | `integer` | Maximum duration keeping the same allocation |
-| `resourceAllocation.Autonomous.SensingThresholdDbm` | `powerThresholdAutonomous` | `double` | Minimum power threshold to consider a BR as occupied in Mode 4, in dBm |
-| `resourceAllocation.Autonomous.SelectionWindowStartMilliseconds` | `T1autonomousMode` | `integer` | Minimum time for the next allocation in Autonomous Mode |
+| `resourceAllocation.Autonomous.SensingThresholdDbm` | `powerThresholdAutonomous` | `double` | Minimum power threshold for considering a BR occupied in LTE Mode 4 or NR Mode 2 (dBm) |
+| `resourceAllocation.Autonomous.SelectionWindowStartMilliseconds` | `T1autonomousMode` | `double` | Minimum time before the next autonomous allocation; valid bounds depend on numerology and the value must align with a numerology slot (ms) |
 | `resourceAllocation.Autonomous.SelectionWindowEndMilliseconds` | `T2autonomousMode` | `integer` | Maximum time for the next allocation in autonomous mode |
-| `resourceAllocation.Asynchrony.Mode` | `asynMode` | `integer` | Enables/Desable Asynchronous transmitters |
-| `resourceAllocation.Asynchrony.VehicleFraction` | `percAsynUser` | `double` | Percentage of asynchronous users |
-| `resourceAllocation.FullDuplex.Algorithm` | `FDalgorithm` | `integer` | Enables FD algorithm |
-| `resourceAllocation.FullDuplex.DynamicThresholdMode` | `dynamicPDelta` | `integer` | Enables dynamic setting of PDelta |
+
+`resourceAllocation.Algorithm` and `BRAlgorithm` are removed; numeric IDs are
+not translated. The removed asynchronous-transmitter fields (`asynMode` and
+`percAsynUser`) and full-duplex allocation-enhancement fields (`FDalgorithm`
+and `dynamicPDelta`) are also rejected. This does not remove independent
+full-duplex physical-layer settings.
+
+The selected allocator's canonical type, category, and network-slice ID are
+written in the resource-allocation column of the main output summary. The
+runtime currently uses only the `global` network slice.
 
 ### `output`
 

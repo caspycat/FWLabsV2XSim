@@ -23,39 +23,43 @@ for i=1:length(stationManagement.activeIDs11p)
     stationManagement.indexInActiveIDs_of11pnodes(i) = find(stationManagement.activeIDs==stationManagement.activeIDs11p(i));
 end
 
+% Reconcile allocator-owned state even when the final C-V2X UE exits.
+if isfield(simValues,"resourceAllocator")
+    [simValues,stationManagement] = ...
+        synchronizeResourceAllocation(simValues,stationManagement);
+end
+
+% Coexistence superframe timing is external to resource selection. Its
+% state machine covers newly active cellular and 802.11p UEs.
+if ~isempty(indexNewVehicles) && ...
+        timeManagement.timeNow > phyParams.TTI && ...
+        simParams.technology == constants.TECH_COEX_STD_INTERF && ...
+        ismember(simParams.coexMethod,[ ...
+            constants.COEX_METHOD_A, ...
+            constants.COEX_METHOD_B, ...
+            constants.COEX_METHOD_F])
+    newActiveIds = ...
+        stationManagement.activeIDs(indexNewVehicles);
+    timeManagement.coex_timeNextSuperframe(newActiveIds) = ...
+        timeManagement.timeNow + ...
+        simParams.coex_knownEndOfLTE(newActiveIds) + ...
+        simParams.coex_guardTimeAfter;
+    timeManagement.coex_timeNextSuperframe(newActiveIds) = ...
+        timeManagement.coex_timeNextSuperframe(newActiveIds) + ...
+        rand(numel(newActiveIds),1) * ...
+        (2 * simParams.coexA_desynchError) - ...
+        simParams.coexA_desynchError;
+    timeManagement.coex_timeNextSuperframe(newActiveIds) = ...
+        round( ...
+            timeManagement.coex_timeNextSuperframe(newActiveIds),10);
+end
+
 % % For possible DEBUG
 % figure(300)
 % plot(timeManagement.timeNextPosUpdate*100*ones(1,length(positionManagement.XvehicleReal)),positionManagement.XvehicleReal,'*');
 % hold on
 
-% Update variables for resource allocation in LTE-V2V
-%if simParams.technology ~= 2 % not only 11p
 if sum(stationManagement.vehicleState(stationManagement.activeIDs)==100)>0
-    
-    % if simParams.BRAlgorithm==18 && timeManagement.timeNow > phyParams.Tsf (Vittorio 5.5.3)
-    if simParams.BRAlgorithm==constants.REASSIGN_BR_STD_MODE_4 && timeManagement.timeNow > phyParams.TTI
-        % First random allocation 
-        if ~isempty(indexNewVehicles)
-            %[stationManagement.BRid,~] = BRreassignmentRandom(simValues.IDvehicle,stationManagement.BRid,simParams,sinrManagement,appParams);
-            [stationManagement.BRid(stationManagement.activeIDs(indexNewVehicles),1),~] = BRreassignmentRandom(simParams.T1autonomousModeTTIs,simParams.T2autonomousModeTTIs,stationManagement.activeIDs(indexNewVehicles),simParams,timeManagement,sinrManagement,stationManagement,phyParams,appParams);
-            if simParams.technology==constants.TECH_COEX_STD_INTERF && ismember(simParams.coexMethod, [constants.COEX_METHOD_A, constants.COEX_METHOD_B, constants.COEX_METHOD_F])
-                timeManagement.coex_timeNextSuperframe(stationManagement.activeIDs(indexNewVehicles)) = timeManagement.timeNow + ...
-                    (simParams.coex_knownEndOfLTE(stationManagement.activeIDs(indexNewVehicles)) + simParams.coex_guardTimeAfter) * ones(length(stationManagement.activeIDs(indexNewVehicles)),1);
-                timeManagement.coex_timeNextSuperframe(stationManagement.activeIDs(indexNewVehicles)) = timeManagement.coex_timeNextSuperframe(stationManagement.activeIDs(indexNewVehicles)) +...
-                    ( rand(length(stationManagement.activeIDs(indexNewVehicles)),1) * (2*simParams.coexA_desynchError) - simParams.coexA_desynchError);
-            end
-        end
-        % Update stationManagement.resReselectionCounterCV2X for vehicles exiting the scenario
-        stationManagement.resReselectionCounterCV2X(stationManagement.activeIDsExit) = Inf;
-        % Update stationManagement.resReselectionCounterCV2X for vehicles entering the scenario
-        % a) LTE vehicles that enter or are blocked start with a counter set to 0
-        % b) 11p vehicles are set to Inf
-        stationManagement.resReselectionCounterCV2X((stationManagement.BRid(:,1)==-1) & (stationManagement.vehicleState==constants.V_STATE_LTE_TXRX)) = 0;
-        stationManagement.resReselectionCounterCV2X((stationManagement.BRid(:,1)==-1) & (stationManagement.vehicleState~=constants.V_STATE_LTE_TXRX)) = Inf;
-        % Reset stationManagement.errorSCImatrixLTE for new computation of correctly received SCIs
-        %stationManagement.correctSCImatrixCV2X = zeros(length(stationManagement.activeIDsCV2X),length(stationManagement.activeIDsCV2X)-1);
-    end
-    
     % Add LTE positioning delay (if selected)
     [simValues.XvehicleEstimatedLegacy, ...
         simValues.YvehicleEstimatedLegacy,PosUpdateIndex] = ...

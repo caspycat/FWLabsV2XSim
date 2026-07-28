@@ -91,31 +91,6 @@ if ~isempty(vehiclesToConsider) && timeManagement.elapsedTime_TTIs > nAllocation
     end
     sinrManagement.cbrCV2X(vehiclesToConsider) = sum(~subchannelFree, [1, 2]) ./ numel(subchannelFree(:,:,1));
 
-    % Dynamic setting of PDelta
-    if strcmp(phyParams.duplexCV2X,'FD') && simParams.FDalgorithm~=0 && simParams.dynamicPDelta==1
-        for indexV = 1:length(vehiclesToConsider)
-            iV = vehiclesToConsider(indexV);
-            if (0<=sinrManagement.cbrCV2X(iV)) && (sinrManagement.cbrCV2X(iV)<0.5)
-                stationManagement.PDelta(iV) = 1.1;   % 0.41dB
-            elseif (0.5<=sinrManagement.cbrCV2X(iV)) && (sinrManagement.cbrCV2X(iV)< 0.6)
-                stationManagement.PDelta(iV) = 1.25;     % 0.97dB
-            elseif (0.6<=sinrManagement.cbrCV2X(iV)) && (sinrManagement.cbrCV2X(iV)< 0.7)
-                stationManagement.PDelta(iV) = 1.5;     % 1.76dB
-            elseif (0.7<=sinrManagement.cbrCV2X(iV)) && (sinrManagement.cbrCV2X(iV)< 0.8)
-                stationManagement.PDelta(iV) = 2;     % 3dB
-            elseif (0.8<=sinrManagement.cbrCV2X(iV)) && (sinrManagement.cbrCV2X(iV)< 0.85)
-                stationManagement.PDelta(iV) = 4;     % 6dB (was 4.78dB for FDalg2)
-            elseif (0.85<=sinrManagement.cbrCV2X(iV)) && (sinrManagement.cbrCV2X(iV)< 0.9)
-                stationManagement.PDelta(iV) = 8;     % 9dB (was 6dB for FDalg2)
-            elseif (0.9<=sinrManagement.cbrCV2X(iV)) && (sinrManagement.cbrCV2X(iV)< 0.95)
-                stationManagement.PDelta(iV) = 16;    % 12dB (was 9dB for FDalg2)      
-            elseif (0.95<=sinrManagement.cbrCV2X(iV)) && (sinrManagement.cbrCV2X(iV)<= 1)
-                stationManagement.PDelta(iV) = 32;    % 15dB (was 12dB for FDalg2)
-            else
-                error("error in CBR calculation")
-            end
-        end
-    end
 end
 
 if simParams.technology == constants.TECH_COEX_STD_INTERF

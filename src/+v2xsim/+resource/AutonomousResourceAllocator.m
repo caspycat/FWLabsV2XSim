@@ -1,0 +1,39 @@
+classdef (Abstract) AutonomousResourceAllocator < ...
+        v2xsim.resource.ResourceAllocator
+    %AUTONOMOUSRESOURCEALLOCATOR Allocator restricted to UE-local inputs.
+
+    properties (Constant)
+        Category = "Autonomous"
+    end
+
+    methods (Access = protected)
+        function obj = AutonomousResourceAllocator( ...
+                grid, randomSeed, maximumTransmissionCount)
+            arguments (Input)
+                grid (1, 1) v2xsim.resource.BRResourceGrid
+                randomSeed (1, 1) double ...
+                    {mustBeReal, mustBeFinite, mustBeInteger, ...
+                    mustBeNonnegative}
+                maximumTransmissionCount (1, 1) double ...
+                    {mustBeReal, mustBeFinite, mustBeInteger, ...
+                    mustBePositive} = 1
+            end
+
+            obj = obj@v2xsim.resource.ResourceAllocator( ...
+                grid, randomSeed, maximumTransmissionCount);
+        end
+    end
+
+    methods (Sealed, Access = protected)
+        function validateContextType(~, context)
+            if ~isa( ...
+                    context, ...
+                    "v2xsim.resource.AutonomousAllocationContext")
+                error( ...
+                    "v2xsim:resource:InvalidAllocationContextType", ...
+                    "An autonomous allocator requires an " + ...
+                    "AutonomousAllocationContext.");
+            end
+        end
+    end
+end

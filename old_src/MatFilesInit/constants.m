@@ -128,33 +128,6 @@ classdef constants
     BRID_NOT_LTE = -3;
 
     %% ****************************************
-	%% LTE BR reassignment algorithm
-    
-    % CONTROLLED with REUSE DISTANCE and scheduled vehicles
-    REASSIGN_BR_REUSE_DIS_SCHEDULED_VEH = 2;
-
-    % CONTROLLED with MAXIMUM REUSE DISTANCE (MRD)
-    REASSIGN_BR_MAX_REUSE_DIS = 7;
-
-    % CONTROLLED with POWER CONTROL
-    REASSIGN_BR_POW_CONTROL = 9;
-
-    % CONTROLLED with MINIMUM REUSE POWER (MRP)
-    REASSIGN_BR_MIN_REUSE_POW = 10;
-
-    % AUTONOMOUS with SENSING (3GPP STANDARD MODE 4) - ON A SUBFRAME BASIS
-    REASSIGN_BR_STD_MODE_4 = 18;
-    
-    % ***** this two Algorithms used as benchmarks *****
-    % RANDOM ALLOCATION
-    REASSIGN_BR_RAND_ALLOCATION = 101;
-
-    % ORDERED ALLOCATION (following X coordinate)
-    REASSIGN_BR_ORDERED_ALLOCATION = 102;
-    % ***** this two Algorithms used as benchmarks *****
-    
-
-    %% ****************************************
 	%% CHANNEL MODEL
 
     % WINNER+ B1 (3GPP specifications)

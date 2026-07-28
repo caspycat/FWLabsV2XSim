@@ -45,7 +45,11 @@ if fseek(fileMainID, 1, 'bof') == -1
 end
 
 %1 Main settings
-fprintf(fileMainID,'%.0f\t%s\t%s\t%.0f\t%f\t%f\t',outParams.simID,constants.SIM_VERSION,datestr(now),simParams.seed,simParams.simulationTime,outputValues.computationTime);
+timestamp = char(datetime( ...
+    "now",Format="dd-MMM-uuuu HH:mm:ss",Locale="en_US"));
+fprintf(fileMainID,'%.0f\t%s\t%s\t%.0f\t%f\t%f\t', ...
+    outParams.simID,constants.SIM_VERSION,timestamp,simParams.seed, ...
+    simParams.simulationTime,outputValues.computationTime);
 if simParams.technology == constants.TECH_ONLY_CV2X || outputValues.AvgNUEs11p==0
     if simParams.mode5G == constants.MODE_LTE
         fprintf(fileMainID,'LTE-V2X\t');
@@ -217,7 +221,8 @@ if outputValues.AvgNUEsCV2X>0
 %if simParams.technology ~= 2 % not only 11p
     fprintf(fileMainID,'%s',phyParams.duplexCV2X);
     if strcmp(phyParams.duplexCV2X,'FD')
-        fprintf(fileMainID,'(Ksi=%.0fdB,FDalgorithm=%.0f,PDelta=%.2f,dynamicPDelta=%.0f)',phyParams.Ksi_dB,simParams.FDalgorithm,phyParams.PDelta,simParams.dynamicPDelta);
+        fprintf(fileMainID,'(Ksi=%.0fdB,PDelta=%.2f)', ...
+            phyParams.Ksi_dB,phyParams.PDelta);
     end
 else
     fprintf(fileMainID,'-');    
@@ -258,7 +263,7 @@ if phyParams.PERcurves
 else
     %if simParams.technology ~= 2 % not only 11p
     if outputValues.AvgNUEsCV2X>0
-        if length(phyParams.sinrThresholdCV2X_LOS_dB)==1
+        if isscalar(phyParams.sinrThresholdCV2X_LOS_dB)
             fprintf(fileMainID,'%.2f',phyParams.sinrThresholdCV2X_LOS_dB);
         else
             error('Something wrong!');
@@ -272,7 +277,7 @@ else
     end
     %if simParams.technology ~= 1 % not only C-V2X
     if outputValues.AvgNUEs11p>0
-        if length(phyParams.sinrThreshold11p_LOS_dB)==1
+        if isscalar(phyParams.sinrThreshold11p_LOS_dB)
             fprintf(fileMainID,'%.2f',phyParams.sinrThreshold11p_LOS_dB);
         else
             error('Something wrong!');
@@ -357,33 +362,8 @@ end
 %5 Resource allocation algorithm
 %if simParams.technology~=2 % not only 11p
 if outputValues.AvgNUEsCV2X>0
-    fprintf(fileMainID,'%d ',simParams.BRAlgorithm);
-    if simParams.BRAlgorithm==2
-        fprintf(fileMainID,'Rreuse=%.0f (margin=%.0f)',phyParams.Rreuse,simParams.Mreuse);
-    end
-    if simParams.BRAlgorithm==2 || simParams.BRAlgorithm==7 || simParams.BRAlgorithm==9 || simParams.BRAlgorithm==10
-        fprintf(fileMainID,',Treassign=%.1f',simParams.Treassign);
-    elseif simParams.BRAlgorithm==18
-        fprintf(fileMainID,'TsensPer=%.2f,pKeep=%.2f,',simParams.TsensingPeriod,simParams.probResKeep);
-        fprintf(fileMainID,"dynamicScheduling="+simParams.dynamicScheduling+",");
-        fprintf(fileMainID,"resourceReEvaluation="+simParams.resourceReEvaluation+",");
-        fprintf(fileMainID,"reEvalAfterEmptyResource="+simParams.reEvalAfterEmptyResource+",");
-        fprintf(fileMainID,'rRes=%.2f,rL2=%.2f,minR=%d,maxR=%d,',simParams.ratioSelectedAutonomousMode,simParams.ratioSelectedL2,simParams.minRandValueMode4,simParams.maxRandValueMode4);
-        fprintf(fileMainID,'T1=%.2f,T2=%.2f,',simParams.T1autonomousMode,simParams.T2autonomousMode);
-        fprintf(fileMainID,'Pthr=%d,minSCIsinr=%.2f,',10*log10(simParams.powerThresholdAutonomous)+30,10*log10(phyParams.minSCIsinr));
-        fprintf(fileMainID,"L2active="+simParams.L2active+",");
-        fprintf(fileMainID,"averageSensingActive="+simParams.averageSensingActive);
-    end
-    if simParams.BRAlgorithm==10
-        if simParams.knownShadowing
-            fprintf(fileMainID,',knownShadowing');
-        else
-            fprintf(fileMainID,',NOTknownShadowing');
-        end
-    end
-    if simParams.BRAlgorithm==101
-        fprintf(fileMainID,'T1=%.2f,T2=%.2f',simParams.T1autonomousMode,simParams.T2autonomousMode);
-    end
+    metadata = simParams.resourceAllocationMetadata;
+    fprintf(fileMainID,"%s",jsonencode(metadata));
     fprintf(fileMainID,'\t');
 else
     fprintf(fileMainID,'-\t');

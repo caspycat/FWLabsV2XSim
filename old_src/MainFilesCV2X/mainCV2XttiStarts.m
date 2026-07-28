@@ -28,7 +28,13 @@ stationManagement.transmittingIDsCV2X = [];
 stationManagement.hasTransmissionThisSlot=zeros(length(stationManagement.activeIDsCV2X),1);
 iTransmitting = 1;
 currentT = (mod((timeManagement.elapsedTime_TTIs-1),appParams.NbeaconsT)+1);
-idLteHasPck = stationManagement.activeIDsCV2X(stationManagement.pckBuffer(stationManagement.activeIDsCV2X) >= 1);
+effectiveTransmissionCount = effectiveCv2xTransmissionCount( ...
+    stationManagement,stationManagement.activeIDsCV2X);
+idLteHasPck = stationManagement.activeIDsCV2X( ...
+    stationManagement.pckBuffer(stationManagement.activeIDsCV2X) >= 1 & ...
+    stationManagement.pckNextAttempt( ...
+        stationManagement.activeIDsCV2X) <= ...
+        effectiveTransmissionCount);
 for idLte = idLteHasPck'    
     attemptToDo = stationManagement.pckNextAttempt(idLte);
     if ceil((stationManagement.BRid(idLte,attemptToDo))/appParams.NbeaconsF)==currentT
@@ -73,10 +79,14 @@ end
 if ~isempty(stationManagement.transmittingIDsCV2X)
     stationManagement.pckTxOccurring(stationManagement.transmittingIDsCV2X) = stationManagement.pckNextAttempt(stationManagement.transmittingIDsCV2X);
  	stationManagement.pckNextAttempt(stationManagement.transmittingIDsCV2X) = stationManagement.pckNextAttempt(stationManagement.transmittingIDsCV2X) + 1;
-    txIDlastTx = stationManagement.transmittingIDsCV2X(stationManagement.pckNextAttempt(stationManagement.transmittingIDsCV2X)>stationManagement.cv2xNumberOfReplicas(stationManagement.transmittingIDsCV2X));
+    transmittingIds = stationManagement.transmittingIDsCV2X(:);
+    effectiveTransmissionCount = effectiveCv2xTransmissionCount( ...
+        stationManagement,transmittingIds);
+    txIDlastTx = transmittingIds( ...
+        stationManagement.pckNextAttempt(transmittingIds) > ...
+        effectiveTransmissionCount);
     stationManagement.pckBuffer(txIDlastTx) = stationManagement.pckBuffer(txIDlastTx)-1;
     % reset of pckReceive and cumulativeSINR
     stationManagement.pckReceived(:,stationManagement.transmittingIDsCV2X(stationManagement.pckTxOccurring(stationManagement.transmittingIDsCV2X)==1)) = 0;
     sinrManagement.cumulativeSINR(:,stationManagement.transmittingIDsCV2X(stationManagement.pckTxOccurring(stationManagement.transmittingIDsCV2X)==1)) = 0;
 end
-

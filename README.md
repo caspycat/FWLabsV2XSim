@@ -17,6 +17,12 @@ Version 7 introduces dotted, domain-based simulator parameter names. See the
 mapping](docs/simulator-parameters-v7.md) for namespace descriptions, every
 supported field, compatibility aliases, and fields removed from V6.
 
+V7 also exposes cellular-sidelink beacon-resource selection through named,
+slice-scoped allocator contracts. See the
+[BR resource-allocation architecture](docs/br-resource-allocation.md) for the
+centralized and autonomous interfaces, available algorithms, coexistence
+boundary, and migration from numeric algorithm IDs.
+
 NOTICE: The code is meant to be written to take advantage of modern MATLAB features. It is authored in R2026a. No guarantees of whether it will work with earlier versions.
 The Statistics and Machine Learning Toolbox™ is needed for the simulation and generation of 3GPP a-periodic traffic.
 

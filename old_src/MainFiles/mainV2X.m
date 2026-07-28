@@ -9,9 +9,6 @@ function [simValues,outputValues,appParams,simParams,phyParams,sinrManagement,ou
 % The variable 'timeNextPrint' is used only for printing purposes
 timeNextPrint = 0;
 
-% The variable minNextSuperframe is used in the case of coexistence
-minNextSuperframe = min(timeManagement.coex_timeNextSuperframe);
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Simulation Cycle
 % The simulation ends when the time exceeds the duration of the simulation
@@ -25,6 +22,13 @@ fprintf('Simulation ID: %d\nMessage: %s\n',outParams.simID, outParams.message);
 fprintf('Simulation Time: ');
 reverseStr = '';
 while timeManagement.timeNow < simParams.simulationTime
+    if isempty(stationManagement.activeIDs)
+        minNextSuperframe = Inf;
+    else
+        minNextSuperframe = min( ...
+            timeManagement.coex_timeNextSuperframe( ...
+                stationManagement.activeIDs));
+    end
 
     % The instant and node of the next event is obtained
     % indexEvent is the index of the vector IDvehicle
@@ -221,8 +225,6 @@ while timeManagement.timeNow < simParams.simulationTime
         [timeManagement,stationManagement,sinrManagement,outputValues] = ...
             superframeManagement(timeManagement,stationManagement,simParams,sinrManagement,phyParams,outParams,simValues,outputValues);
                     
-        minNextSuperframe=min(timeManagement.coex_timeNextSuperframe(stationManagement.activeIDs));
-
         % CASE C-V2X
     elseif abs(timeEvent-timeManagement.timeNextCV2X)<1e-8    % timeEvent == timeManagement.timeNextCV2X
 

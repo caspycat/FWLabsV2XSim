@@ -49,23 +49,6 @@ if ~isempty(hookDispatcher)
 end
 simValues = applyPositionErrorChain(simParams,simValues,0);
 
-% Legacy asynchronous-transmitter selection is independent of mobility.
-if simParams.technology==constants.TECH_ONLY_CV2X && ...
-        simParams.BRAlgorithm==constants.REASSIGN_BR_STD_MODE_4 && ...
-    simParams.asynMode==1
-    asynchronousVehicleCount = ...
-        ceil(vehicleCount*simParams.percAsynUser);
-    [hasVehicleId,vehicleUeIDs] = ...
-        ismember(world.VehicleIds,world.UeIds);
-    if ~all(hasVehicleId)
-        error('v2xsim:legacy:InvalidWorldIdentity', ...
-            'Every World.VehicleId must occur in World.UeIds.');
-    end
-    randomizedVehicleIDs = vehicleUeIDs(randperm(vehicleCount));
-    randomizedVehicleIDs = randomizedVehicleIDs(:);
-    simParams.IDvehicleAsyn = sort( ...
-        randomizedVehicleIDs(1:asynchronousVehicleCount));
-end
 end
 
 function rsuPositions = createRsuPositions(appParams)

@@ -1,4 +1,4 @@
-function [timeManagement,stationManagement,sinrManagement] = CV2XsensingProcedure(timeManagement,stationManagement,sinrManagement,simParams,phyParams,appParams,outParams)
+function [timeManagement,stationManagement,sinrManagement] = CV2XsensingProcedure(timeManagement,stationManagement,sinrManagement,simParams,phyParams,appParams,~)
 % Sensing-based autonomous resource reselection algorithm (3GPP MODE 4)
 % as from 3GPP TS 36.321 and TS 36.213
 % Resources are allocated for a Resource Reselection Period (SPS)
@@ -115,7 +115,7 @@ if ~isempty(stationManagement.transmittingIDsCV2X)
                % 'knownUsedMatrix' set to 0 advertise that the resource is
                % not used for the next transmission period.
 
-               if stationManagement.resReselectionCounterCV2X(idVtx)>1
+               if stationManagement.resourceReservations(BRtx,idVtx)
                    % Reserve the next resource
                     stationManagement.knownUsedMatrixCV2X(BRtx,idVrx) = 1;                    
                else
@@ -140,7 +140,8 @@ if ~isempty(stationManagement.transmittingIDsCV2X)
                    for indexBR=BRids_currentSF
                        if (indexBR<BRtx && indexBR+phyParams.NsubchannelsBeacon-1>=BRtx) || ...
                           (indexBR>BRtx && indexBR-phyParams.NsubchannelsBeacon+1<=BRtx)
-                           if stationManagement.resReselectionCounterCV2X(idVtx)>1
+                           if stationManagement.resourceReservations( ...
+                                   BRtx,idVtx)
                                % Reserve the next resource
                                 stationManagement.knownUsedMatrixCV2X(indexBR,idVrx) = 1;                                                            
                            else
@@ -184,4 +185,3 @@ end
 %%
 
 end
-

@@ -1,0 +1,56 @@
+classdef MinimumReusePowerAllocator < ...
+        v2xsim.resource.ScheduledCentralizedResourceAllocator
+    %MINIMUMREUSEPOWERALLOCATOR Controlled weakest-power reuse.
+
+    properties (Constant)
+        Type = "MinimumReusePower"
+        Description = ...
+            "Controlled allocation minimizing received reuse power"
+    end
+
+    properties (SetAccess = immutable)
+        KnownShadowingEnabled (1,1) logical
+    end
+
+    methods
+        function obj = MinimumReusePowerAllocator( ...
+                grid,randomSeed,reassignmentCycleCount,knownShadowingEnabled)
+            arguments (Input)
+                grid (1,1) v2xsim.resource.BRResourceGrid
+                randomSeed (1,1) double ...
+                    {mustBeInteger,mustBeNonnegative}
+                reassignmentCycleCount (1,1) double ...
+                    {mustBeInteger,mustBePositive}
+                knownShadowingEnabled (1,1) logical
+            end
+
+            obj = obj@v2xsim.resource. ...
+                ScheduledCentralizedResourceAllocator( ...
+                    grid,randomSeed,reassignmentCycleCount);
+            obj.KnownShadowingEnabled = knownShadowingEnabled;
+        end
+    end
+
+    methods (Access = protected)
+        function value = configurationMetadata(obj)
+            value = configurationMetadata@v2xsim.resource.ScheduledCentralizedResourceAllocator(obj);
+            value.KnownShadowingEnabled = ...
+                obj.KnownShadowingEnabled;
+        end
+
+        function [resourceIds,decisionRows] = allocate( ...
+                obj,resourceIds,scheduledRows,context, ...
+                allocatorRows,randomStream)
+            power = context.ReceivedPowerWattsPerMHz( ...
+                allocatorRows,allocatorRows);
+            shadowing = context.ShadowingDecibels( ...
+                allocatorRows,allocatorRows);
+            [resourceIds,decisionRows] = v2xsim.resource.algorithm. ...
+                assignByMinimumReceivedPower( ...
+                    resourceIds,scheduledRows,power,shadowing, ...
+                    obj.KnownShadowingEnabled, ...
+                    [obj.Grid.NumberTimeSlots, ...
+                    obj.Grid.NumberFrequencyResources],randomStream);
+        end
+    end
+end

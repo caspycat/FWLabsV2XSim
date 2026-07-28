@@ -346,77 +346,13 @@ stationManagement.BRid(stationManagement.activeIDs,:) = -1;
 % Initialize next LTE event to inf
 timeManagement.timeNextCV2X = inf;
 
-% if not only 11p
-if ismember(constants.V_STATE_LTE_TXRX, stationManagement.vehicleState(stationManagement.activeIDs))
-   % Initialization of resouce allocation algorithms in LTE-V2X
-   if ismember(simParams.BRAlgorithm, [constants.REASSIGN_BR_REUSE_DIS_SCHEDULED_VEH,...
-           constants.REASSIGN_BR_MAX_REUSE_DIS, constants.REASSIGN_BR_MIN_REUSE_POW])
-        % Number of groups for scheduled resource reassignment (BRAlgorithm=2, 7 or 10)
-        stationManagement.NScheduledReassignLTE = round(simParams.Treassign/appParams.allocationPeriod);
-
-        % Assign update period to vehicles (BRAlgorithm=2, 7 or 10)
-        stationManagement.scheduledReassignLTE = randi(stationManagement.NScheduledReassignLTE,simValues.maxID,1);
-    end
-
-    if simParams.BRAlgorithm == constants.REASSIGN_BR_STD_MODE_4
-        % Find min and max values for random counter (BRAlgorithm=18)
-        [simParams.minRandValueMode4,simParams.maxRandValueMode4] = findRCintervalAutonomous(appParams.allocationPeriod,simParams);
-
-        % timeManagement.timeOfResourceAllocationLTE is for possible use in the future
-        % Inizialization of instant when the reselection is evaluated
-        %timeManagement.timeOfResourceAllocationLTE = -1*ones(simValues.maxID,1);
-        %timeManagement.timeOfResourceAllocationLTE(stationManagement.activeIDsCV2X) = timeManagement.timeNextPacket(stationManagement.activeIDsCV2X);
-
-        % Initialize reselection counter (BRAlgorithm=18)
-        stationManagement.resReselectionCounterCV2X = Inf*ones(simValues.maxID,1);
-        stationManagement.resReselectionCounterCV2X(stationManagement.activeIDs) = (simParams.minRandValueMode4-1) + randi((simParams.maxRandValueMode4-simParams.minRandValueMode4)+1,1,length(stationManagement.activeIDs));
-        % COMMENTED: Set value 0 to vehicles that are blocked
-        % stationManagement.resReselectionCounterCV2X(stationManagement.BRid==-1)=0;
-        % Sets the Reselection counter to 1 for all vehicles when dynamic scheduling is active
-        if simParams.dynamicScheduling == true
-            stationManagement.resReselectionCounterCV2X(stationManagement.activeIDs) = ones(simValues.maxID,1);
-        end
-
-        % Initialize newDataIndicator vector for resource re-evaluation (BRAlgorithm=18)
-        stationManagement.newDataIndicator = ones(simValues.maxID,1);
-
-        % Initialization of sensing matrix (BRAlgorithm=18)
-        stationManagement.sensingMatrixCV2X = zeros(ceil(simParams.TsensingPeriod/appParams.allocationPeriod),appParams.Nbeacons,simValues.maxID);
-        stationManagement.knownUsedMatrixCV2X = zeros(appParams.Nbeacons,simValues.maxID);
-
-        % First random allocation 
-        %[stationManagement.BRid,~] = BRreassignmentRandom(simValues.IDvehicle,stationManagement.BRid,simParams,sinrManagement,appParams);
-        %[stationManagement.BRid(stationManagement.activeIDs,1),~] = BRreassignmentRandom(stationManagement.activeIDs,simParams,timeManagement,sinrManagement,stationManagement,phyParams,appParams);
-        for j=1:phyParams.cv2xNumberOfReplicasMax
-            % From v5.4.16, when HARQ is active, n random
-            % resources are selected, one per each replica 
-            [stationManagement.BRid(stationManagement.activeIDs,j),~] = BRreassignmentRandom(simParams.T1autonomousModeTTIs,simParams.T2autonomousModeTTIs,stationManagement.activeIDs,simParams,timeManagement,sinrManagement,stationManagement,phyParams,appParams);
-        end      
-        % Must be ordered with respect to the packet generation instant
-        % (Vittorio 5.5.3)
-        % subframeGen = ceil(timeManagement.timeNextPacket/phyParams.Tsf);
-        TTIGen = ceil(timeManagement.timeNextPacket/phyParams.TTI);
-        TTI_BR = ceil(stationManagement.BRid/appParams.NbeaconsF);
-        stationManagement.BRid = stationManagement.BRid + (TTI_BR<=TTIGen) * appParams.Nbeacons;
-        stationManagement.BRid = sort(stationManagement.BRid,2);
-        stationManagement.BRid = stationManagement.BRid - (stationManagement.BRid>appParams.Nbeacons) * appParams.Nbeacons;
-        
-        % vector correctSCImatrixCV2X created
-        stationManagement.correctSCImatrixCV2X = [];
-    end
-
-    % if simParams.BRAlgorithm==101
-        % The random allocation is performed when the packet is generated
-        % Therefore nothing needs to be done here
-    % end
-
-    % FD exploitation initialization
-    % [stationManagement] = FDinit(simParams,stationManagement,phyParams,simValues);
-    
-    % Initialization of lambda: SINR threshold for BRAlgorithm 9
-    if simParams.BRAlgorithm == constants.REASSIGN_BR_POW_CONTROL
-        stationManagement.lambdaLTE = phyParams.sinrThresholdCV2X_LOS;
-    end
+if ismember( ...
+        constants.V_STATE_LTE_TXRX, ...
+        stationManagement.vehicleState(stationManagement.activeIDs))
+    [simValues,stationManagement,simParams] = ...
+        initializeResourceAllocation( ...
+            simValues,stationManagement,timeManagement, ...
+            positionManagement,sinrManagement,simParams,phyParams,appParams);
 
     % The next instant in C-V2X will be the beginning
     % of the first TTI in 0
@@ -426,7 +362,7 @@ if ismember(constants.V_STATE_LTE_TXRX, stationManagement.vehicleState(stationMa
     % The channel busy ratio of C-V2X is initialized
     sinrManagement.cbrCV2X = zeros(simValues.maxID,1);
     sinrManagement.cbrLTE_coexLTEonly = zeros(simValues.maxID,1);
-end % end of if simParams.technology ~= 2 % not only 11p
+end
 
 % if CBR is active, set the next CBR instant - else set to inf
 if simParams.cbrActive
