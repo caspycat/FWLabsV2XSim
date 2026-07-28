@@ -1,4 +1,4 @@
-function printDebugTx(Time,isThisTX,staID,stationManagement,positionManagement,sinrManagement,outParams,phyParams)
+function printDebugTx(Time,isThisTX,staID,stationManagement,positionManagement,sinrManagement,outParams,phyParams) %#ok<INUSD>
 % Print of: Time, event description, then per each station:
 % ID, technology, state, current SINR (if LTE, first neighbor), useful power (if LTE, first neighbor),
 % interfering power (if LTE, first neighbor), interfering power from
@@ -9,31 +9,26 @@ function printDebugTx(Time,isThisTX,staID,stationManagement,positionManagement,s
 return;
 %end
 
-alsoRx = true;
+alsoRx = true; %#ok<UNRCH>
 
-filename = sprintf('%s/_DebugTx_%d.xls',outParams.outputFolder,outParams.simID);
-% fid = fopen(filename,'r');
-% if fid==-1
-%     fid = fopen(filename,'w');
-%     fprintf(fid,'Time\tVehicle 11p TX\t');
-%     if alsoRx
-%         fprintf(fid,'Vehicle 11p RX OK\tVehicle 11p RX ERR\t');
-%     end
-%     fprintf(fid,'Vehicle LTE TX\t');
-%     if alsoRx
-%         fprintf(fid,'Vehicle LTE RX OK\tVehicle LTE RX ERR\t');
-%     end
-%     fprintf(fid,'X of Vehicle 11p TX\t');
-%     if alsoRx
-%         fprintf(fid,'X of Vehicle 11p RX OK\tX of Vehicle 11p RX ERR\t');
-%     end
-%     fprintf(fid,'X of Vehicle LTE TX');
-%     if alsoRx
-%         fprintf(fid,'\tX of Vehicle LTE RX OK\tX of Vehicle LTE RX ERR');
-%     end
-%     fprintf(fid,'\n');
-% end
-% fclose(fid);
+filename = fullfile(outParams.outputFolder,"_DebugTx.csv");
+if ~isfile(filename)
+    headerId = fopen(filename,'w');
+    fprintf(headerId, ...
+        ['TimeSeconds,Itsg5TransmitterVehicleId,' ...
+        'Itsg5SuccessfulReceiverVehicleId,' ...
+        'Itsg5FailedReceiverVehicleId,' ...
+        'CellularTransmitterVehicleId,' ...
+        'CellularSuccessfulReceiverVehicleId,' ...
+        'CellularFailedReceiverVehicleId,' ...
+        'Itsg5TransmitterPositionMeters,' ...
+        'Itsg5SuccessfulReceiverPositionMeters,' ...
+        'Itsg5FailedReceiverPositionMeters,' ...
+        'CellularTransmitterPositionMeters,' ...
+        'CellularSuccessfulReceiverPositionMeters,' ...
+        'CellularFailedReceiverPositionMeters\n']);
+    fclose(headerId);
+end
 
 fid = fopen(filename,'a');
 if staID==-1
@@ -41,8 +36,11 @@ if staID==-1
         nTx = length(stationManagement.transmittingIDsCV2X);
         for index=1:nTx
             if isThisTX
-                fprintf(fid,'%3.6f\t-1\t-1\t-1\t%d\t-1\t-1\t-1',Time,stationManagement.transmittingIDsCV2X(index));
-                fprintf(fid,'\t-1\t-1\t%d\t-1\t-1\n',positionManagement.XvehicleReal(stationManagement.transmittingIDsCV2X(index)));
+                fprintf(fid,'%3.6f,-1,-1,-1,%d,-1,-1,-1', ...
+                    Time,stationManagement.transmittingIDsCV2X(index));
+                fprintf(fid,',-1,-1,%d,-1,-1\n', ...
+                    positionManagement.XvehicleReal( ...
+                        stationManagement.transmittingIDsCV2X(index)));
             end
             if alsoRx && ~isThisTX
                 % Find indexes of receiving vehicles in neighborsID
@@ -52,11 +50,27 @@ if staID==-1
                     sinrThr=phyParams.LOS(index,indexNeighborsRX(j)).*phyParams.sinrThresholdCV2X_LOS+...
                             (1-phyParams.LOS(index,indexNeighborsRX(j)) ).*phyParams.sinrThresholdCV2X_NLOS;   
                     if sinrManagement.neighborsSINRaverageCV2X(index,indexNeighborsRX(j)) < sinrThr
-                        fprintf(fid,'%3.6f\t-1\t-1\t-1\t-1\t-1\t%d\t-1',Time,stationManagement.neighborsIDLTE(stationManagement.indexInActiveIDsOnlyLTE_OfTxLTE(index),j));
-                        fprintf(fid,'\t-1\t-1\t-1\t-1\t%d\n',positionManagement.XvehicleReal(stationManagement.neighborsIDLTE(stationManagement.indexInActiveIDsOnlyLTE_OfTxLTE(index),j)));
+                        fprintf(fid, ...
+                            '%3.6f,-1,-1,-1,-1,-1,%d,-1', ...
+                            Time,stationManagement.neighborsIDLTE( ...
+                                stationManagement. ...
+                                indexInActiveIDsOnlyLTE_OfTxLTE(index),j));
+                        fprintf(fid,',-1,-1,-1,-1,%d\n', ...
+                            positionManagement.XvehicleReal( ...
+                                stationManagement.neighborsIDLTE( ...
+                                stationManagement. ...
+                                indexInActiveIDsOnlyLTE_OfTxLTE(index),j)));
                     else
-                        fprintf(fid,'%3.6f\t-1\t-1\t-1\t-1\t%d\t-1\t-1',Time,stationManagement.neighborsIDLTE(stationManagement.indexInActiveIDsOnlyLTE_OfTxLTE(index),j));
-                        fprintf(fid,'\t-1\t-1\t-1\t%d\t-1\n',positionManagement.XvehicleReal(stationManagement.neighborsIDLTE(stationManagement.indexInActiveIDsOnlyLTE_OfTxLTE(index),j)));
+                        fprintf(fid, ...
+                            '%3.6f,-1,-1,-1,-1,%d,-1,-1', ...
+                            Time,stationManagement.neighborsIDLTE( ...
+                                stationManagement. ...
+                                indexInActiveIDsOnlyLTE_OfTxLTE(index),j));
+                        fprintf(fid,',-1,-1,-1,%d,-1\n', ...
+                            positionManagement.XvehicleReal( ...
+                                stationManagement.neighborsIDLTE( ...
+                                stationManagement. ...
+                                indexInActiveIDsOnlyLTE_OfTxLTE(index),j)));
                     end
                 end
             end
@@ -66,8 +80,9 @@ if staID==-1
 else
 
     if isThisTX
-        fprintf(fid,'%3.6f\t%d\t-1\t-1\t-1\t-1\t-1\t',Time,staID);
-        fprintf(fid,'%d\t-1\t-1\t-1\t-1\t-1\n',positionManagement.XvehicleReal(staID));
+        fprintf(fid,'%3.6f,%d,-1,-1,-1,-1,-1,',Time,staID);
+        fprintf(fid,'%d,-1,-1,-1,-1,-1\n', ...
+            positionManagement.XvehicleReal(staID));
     end
     if alsoRx && ~isThisTX
         indexOfstaID = find(stationManagement.activeIDs11p==staID,1);
@@ -82,11 +97,13 @@ else
         for iN=neighbors
             indexOfNeighbor=(stationManagement.activeIDs11p==iN);
             if rxOk(indexOfNeighbor)
-                fprintf(fid,'%3.6f\t-1\t%d\t-1\t-1\t-1\t-1\t-1',Time,iN);
-                fprintf(fid,'\t%d\t-1\t-1\t-1\t-1\n',positionManagement.XvehicleReal(iN));
+                fprintf(fid,'%3.6f,-1,%d,-1,-1,-1,-1,-1',Time,iN);
+                fprintf(fid,',%d,-1,-1,-1,-1\n', ...
+                    positionManagement.XvehicleReal(iN));
             else
-                fprintf(fid,'%3.6f\t-1\t-1\t%d\t-1\t-1\t-1\t-1',Time,iN);
-                fprintf(fid,'\t-1\t%d\t-1\t-1\t-1\n',positionManagement.XvehicleReal(iN));
+                fprintf(fid,'%3.6f,-1,-1,%d,-1,-1,-1,-1',Time,iN);
+                fprintf(fid,',-1,%d,-1,-1,-1\n', ...
+                    positionManagement.XvehicleReal(iN));
             end
         end
     end

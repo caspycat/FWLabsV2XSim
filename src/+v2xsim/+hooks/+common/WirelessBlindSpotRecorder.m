@@ -5,9 +5,8 @@ classdef WirelessBlindSpotRecorder < v2xsim.hook.Hook
     %   invocations update successful-reception timestamps.
 
     properties (Constant, Access = protected)
-        DependencyTypes = [ ...
-            ?v2xsim.hook.dependencies.OutputDirectory, ...
-            ?v2xsim.hook.dependencies.SimulationIdentifier]
+        DependencyTypes = ...
+            ?v2xsim.hook.dependencies.OutputDirectory
     end
 
     properties (SetAccess = immutable)
@@ -20,7 +19,6 @@ classdef WirelessBlindSpotRecorder < v2xsim.hook.Hook
 
     properties (Access = private)
         OutputDirectory (1, 1) string = ""
-        SimulationIdentifier (1, 1) double = NaN
         ItsG5State = struct( ...
             Technology="11p", ...
             Ranges=zeros(1, 0), ...
@@ -66,18 +64,14 @@ classdef WirelessBlindSpotRecorder < v2xsim.hook.Hook
             obj.Cv2xState.Technology = options.Cv2xTechnology;
         end
 
-        function obj = build( ...
-                obj, outputDirectory, simulationIdentifier)
+        function obj = build(obj, outputDirectory)
             arguments (Input)
                 obj (1, 1)
                 outputDirectory (1, 1) ...
                     v2xsim.hook.dependencies.OutputDirectory
-                simulationIdentifier (1, 1) ...
-                    v2xsim.hook.dependencies.SimulationIdentifier
             end
 
             obj.OutputDirectory = outputDirectory.Path;
-            obj.SimulationIdentifier = simulationIdentifier.Value;
         end
 
         function [obj, invocation] = invoke(obj, invocation)
@@ -352,8 +346,8 @@ classdef WirelessBlindSpotRecorder < v2xsim.hook.Hook
             filename = fullfile( ...
                 obj.OutputDirectory, ...
                 sprintf( ...
-                    "wireless_blind_spot_%d_%s.csv", ...
-                    obj.SimulationIdentifier, state.Technology));
+                    "wireless_blind_spot_%s.csv", ...
+                    state.Technology));
             fileIdentifier = fopen(filename, "a");
             if fileIdentifier == -1
                 error( ...

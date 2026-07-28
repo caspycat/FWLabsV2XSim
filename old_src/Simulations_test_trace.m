@@ -33,7 +33,8 @@ simTime=10;             % simTime=300
 % related path, change your related path below
 path_task = fileparts(mfilename("fullpath"));
 dirTraceFile = fullfile(fileparts(path_task), "TrafficTraces", "Bologna", "BolognaAPositions.txt");
-outputFolder = fullfile(path_task, 'Output', 'test_trace');
+% Each invocation owns a fresh output directory.
+outputFolder = string(tempname);
 
 % Launches simulation
 WiLabV2Xsim(configFile,...
@@ -44,6 +45,5 @@ WiLabV2Xsim(configFile,...
     'application.ResourceReservationIntervalSeconds',periodicity, 'resourcePool.SubchannelSizeResourceBlocks',sizeSubchannel,...
     'resourceAllocation.Autonomous.SensingThresholdDbm',sensingThreshold, 'awareness.RangesMeters',Raw,'radio.FixedPowerDensityEnabled',false,...
     'congestionControl.Enabled',false,'channelLoad.Enabled',true)
-
 
 

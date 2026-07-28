@@ -20,18 +20,20 @@ configFile = 'fig3_config.cfg';
 repNumbers = 1:4;
 times = 30;                             % repeat simulation
 sensitivity = [-100, -103, -120];       % preamble detection threshold
-p_repNum = [];
-p_sens = [];
-p_outfolder = [];
+runCount = numel(repNumbers) * times * numel(sensitivity);
+p_repNum = zeros(1, runCount);
+p_sens = zeros(1, runCount);
+p_outfolder = strings(runCount, 1);
+runIndex = 0;
 for sens = sensitivity
     for t = 1:times
         for repNum = repNumbers
-            p_repNum = [p_repNum, repNum];
-            p_sens = [p_sens, sens];
-            p_outfolder = [p_outfolder;...
-                fullfile(path_output,...
+            runIndex = runIndex + 1;
+            p_repNum(runIndex) = repNum;
+            p_sens(runIndex) = sens;
+            p_outfolder(runIndex) = fullfile(path_output,...
                 sprintf("replicate_%d_sensitivity__%d", repNum, abs(sens)),...
-                sprintf("sim_%d",t))];
+                sprintf("sim_%d",t));
         end
     end
 end
@@ -42,7 +44,7 @@ par_num = length(p_repNum);     % total simualtion numbers
 parfor i = 1:par_num            % if not work, use "for" instead of "parfor"
     % if not complete at last time, remove files and restart
     if exist(p_outfolder(i), "dir")
-        if ~exist(fullfile(p_outfolder(i), "MainOut.xls"), "file")
+        if ~exist(fullfile(p_outfolder(i), "simulation_summary.json"), "file")
             rmdir(p_outfolder(i),"s");
         else
             continue;
@@ -56,5 +58,3 @@ parfor i = 1:par_num            % if not work, use "for" instead of "parfor"
         'channel.PacketErrorRateCurveDirectory', path_PERcurves,...
         'output.Directory', p_outfolder(i));
 end
-
-

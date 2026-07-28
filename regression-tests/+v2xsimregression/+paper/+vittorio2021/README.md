@@ -90,10 +90,11 @@ The result table exposes these choices separately as
 `ThresholdFloorFraction`, `L2SelectionFraction`, and
 `resourceAllocation.Autonomous.L2RankingEnabled`.
 
-The original simulation files under
-`old_src/codeForPaper/Vittorio2021Performance` have also been adapted to the
-current scenario and resource-selection inputs. Their campaign values and
-output folder names remain aligned with the plotting scripts.
+The files under `old_src/codeForPaper/Vittorio2021Performance` are retained as
+historical provenance. Their plotting readers use the old numbered output
+filenames and are not supported V7 interfaces. The package-local
+`runPublishedCampaigns` implementation owns the migrated scenario,
+resource-selection inputs, per-run directories, and suffixless CSV readers.
 
 When the journal and archived executable configuration disagree, the
 regression uses the value that reproduces the published curve or supports its

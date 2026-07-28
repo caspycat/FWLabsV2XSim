@@ -29,7 +29,7 @@ for i_SCS = 1:length(SCS_NR)
         end
         dataFile = fullfile(path_task, "Output", "data_fig_7", ...
             sprintf("SCS_%d_IBE_%s",SCS_NR(i_SCS), IBE), ...
-            "packet_reception_ratio_1_5G.csv");
+            "packet_reception_ratio_5G.csv");
         data = readmatrix(dataFile);
         legend_name = sprintf("SCS=%d kHz %s IBE", SCS_NR(i_SCS), lgd_ibe);
         

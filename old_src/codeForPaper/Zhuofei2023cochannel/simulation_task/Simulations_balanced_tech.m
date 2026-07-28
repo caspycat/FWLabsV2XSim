@@ -29,27 +29,21 @@ computer_name = "felix";
 
 Methods = ["only_NR", "only_ITS", "no_method", "enhanced_A", "method_B", "dynamic_C", "method_F", "dynamic_C_preamble"];
 
-p_method = [];
-p_dens = [];
-p_vgi = [];
-p_n_vgi = [];
-p_v_lte = [];
-p_v_11p = [];
-p_stop_times = [];
-p_sim_ids = [];
-p_configFile = [];
-p_outputF = [];
+stopTimesByDensity = ones(size(dens_km));
+runCount = sum(stopTimesByDensity) * numel(varTs) * numel(Methods);
+p_method = strings(1, runCount);
+p_dens = zeros(1, runCount);
+p_vgi = zeros(1, runCount);
+p_n_vgi = strings(1, runCount);
+p_v_lte = zeros(1, runCount);
+p_v_11p = zeros(1, runCount);
+p_sim_ids = zeros(1, runCount);
+p_configFile = strings(runCount, 1);
+p_outputF = strings(runCount, 1);
+runIndex = 0;
 for tot_time = 1:50
     for i_d = 1:length(dens_km)
-        if dens_km(i_d) < 10
-            stop_times = 1; %20;
-        elseif dens_km(i_d) < 20
-            stop_times = 1; %10;
-        elseif dens_km(i_d) <= 30
-            stop_times = 1; %5;
-        else
-            stop_times = 1; %2;
-        end
+        stop_times = stopTimesByDensity(i_d);
         if tot_time > stop_times
             continue;
         end
@@ -60,17 +54,19 @@ for tot_time = 1:50
                 n_vgi = "period";
             end
             for method = Methods
-                p_method = [p_method, method];
-                p_dens = [p_dens, dens_km(i_d)];
-                p_n_vgi = [p_n_vgi, n_vgi];
-                p_vgi = [p_vgi, VGI];
-                p_v_11p = [p_v_11p, v_11p(i_d)];
-                p_v_lte = [p_v_lte, v_lte(i_d)];
-                p_sim_ids = [p_sim_ids, tot_time];
-                p_configFile = [p_configFile; convertCharsToStrings(fullfile(path_task, sprintf('coch_%s.cfg',method)))];
+                runIndex = runIndex + 1;
+                p_method(runIndex) = method;
+                p_dens(runIndex) = dens_km(i_d);
+                p_n_vgi(runIndex) = n_vgi;
+                p_vgi(runIndex) = VGI;
+                p_v_11p(runIndex) = v_11p(i_d);
+                p_v_lte(runIndex) = v_lte(i_d);
+                p_sim_ids(runIndex) = tot_time;
+                p_configFile(runIndex) = fullfile( ...
+                    path_task, sprintf("coch_%s.cfg",method));
                 outfolder = fullfile(fileparts(path_task), "data", computer_name,...
-    method, sprintf("dens_%d_vgi_%s", dens_km(i_d), n_vgi));
-                p_outputF = [p_outputF; outfolder];
+                    method, sprintf("dens_%d_vgi_%s", dens_km(i_d), n_vgi));
+                p_outputF(runIndex) = outfolder;
             end
         end
     end
@@ -79,7 +75,8 @@ end
 parfor i = 1:length(p_dens)
     % if not complete at last time, remove files and restart
     if exist(fullfile(p_outputF(i), sprintf("sim_%d", p_sim_ids(i))), "dir") 
-        if ~exist(fullfile(p_outputF(i), sprintf("sim_%d", p_sim_ids(i)), "MainOut.xls"), "file")
+        if ~exist(fullfile(p_outputF(i), sprintf("sim_%d", p_sim_ids(i)), ...
+                "simulation_summary.json"), "file")
             rmdir(fullfile(p_outputF(i), sprintf("sim_%d", p_sim_ids(i))),"s");
         else
             continue;
@@ -115,5 +112,3 @@ parfor i = 1:length(p_dens)
             'output.Directory', fullfile(p_outputF(i), sprintf("sim_%d", p_sim_ids(i))));
     end
 end
-
-

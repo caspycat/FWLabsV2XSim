@@ -45,25 +45,20 @@ for tech = ["IEEE11p", "NR"]
                 sims = dir(fullfile(path_prr, "sim_*"));
                 for i_sim = 1:length(sims)
                     res_folder = fullfile(sims(i_sim).folder, sims(i_sim).name);
-                    res_files = dir(fullfile(res_folder, sprintf("%s_*_%s.csv", n_file, add_name)));
-                    for i_f = 1:length(res_files)
-                        if ~exist(fullfile(res_files(i_f).folder, sprintf("test_error_log_%d.txt", i_f)), "file")
-                            data_temp = readmatrix(fullfile( ...
-                                path_prr, sims(i_sim).name, ...
-                                sprintf("%s_%d_%s.csv", ...
-                                    n_file, i_f, add_name)));
-                            if ~issorted(data_temp(:,1))
-                                data_temp = [];
-                                continue;
-                            end
-                        else
-                            continue;
-                        end
-                        if isempty(data_log.(tech).(read_methods(i_method)).(sprintf("dens_%d",dens_km(i_den))))
-                            data_log.(tech).(read_methods(i_method)).(sprintf("dens_%d",dens_km(i_den))) = data_temp(:,[1,6]);
-                        else
-                            data_log.(tech).(read_methods(i_method)).(sprintf("dens_%d",dens_km(i_den))) = [data_log.(tech).(read_methods(i_method)).(sprintf("dens_%d",dens_km(i_den))), data_temp(:,6)];
-                        end
+                    dataFile = fullfile( ...
+                        res_folder, sprintf("%s_%s.csv", n_file, add_name));
+                    if ~isfile(dataFile) || ...
+                            isfile(fullfile(res_folder, "error_log.txt"))
+                        continue;
+                    end
+                    data_temp = readmatrix(dataFile);
+                    if ~issorted(data_temp(:,1))
+                        continue;
+                    end
+                    if isempty(data_log.(tech).(read_methods(i_method)).(sprintf("dens_%d",dens_km(i_den))))
+                        data_log.(tech).(read_methods(i_method)).(sprintf("dens_%d",dens_km(i_den))) = data_temp(:,[1,6]);
+                    else
+                        data_log.(tech).(read_methods(i_method)).(sprintf("dens_%d",dens_km(i_den))) = [data_log.(tech).(read_methods(i_method)).(sprintf("dens_%d",dens_km(i_den))), data_temp(:,6)];
                     end
                 end               
             end

@@ -75,6 +75,14 @@ end
 [simParams,appParams,phyParams,outParams,outputHookOptions] = ...
     initiateParameters(varargin);
 
+% Reserve one exclusive directory for this run. The lease is intentionally
+% held until all artifacts, including the completion summary, are written.
+[runOutputDirectory,runDirectoryLease] = ...
+    v2xsim.output.acquireRunDirectory( ...
+        outParams.outputFolder); %#ok<ASGLU>
+outParams.outputFolder = runOutputDirectory;
+fprintf('Full path of the output directory = %s\n',runOutputDirectory);
+
 % Update PHY structure with the ranges
 [phyParams] = deriveRanges(phyParams,simParams);
 
@@ -197,25 +205,6 @@ else
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Print To Files
-
-% %% =========
-% % Plot figs of related paper, could be commented in other case.
-% % Please check .../codeForPaper/Zhuofei2023Repetition/fig6
-% % Only for IEEE 802.11p, highway scenario. 
-% fname = fullfile(outParams.outputFolder, sprintf('_log_replications_%d_%s',outParams.simID, simParams.Technology));
-% ITSReplicasLog = stationManagement.ITSReplicasLog;
-% positionLog = stationManagement.positionLog;
-% save(fname, "ITSReplicasLog", "positionLog");
-% %% =========
-
-% Finalize hook-owned optional outputs.
-hookRegistry.cleanup();
-
-% Print to XLS file
-outputToFiles(stationManagement,simParams,appParams,phyParams,sinrManagement,outParams,outputValues);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Print To Video
 fprintf('\nAverage number of UEs in the world = %.0f\n',outputValues.AvgNUEsTOT);
 if outputValues.AvgNUEsCV2X>0 && outputValues.AvgNUEs11p>0
@@ -239,8 +228,19 @@ for iPhyRaw=1:length(phyParams.Raw)
     end    
 end
 
-fclose('all');
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Print To Files
+
+% Finalize hook-owned optional outputs.
+hookRegistry.cleanup();
+
+% Publish the summary as the final fallible operation so its presence means
+% the entire run completed.
+summary = v2xsim.output.buildSimulationSummary( ...
+    stationManagement,simParams,appParams,phyParams, ...
+    sinrManagement,outParams,outputValues);
+v2xsim.output.writeSimulationSummary( ...
+    outParams.outputFolder,summary);
+clear runDirectoryLease
 
 end

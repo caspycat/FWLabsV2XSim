@@ -1,10 +1,14 @@
-function printDebugTxRx(time,v_id, event, stationManagement,sinrManagement,outParams)
+function printDebugTxRx(time,v_id,event,stationManagement,sinrManagement,outParams) %#ok<INUSD>
 %PRINTDEBUGTXRX Summary of this function goes here
 %   Detailed explanation goes here
-filename = sprintf('%s/_DebugTxRx_%d.xls',outParams.outputFolder,outParams.simID);
+filename = fullfile(outParams.outputFolder,"_DebugTxRx.csv");
+writeHeader = ~isfile(filename);
 fid = fopen(filename, "a");
-fprintf(fid,"%f,%d,%s\n",time,v_id,event);
+if writeHeader
+    fprintf(fid,"TimeSeconds,VehicleId,Event\n");
+end
+event = strrep(char(event),'"','""');
+fprintf(fid,'%f,%d,"%s"\n',time,v_id,event);
 fclose(fid);
 
 end
-

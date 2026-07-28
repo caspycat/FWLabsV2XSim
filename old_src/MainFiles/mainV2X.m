@@ -18,7 +18,7 @@ timeNextPrint = 0;
 % Start stopwatch
 tic
 
-fprintf('Simulation ID: %d\nMessage: %s\n',outParams.simID, outParams.message);
+fprintf('Message: %s\n',outParams.message);
 fprintf('Simulation Time: ');
 reverseStr = '';
 while timeManagement.timeNow < simParams.simulationTime
@@ -93,10 +93,12 @@ while timeManagement.timeNow < simParams.simulationTime
     end
     if timeEvent < timeManagement.timeNow
         % error log
-        fid_error = fopen(fullfile(outParams.outputFolder,...
-            sprintf("error_log_%d.txt",outParams.simID)), "at");
-        fprintf(fid_error, sprintf("Time goes back! Stop and check!\nSeed=%d, timeNow=%f, timeEvent=%f\n",...
-            simParams.seed, timeManagement.timeNow, timeEvent));
+        fid_error = fopen( ...
+            fullfile(outParams.outputFolder,"error_log.txt"),"at");
+        fprintf(fid_error, ...
+            "Time goes back! Stop and check!\n" + ...
+            "Seed=%d, timeNow=%f, timeEvent=%f\n", ...
+            simParams.seed,timeManagement.timeNow,timeEvent);
         fclose(fid_error);
     end
     % update timenow, timenow do not go back, deal with float-point-related

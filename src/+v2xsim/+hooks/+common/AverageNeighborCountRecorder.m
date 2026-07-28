@@ -2,9 +2,8 @@ classdef AverageNeighborCountRecorder < v2xsim.hook.Hook
     %AVERAGENEIGHBORCOUNTRECORDER Record average neighbors by range.
 
     properties (Constant, Access = protected)
-        DependencyTypes = [ ...
-            ?v2xsim.hook.dependencies.OutputDirectory, ...
-            ?v2xsim.hook.dependencies.SimulationIdentifier]
+        DependencyTypes = ...
+            ?v2xsim.hook.dependencies.OutputDirectory
     end
 
     properties (SetAccess = immutable)
@@ -13,7 +12,6 @@ classdef AverageNeighborCountRecorder < v2xsim.hook.Hook
 
     properties (Access = private)
         OutputDirectory (1, 1) string = ""
-        SimulationIdentifier (1, 1) double = NaN
         AwarenessRangesMeters (1, :) double = zeros(1, 0)
         TotalNeighborObservations (1, :) double = zeros(1, 0)
         TotalUeObservations (1, 1) double = 0
@@ -31,18 +29,14 @@ classdef AverageNeighborCountRecorder < v2xsim.hook.Hook
                 technology, ["all", "cv2x", "itsg5"]);
         end
 
-        function obj = build( ...
-                obj, outputDirectory, simulationIdentifier)
+        function obj = build(obj, outputDirectory)
             arguments (Input)
                 obj (1, 1)
                 outputDirectory (1, 1) ...
                     v2xsim.hook.dependencies.OutputDirectory
-                simulationIdentifier (1, 1) ...
-                    v2xsim.hook.dependencies.SimulationIdentifier
             end
 
             obj.OutputDirectory = outputDirectory.Path;
-            obj.SimulationIdentifier = simulationIdentifier.Value;
         end
 
         function [obj, invocation] = invoke(obj, invocation)
@@ -212,9 +206,8 @@ classdef AverageNeighborCountRecorder < v2xsim.hook.Hook
             filename = fullfile( ...
                 obj.OutputDirectory, ...
                 sprintf( ...
-                    "average_neighbor_count_%s_%s_%d.csv", ...
-                    outputKind, obj.Technology, ...
-                    obj.SimulationIdentifier));
+                    "average_neighbor_count_%s_%s.csv", ...
+                    outputKind,obj.Technology));
         end
     end
 end

@@ -7,9 +7,11 @@ activeIds = stationManagement.activeIDsCV2X(:);
 ueIds = simValues.world.UeIds(activeIds);
 allocator = allocator.synchronizeUes(ueIds);
 sensingHistory = simValues.sensingHistory.synchronizeUes(ueIds);
+stationManagement.sensingMatrixCV2X(:) = 0;
 stationManagement.sensingMatrixCV2X(:,:,activeIds) = ...
     sensingHistory.EnergyHistory;
 sensingSnapshot = sensingHistory.snapshot(false);
+stationManagement.knownUsedMatrixCV2X(:) = 0;
 stationManagement.knownUsedMatrixCV2X(:,activeIds) = ...
     sensingSnapshot.ReservedMask.';
 

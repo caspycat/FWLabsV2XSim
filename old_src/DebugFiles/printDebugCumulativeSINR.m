@@ -2,17 +2,25 @@ function printDebugCumulativeSINR(outParams,time,idTx,pckTxOccurring,IDRxs,cumul
 % after each time transmission, print the cumulative SINR of all of the
 % receiver
 
-filename = sprintf('%s/_DebugCumulative11p_%d.xls',outParams.outputFolder,outParams.simID);
+filename = fullfile(outParams.outputFolder,"_DebugCumulative11p.csv");
 fid = fopen(filename,'r');
 if fid==-1
     fid = fopen(filename,'w');
-    fprintf(fid,'Time\tidTx\tpckTxOccurring\tIDRx\tcumulativePreableSINR\tcumulativeSINR\tstate\tdistance\trxOK\n');
+    fprintf(fid, ...
+        ['TimeSeconds,TransmitterVehicleId,TransmittedPacketId,' ...
+        'ReceiverVehicleId,CumulativePreambleSinr,' ...
+        'CumulativeSinr,ReceiverState,DistanceMeters,' ...
+        'ReceptionSuccessful\n']);
 end
 fclose(fid);
 
 fid = fopen(filename,'a');
 
 for i = 1:length(IDRxs)
-    fprintf(fid,'%3.6f\t%d\t%d\t%d\t%.2f\t%.2f\t%d\t%.2f\t%d\n',time,idTx,pckTxOccurring,IDRxs(i),cumulativePreable(IDRxs(i),idTx),cumulativeSINR(IDRxs(i), idTx),state(IDRxs(i)),distance(IDRxs(i), idTx),rxOk(i));
+    fprintf(fid,'%3.6f,%d,%d,%d,%.2f,%.2f,%d,%.2f,%d\n', ...
+        time,idTx,pckTxOccurring,IDRxs(i), ...
+        cumulativePreable(IDRxs(i),idTx), ...
+        cumulativeSINR(IDRxs(i),idTx),state(IDRxs(i)), ...
+        distance(IDRxs(i),idTx),rxOk(i));
 end
 fclose(fid);

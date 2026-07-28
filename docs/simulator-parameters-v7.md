@@ -249,7 +249,7 @@ Behavior shared by LTE-V2X and NR-V2X direct PC5 communication.
 |---|---|---|---|
 | `sidelink.CongestionControl.ChannelOccupancyLimitScale` | `cv2xCbrFactor` | `double` | Factor for CV2X DCC thresholds |
 | `sidelink.DuplexMode` | `duplexCV2X` | `string` | Duplexing type |
-| `sidelink.FullDuplex.ResidualSelfInterferenceDb` | `Ksi_dB` | `double` | Self-interference cancellation coefficient (dB) |
+| `sidelink.FullDuplex.ResidualSelfInterferenceDb` | `Ksi_dB` | `double` | Residual self-interference power ratio (dB) |
 | `sidelink.InBandEmissionEnabled` | `haveIBE` | `bool` | Simulator considers the In-Band Emission |
 | `sidelink.Harq.MaximumTransmissionCount` | `cv2xNumberOfReplicasMax` | `integer` | Number of transmissions (HARQ) |
 | `sidelink.LosPacketDecodeSinrThresholdDb` | `sinrThresholdCV2X_LOS` | `double` | SINR threshold for error assessment [dB] |
@@ -294,8 +294,9 @@ and `dynamicPDelta`) are also rejected. This does not remove independent
 full-duplex physical-layer settings.
 
 The selected allocator's canonical type, category, and network-slice ID are
-written in the resource-allocation column of the main output summary. The
-runtime currently uses only the `global` network slice.
+written under `Configuration.ResourceAllocation.Metadata` in
+`simulation_summary.json`. The runtime currently uses only the `global`
+network slice.
 
 ### `output`
 
@@ -303,7 +304,7 @@ Output directory and optional metrics or reports.
 
 | V7 field | V6 field | Type | Description |
 |---|---|---|---|
-| `output.Directory` | `outputFolder` | `string` | Folder for the output files |
+| `output.Directory` | `outputFolder` | `string` | Exclusive directory for one simulation run; it must be nonexistent or empty |
 | `output.AverageNeighborCount.Enabled` | — | `bool` | Record average neighbor counts over time and across the simulation |
 | `output.VehicleKinematics.Enabled` | — | `bool` | Record long-form vehicle kinematics (`X`, `Y`, `vX`, `vY`, `aX`, and `aY`) |
 | `output.UpdateDelay.Enabled` | `printUpdateDelay` | `bool` | Activate the print to file of the update delay between received beacons |
@@ -318,18 +319,23 @@ Output directory and optional metrics or reports.
 | `output.ChannelBusyRatio.Enabled` | `printCBR` | `bool` | Activate the print to file of the channel busy ratio |
 | `output.CoexistenceTechnologyShare.Enabled` | `coex_printTechPercentage` | `bool` | Coex: print technology percentage to file |
 
+Every run writes the nested, versioned `simulation_summary.json` after all
+other artifacts succeed. Output is never appended to a shared workbook, and
+artifact filenames do not contain a simulation ID. See
+[Simulation output](simulation-output-v7.md) for the directory lifecycle,
+JSON schema, completion semantics, and complete filename contract.
+
 When average-neighbor-count output is enabled, each applicable technology
 produces an over-time file and a simulation-wide file. C-V2X-only simulations
 produce the `cv2x` files, ITS-G5-only simulations produce the `itsg5` files,
 and coexistence simulations produce the `all`, `cv2x`, and `itsg5` files:
 
 ```text
-average_neighbor_count_over_time_<technology>_<simulation-id>.csv
-average_neighbor_count_simulation_wide_<technology>_<simulation-id>.csv
+average_neighbor_count_over_time_<technology>.csv
+average_neighbor_count_simulation_wide_<technology>.csv
 ```
 
-The `<technology>` component is one of `all`, `cv2x`, or `itsg5`; the
-simulation identifier is always the final filename component. The `all`
+The `<technology>` component is one of `all`, `cv2x`, or `itsg5`. The `all`
 output represents the technology-agnostic coexistence population, including
 cross-technology neighbors.
 
@@ -355,7 +361,7 @@ denominator. A technology with no UE observations records zero rather than
 
 When channel-busy-ratio output is enabled in a coexistence mode, the
 simulator also writes
-`coex_cv2xOnly_CBRstatistic_<simulation-id>_<LTE-or-5G>.csv` when
+`coex_cv2xOnly_CBRstatistic_<LTE-or-5G>.csv` when
 CV2X-only CBR samples are available. This separate CSV contains two
 columns: the CV2X-only CBR sample and its cumulative ECDF probability.
 It does not add a column to the standard CBR CSV files and is not

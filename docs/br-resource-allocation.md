@@ -130,15 +130,27 @@ selectors remain separate physical-layer settings.
 
 ## Output metadata
 
-For simulations containing cellular-sidelink UEs, the resource-allocation
-column in the main output summary contains JSON provenance. It records the
-canonical allocator type, category, slice, independent random seed, grid
-dimensions and slot duration, maximum transmission count, resolved
-type-specific options, and context settings such as the SCI threshold and,
-where applicable, the selection and sensing windows:
+For simulations containing cellular-sidelink UEs,
+`simulation_summary.json` stores allocator provenance under
+`Configuration.ResourceAllocation.Metadata`. It records the canonical
+allocator type, category, slice, independent random seed, grid dimensions and
+slot duration, maximum transmission count, resolved type-specific options, and
+context settings such as the SCI threshold and, where applicable, the
+selection and sensing windows:
 
-```text
-{"Type":"ThreeGppAutonomous","Category":"Autonomous","NetworkSliceId":"global","RandomSeed":7,...}
+```json
+{
+  "Configuration": {
+    "ResourceAllocation": {
+      "Metadata": {
+        "Type": "ThreeGppAutonomous",
+        "Category": "Autonomous",
+        "NetworkSliceId": "global",
+        "RandomSeed": 7
+      }
+    }
+  }
+}
 ```
 
 This keeps command-line overrides with the result and makes simulations

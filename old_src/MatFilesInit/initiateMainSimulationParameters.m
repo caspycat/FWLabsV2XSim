@@ -19,8 +19,8 @@ end
 
 % [seed]
 % Seed for the random numbers generation
-% If seed = 0, the seed is randomly selected (the selected value is saved
-% in the main output file)
+% If seed = 0, the seed is randomly selected and recorded in
+% simulation_summary.json.
 [simParams,varargin] = addNewParam([],'seed',0,'Seed for random numbers','integer',fileCfg,varargin{1});
 if simParams.seed == 0
     simParams.seed = getseed();

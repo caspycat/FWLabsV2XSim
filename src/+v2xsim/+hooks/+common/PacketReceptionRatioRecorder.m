@@ -2,9 +2,8 @@ classdef PacketReceptionRatioRecorder < v2xsim.hook.Hook
     %PACKETRECEPTIONRATIORECORDER Collect link outcomes by distance.
 
     properties (Constant, Access = protected)
-        DependencyTypes = [ ...
-            ?v2xsim.hook.dependencies.OutputDirectory, ...
-            ?v2xsim.hook.dependencies.SimulationIdentifier]
+        DependencyTypes = ...
+            ?v2xsim.hook.dependencies.OutputDirectory
     end
 
     properties (SetAccess = immutable)
@@ -21,7 +20,6 @@ classdef PacketReceptionRatioRecorder < v2xsim.hook.Hook
 
     properties (Access = private)
         OutputDirectory (1, 1) string = ""
-        SimulationIdentifier (1, 1) double = NaN
         BinCount (1, 1) double = 1
         Counts (:, :, :, :) double = zeros(0, 0, 0, 3)
     end
@@ -57,18 +55,14 @@ classdef PacketReceptionRatioRecorder < v2xsim.hook.Hook
             obj.Counts = zeros(0, 0, obj.BinCount, 3);
         end
 
-        function obj = build( ...
-                obj, outputDirectory, simulationIdentifier)
+        function obj = build(obj, outputDirectory)
             arguments (Input)
                 obj (1, 1)
                 outputDirectory (1, 1) ...
                     v2xsim.hook.dependencies.OutputDirectory
-                simulationIdentifier (1, 1) ...
-                    v2xsim.hook.dependencies.SimulationIdentifier
             end
 
             obj.OutputDirectory = outputDirectory.Path;
-            obj.SimulationIdentifier = simulationIdentifier.Value;
         end
 
         function [obj, invocation] = invoke(obj, invocation)
@@ -175,8 +169,8 @@ classdef PacketReceptionRatioRecorder < v2xsim.hook.Hook
             filename = fullfile( ...
                 obj.OutputDirectory, ...
                 sprintf( ...
-                    "packet_reception_ratio_%d_%s%s%s.csv", ...
-                    obj.SimulationIdentifier, obj.Technology, ...
+                    "packet_reception_ratio_%s%s%s.csv", ...
+                    obj.Technology, ...
                     packetSuffix, channelSuffix));
         end
 

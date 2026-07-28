@@ -24,37 +24,10 @@ outputHookOptions = struct( ...
     ChannelBusyRatioEnabled=false);
 
 % [outputFolder]
-% Folder where the output files are recorded
-% If the folder is not present, the simulator creates it
+% Directory exclusively owned by this simulation run. The orchestration
+% boundary creates and reserves it after all parameters have been parsed.
 [outParams,varargin]= addNewParam([],'outputFolder','Output','Folder for the output files','string',fileCfg,varargin{1});
-if exist(outParams.outputFolder,'dir')~=7
-    mkdir(outParams.outputFolder);
-end
-% change the path as absolute path
-s = what(outParams.outputFolder);
-outParams.outputFolder = s.path;
-fprintf('Full path of the output folder = %s\n',outParams.outputFolder);
-
-% Name of the file that summarizes the inputs and outputs of the simulation
-% Each simulation adds a line in append
-% The file is a xls file
-% The name of the file cannot be changed
-outParams.outMainFile = 'MainOut.xls';
-fprintf('Main output file = %s/%s\n',outParams.outputFolder,outParams.outMainFile);
-
-% Simulation ID
-mainFileName = sprintf('%s/%s',outParams.outputFolder,outParams.outMainFile);
-fid = fopen(mainFileName);
-if fid==-1
-    simID = 0;
-else
-    % use recommended function textscan
-    C = textscan(fid,'%s %*[^\n]');
-    simID = str2double(C{1}{end});
-    fclose(fid);
-end
-outParams.simID = simID+1;
-fprintf('Simulation ID = %.0f\n',outParams.simID);
+fprintf('Requested output directory = %s\n',outParams.outputFolder);
 
 % [output.AverageNeighborCount.Enabled]
 [averageNeighborCountOutput,varargin] = addNewParam( ...

@@ -11,7 +11,8 @@ addpath(simulatorRoot);
 
 configFile = fullfile( ...
     simulatorRoot,"ConfigFiles","EtsiHighwayMediumMode1.cfg");
-outputFolder = fullfile( ...
-    simulatorRoot,"Output","EtsiHighwayMediumMode1");
+% A smoke invocation owns a fresh output directory and never overwrites a
+% previous run.
+outputFolder = string(tempname);
 
 WiLabV2Xsim(configFile,"outputFolder",outputFolder);

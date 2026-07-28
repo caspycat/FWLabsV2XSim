@@ -2,30 +2,24 @@ classdef VehicleKinematicsRecorder < v2xsim.hook.Hook
     %VEHICLEKINEMATICSRECORDER Stream long-form vehicle kinematics.
 
     properties (Constant, Access = protected)
-        DependencyTypes = [ ...
-            ?v2xsim.hook.dependencies.OutputDirectory, ...
-            ?v2xsim.hook.dependencies.SimulationIdentifier]
+        DependencyTypes = ...
+            ?v2xsim.hook.dependencies.OutputDirectory
     end
 
     properties (Access = private)
         OutputDirectory (1, 1) string = ""
-        SimulationIdentifier (1, 1) double = NaN
         HasWrittenRows (1, 1) logical = false
     end
 
     methods
-        function obj = build( ...
-                obj, outputDirectory, simulationIdentifier)
+        function obj = build(obj, outputDirectory)
             arguments (Input)
                 obj (1, 1)
                 outputDirectory (1, 1) ...
                     v2xsim.hook.dependencies.OutputDirectory
-                simulationIdentifier (1, 1) ...
-                    v2xsim.hook.dependencies.SimulationIdentifier
             end
 
             obj.OutputDirectory = outputDirectory.Path;
-            obj.SimulationIdentifier = simulationIdentifier.Value;
             filename = obj.outputFilename();
             if isfile(filename)
                 fileInformation = dir(filename);
@@ -93,9 +87,7 @@ classdef VehicleKinematicsRecorder < v2xsim.hook.Hook
         function filename = outputFilename(obj)
             filename = fullfile( ...
                 obj.OutputDirectory, ...
-                sprintf( ...
-                    "vehicle_kinematics_%d.csv", ...
-                    obj.SimulationIdentifier));
+                "vehicle_kinematics.csv");
         end
     end
 end

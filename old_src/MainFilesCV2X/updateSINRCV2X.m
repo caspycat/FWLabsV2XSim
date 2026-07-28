@@ -21,8 +21,22 @@ end
 % If coexistence, I have also to update the average interference from 11p nodes
 % to LTE nodes
 if simParams.technology == constants.TECH_COEX_STD_INTERF
-    sinrManagement.coex_averageTTIinterfFrom11pToLTE = (sinrManagement.coex_averageTTIinterfFrom11pToLTE .* (sinrManagement.instantThisPstartedCV2X-sinrManagement.instantTheSINRaverageStartedCV2X) + ... 
-        sinrManagement.coex_currentInterfFrom11pToLTE .* (timeNow-sinrManagement.instantThisPstartedCV2X)) ./ (timeNow-sinrManagement.instantTheSINRaverageStartedCV2X);
+    averagingDuration = ...
+        timeNow - sinrManagement.instantTheSINRaverageStartedCV2X;
+    if averagingDuration > 0
+        previousDuration = ...
+            sinrManagement.instantThisPstartedCV2X - ...
+            sinrManagement.instantTheSINRaverageStartedCV2X;
+        currentDuration = ...
+            timeNow - sinrManagement.instantThisPstartedCV2X;
+        accumulatedInterference = ...
+            sinrManagement.coex_averageTTIinterfFrom11pToLTE .* ...
+                previousDuration + ...
+            sinrManagement.coex_currentInterfFrom11pToLTE .* ...
+                currentDuration;
+        sinrManagement.coex_averageTTIinterfFrom11pToLTE = ...
+            accumulatedInterference ./ averagingDuration;
+    end
 end
 
 if ~isempty(transmittingIDsCV2X)
@@ -87,9 +101,6 @@ sinrManagement.instantThisPstartedCV2X = timeNow;
 %                 sinrLast(iLTEtx,iInterf) = sinrManagement.neighPowerUsefulLastLTE(iLTEtx,iInterf) ./ ( Pnoise + sinrManagement.neighPowerInterfLastLTE(iLTEtx,iInterf) + sinrManagement.coex_currentInterfFrom11pToLTE(stationManagement.neighborsIDLTE(stationManagement.indexInActiveIDsOnlyLTE_OfTxLTE(iLTEtx),iInterf)));
 %                 % SCI - 11p interference must be scaled down
 %                 sinrSciLast(iLTEtx,iInterf) = sinrManagement.neighPowerUsefulLastLTE(iLTEtx,iInterf) ./ ( Pnoise + sinrManagement.neighPowerInterfLastLTE(iLTEtx,iInterf) + (2/(appParams.RBsBeacon/2)) * sinrManagement.coex_currentInterfFrom11pToLTE(stationManagement.neighborsIDLTE(stationManagement.indexInActiveIDsOnlyLTE_OfTxLTE(iLTEtx),iInterf)));
-% %fp = fopen('temp.xls','a');
-% %fprintf(fp,'%f\n',10*log10(sinrLast(iLTEtx,iInterf)));
-% %fclose(fp);
 %             end
 %         end
 %     end

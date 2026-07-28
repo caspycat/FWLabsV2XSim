@@ -18,7 +18,7 @@ for sens = sensitivity
         for i = 1:length(sim_list)
             fileName = fullfile( ...
                 sim_list(i).folder, sim_list(i).name, ...
-                "packet_reception_ratio_1_11p.csv");
+                "packet_reception_ratio_11p.csv");
             if ~exist(fileName, "file")
                 continue;
             end

@@ -24,7 +24,7 @@ sensingThreshold=-126;  % threshold to detect resources as busy
 configFile = 'Highway3GPP.cfg';
 
 %% NR-V2X PERIODIC GENERATION
-for BandMHz=[10]
+for BandMHz=10
 
 if BandMHz==10
     MCS=11;
@@ -32,6 +32,8 @@ elseif BandMHz==20
     MCS=5;
 end    
 
+% Keep repeated example runs isolated from each other.
+campaignOutputFolder = string(tempname);
 for rho=[100 200 300] % number of vehicles/km
 
         % Just for visualization purposes the simulations time now are really short,
@@ -46,11 +48,12 @@ for rho=[100 200 300] % number of vehicles/km
         simTime=3;      % simTime=100;
     end
     
-% HD periodic
-outputFolder = sprintf('Output/NRV2X_%dMHz_periodic',BandMHz);
+% Each simulator invocation exclusively owns one output directory.
+runOutputFolder = fullfile( ...
+    campaignOutputFolder,sprintf("density-%d",rho));
 
 % Launches simulation
-WiLabV2Xsim(configFile,'output.Directory',outputFolder,'simulation.RadioAccessMode','5G-V2X','nrV2x.Mcs',MCS,'nrV2x.SubcarrierSpacingKilohertz',SCS,'application.PacketSizeBytes',packetSize,...
+WiLabV2Xsim(configFile,'output.Directory',runOutputFolder,'simulation.RadioAccessMode','5G-V2X','nrV2x.Mcs',MCS,'nrV2x.SubcarrierSpacingKilohertz',SCS,'application.PacketSizeBytes',packetSize,...
     'simulation.DurationSeconds',simTime,'rho',rho,'resourceAllocation.Autonomous.KeepResourceProbability',pKeep,'radio.BandwidthMHz',BandMHz,'vMean',speed,'vStDev',speedStDev,...
     'sidelink.Harq.MaximumTransmissionCount',nTransm,'application.ResourceReservationIntervalSeconds',periodicity,'resourcePool.SubchannelSizeResourceBlocks',sizeSubchannel,...
     'resourceAllocation.Autonomous.SensingThresholdDbm',sensingThreshold,'awareness.RangesMeters',Raw,'radio.FixedPowerDensityEnabled',false,'congestionControl.Enabled',false,'channelLoad.Enabled',true)
@@ -64,13 +67,13 @@ figure
 hold on
 grid on
 
-for iCycle=1:3
-    rho=100*iCycle;
+for rho=[100 200 300]
 
     % Loads packet reception ratio output file
     xMode2_periodic=readmatrix( ...
-        outputFolder + "/packet_reception_ratio_" + ...
-        num2str(iCycle) + "_5G.csv");
+        fullfile(campaignOutputFolder, ...
+        sprintf("density-%d",rho), ...
+        "packet_reception_ratio_5G.csv"));
 
     % PRR plot
     % it takes the first column and the last column

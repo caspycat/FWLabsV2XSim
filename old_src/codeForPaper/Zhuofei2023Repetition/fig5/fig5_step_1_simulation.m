@@ -27,12 +27,17 @@ thre3 = 0.09;       % threshold 1 in paper
 
 ch_model = [0, 3];          % [winner+ B1, ECC rural]
 repType = [0,1,2];            % [0,1,2]: [static, deterministic, probabilistic]
-p_ch = [];
-p_roadL = [];
-p_dens = [];
-p_reptype = [];
-p_repnum = [];
-p_outfolder = [];
+times = 1;                    % archived quick-check setting
+repetitionCaseCount = numel(1:4) + numel(repType) - 1;
+runCount = numel(ch_model) * repetitionCaseCount * ...
+    numel(density) * times;
+p_ch = zeros(1, runCount);
+p_roadL = zeros(1, runCount);
+p_dens = zeros(1, runCount);
+p_reptype = zeros(1, runCount);
+p_repnum = zeros(1, runCount);
+p_outfolder = strings(runCount, 1);
+runIndex = 0;
 
 for ch = ch_model
     for rType = repType
@@ -43,14 +48,6 @@ for ch = ch_model
         end
         for replicate = repNumbers
             for dens_km = density
-                if dens_km <= 10
-                    times = 1;          % 300
-                elseif dens_km <= 30
-                    times = 1;          % 150
-                else
-                    times = 1;          % 20
-                end
-
                 if ch == 0
                     roadLength = 2000;
                     dens = dens_km;
@@ -60,16 +57,16 @@ for ch = ch_model
                 end
 
                 for t = 1:times
-                    p_ch = [p_ch, ch];
-                    p_roadL = [p_roadL, roadLength];
-                    p_dens = [p_dens, dens];
-                    p_reptype = [p_reptype, rType];
-                    p_repnum = [p_repnum, replicate];
+                    runIndex = runIndex + 1;
+                    p_ch(runIndex) = ch;
+                    p_roadL(runIndex) = roadLength;
+                    p_dens(runIndex) = dens;
+                    p_reptype(runIndex) = rType;
+                    p_repnum(runIndex) = replicate;
                     scenario = sprintf("ch_%d_rType_%d_replicate_%d_dens_%.2f",...
                         ch, rType, replicate, dens);
-                    p_outfolder = [p_outfolder;...
-                        fullfile(path_output, scenario,...
-                        sprintf("sim_%d", t))];
+                    p_outfolder(runIndex) = fullfile( ...
+                        path_output, scenario, sprintf("sim_%d", t));
                 end
             end
         end
@@ -82,7 +79,7 @@ par_num = length(p_ch);
 parfor i = 1:par_num
     % if not complete at last time, remove files and restart
     if exist(p_outfolder(i), "dir")
-        if ~exist(fullfile(p_outfolder(i), "MainOut.xls"), "file")
+        if ~exist(fullfile(p_outfolder(i), "simulation_summary.json"), "file")
             rmdir(p_outfolder(i),"s");
         else
             continue;

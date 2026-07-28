@@ -12,6 +12,8 @@ arguments (Input)
     options.MaxWorkers (1, 1) double { ...
         v2xsimregression.execution.mustBeWorkerLimit} = Inf
     options.AdditionalPaths (1, :) string = strings(1, 0)
+    options.EnvironmentVariableNames (1, :) string = strings(1, 0)
+    options.CollectAllFailures (1, 1) logical = false
 end
 
 arguments (Output)
@@ -23,6 +25,15 @@ if numel(options.Labels) ~= numel(workItems)
         "v2xsimregression:execution:WrongLabelCount", ...
         "Labels must contain one value for every work item.");
 end
+if any(ismissing(options.EnvironmentVariableNames)) || ...
+        any(strlength(options.EnvironmentVariableNames) == 0)
+    error( ...
+        "v2xsimregression:execution:InvalidEnvironmentVariableName", ...
+        "EnvironmentVariableNames must contain nonempty names.");
+end
+environmentVariableNames = unique( ...
+    options.EnvironmentVariableNames, "stable");
+additionalPaths = resolveAdditionalPaths(options.AdditionalPaths);
 
 outputs = cell(size(workItems));
 if isempty(workItems)
@@ -30,7 +41,10 @@ if isempty(workItems)
 end
 
 if options.ExecutionMode == "serial"
-    outputs = runSerial(workItems, workerFunction, options.Labels);
+    outputs = runSerial( ...
+        workItems, workerFunction, options.Labels, ...
+        additionalPaths, environmentVariableNames, ...
+        options.CollectAllFailures);
     return
 end
 
@@ -43,12 +57,18 @@ if ~parallelComputingIsAvailable()
     end
     warnParallelFallback( ...
         "Parallel Computing Toolbox is unavailable; running serially.");
-    outputs = runSerial(workItems, workerFunction, options.Labels);
+    outputs = runSerial( ...
+        workItems, workerFunction, options.Labels, ...
+        additionalPaths, environmentVariableNames, ...
+        options.CollectAllFailures);
     return
 end
 
 if isscalar(workItems) || options.MaxWorkers == 1
-    outputs = runSerial(workItems, workerFunction, options.Labels);
+    outputs = runSerial( ...
+        workItems, workerFunction, options.Labels, ...
+        additionalPaths, environmentVariableNames, ...
+        options.CollectAllFailures);
     return
 end
 
@@ -65,7 +85,10 @@ catch cause
     warnParallelFallback(compose( ...
         "Could not obtain a local process pool (%s); running serially.", ...
         cause.message));
-    outputs = runSerial(workItems, workerFunction, options.Labels);
+    outputs = runSerial( ...
+        workItems, workerFunction, options.Labels, ...
+        additionalPaths, environmentVariableNames, ...
+        options.CollectAllFailures);
     return
 end
 
@@ -73,31 +96,112 @@ requestedWorkers = min([ ...
     options.MaxWorkers, numel(workItems), pool.NumWorkers]);
 parallelOptions = parforOptions( ...
     pool, ...
-    MaxNumWorkers=requestedWorkers, ...
-    AdditionalPaths=options.AdditionalPaths);
+    MaxNumWorkers=requestedWorkers);
 workLabels = options.Labels;
-parfor (workIndex = 1:numel(workItems), parallelOptions)
-    outputs{workIndex} = executeSafely( ...
-        workItems{workIndex}, workerFunction, ...
-        workLabels(workIndex));
+if options.CollectAllFailures
+    captured = cell(size(workItems));
+    parfor (workIndex = 1:numel(workItems), parallelOptions)
+        captured{workIndex} = executeCaptured( ...
+            workItems{workIndex}, workerFunction, ...
+            workLabels(workIndex), additionalPaths, ...
+            environmentVariableNames);
+    end
+    outputs = unwrapCaptured(captured);
+else
+    parfor (workIndex = 1:numel(workItems), parallelOptions)
+        outputs{workIndex} = executeSafely( ...
+            workItems{workIndex}, workerFunction, ...
+            workLabels(workIndex), additionalPaths, ...
+            environmentVariableNames);
+    end
 end
 retainCleanup(poolCleanup);
 end
 
-function outputs = runSerial(workItems, workerFunction, labels)
+function outputs = runSerial( ...
+        workItems, workerFunction, labels, ...
+        additionalPaths, environmentVariableNames, collectAllFailures)
 outputs = cell(size(workItems));
+if collectAllFailures
+    captured = cell(size(workItems));
+    for workIndex = 1:numel(workItems)
+        captured{workIndex} = executeCaptured( ...
+            workItems{workIndex}, workerFunction, labels(workIndex), ...
+            additionalPaths, environmentVariableNames);
+    end
+    outputs = unwrapCaptured(captured);
+    return
+end
+
 for workIndex = 1:numel(workItems)
     outputs{workIndex} = executeSafely( ...
-        workItems{workIndex}, workerFunction, labels(workIndex));
+        workItems{workIndex}, workerFunction, labels(workIndex), ...
+        additionalPaths, environmentVariableNames);
 end
 end
 
-function output = executeSafely(workItem, workerFunction, label)
+function captured = executeCaptured( ...
+        workItem, workerFunction, label, additionalPaths, ...
+        environmentVariableNames)
+try
+    output = executeSafely( ...
+        workItem, workerFunction, label, additionalPaths, ...
+        environmentVariableNames);
+    captured = {true, output, []};
+catch exception
+    captured = {false, [], exception};
+end
+end
+
+function outputs = unwrapCaptured(captured)
+outputs = cell(size(captured));
+failed = false(size(captured));
+for workIndex = 1:numel(captured)
+    failed(workIndex) = ~captured{workIndex}{1};
+    if ~failed(workIndex)
+        outputs{workIndex} = captured{workIndex}{2};
+    end
+end
+
+failureIndices = find(failed);
+if isempty(failureIndices)
+    return
+end
+if isscalar(failureIndices)
+    throwAsCaller(captured{failureIndices}{3});
+end
+
+exception = MException( ...
+    "v2xsimregression:execution:MultipleWorkItemsFailed", ...
+    "%d regression work items failed. See the ordered causes for labels.", ...
+    numel(failureIndices));
+for failureIndex = failureIndices
+    exception = addCause(exception, captured{failureIndex}{3});
+end
+throwAsCaller(exception);
+end
+
+function output = executeSafely( ...
+        workItem, workerFunction, label, additionalPaths, ...
+        environmentVariableNames)
 originalPath = path;
+originalWorkingDirectory = string(pwd);
 originalStream = RandStream.getGlobalStream();
 originalStreamState = originalStream.State;
+originalWarningState = warning;
+originalEnvironmentValues = cell(size(environmentVariableNames));
+for variableIndex = 1:numel(environmentVariableNames)
+    originalEnvironmentValues{variableIndex} = getenv( ...
+        environmentVariableNames(variableIndex));
+end
 environmentCleanup = onCleanup(@() restoreEnvironment( ...
-    originalPath, originalStream, originalStreamState));
+    originalPath, originalWorkingDirectory, ...
+    originalStream, originalStreamState, ...
+    originalWarningState, environmentVariableNames, ...
+    originalEnvironmentValues));
+for pathIndex = numel(additionalPaths):-1:1
+    addpath(additionalPaths(pathIndex));
+end
 
 try
     output = workerFunction(workItem);
@@ -108,6 +212,38 @@ catch cause
     throw(addCause(exception, cause));
 end
 
+end
+
+function additionalPaths = resolveAdditionalPaths(additionalPaths)
+if any(ismissing(additionalPaths)) || ...
+        any(strlength(additionalPaths) == 0)
+    error( ...
+        "v2xsimregression:execution:InvalidAdditionalPath", ...
+        "AdditionalPaths must contain nonempty folder paths.");
+end
+for pathIndex = 1:numel(additionalPaths)
+    pathValue = additionalPaths(pathIndex);
+    if ~isAbsolutePath(pathValue)
+        pathValue = fullfile(pwd,pathValue);
+    end
+    if ~isfolder(pathValue)
+        error( ...
+            "v2xsimregression:execution:InvalidAdditionalPath", ...
+            "Additional path is not an existing folder: %s", ...
+            pathValue);
+    end
+    additionalPaths(pathIndex) = pathValue;
+end
+additionalPaths = unique(additionalPaths, "stable");
+end
+
+function tf = isAbsolutePath(pathValue)
+if ispc
+    tf = ~isempty(regexp( ...
+        pathValue,"^[A-Za-z]:[\\/]|^\\\\","once"));
+else
+    tf = startsWith(pathValue,"/");
+end
 end
 
 function [pool, cleanup] = acquireProcessPool(workItemCount, maxWorkers)
@@ -138,10 +274,21 @@ if isempty(hasWarned) || ~hasWarned
 end
 end
 
-function restoreEnvironment(originalPath, originalStream, originalStreamState)
+function restoreEnvironment( ...
+        originalPath, originalWorkingDirectory, ...
+        originalStream, originalStreamState, ...
+        originalWarningState, environmentVariableNames, ...
+        originalEnvironmentValues)
+cd(originalWorkingDirectory);
 path(originalPath);
 RandStream.setGlobalStream(originalStream);
 originalStream.State = originalStreamState;
+warning(originalWarningState);
+for variableIndex = 1:numel(environmentVariableNames)
+    setenv( ...
+        environmentVariableNames(variableIndex), ...
+        originalEnvironmentValues{variableIndex});
+end
 end
 
 function retainCleanup(~)

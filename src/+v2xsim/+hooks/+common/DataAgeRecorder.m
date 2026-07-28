@@ -2,9 +2,8 @@ classdef DataAgeRecorder < v2xsim.hook.Hook
     %DATAAGERECORDER Collect age-of-information histograms.
 
     properties (Constant, Access = protected)
-        DependencyTypes = [ ...
-            ?v2xsim.hook.dependencies.OutputDirectory, ...
-            ?v2xsim.hook.dependencies.SimulationIdentifier]
+        DependencyTypes = ...
+            ?v2xsim.hook.dependencies.OutputDirectory
     end
 
     properties (SetAccess = immutable)
@@ -19,7 +18,6 @@ classdef DataAgeRecorder < v2xsim.hook.Hook
 
     properties (Access = private)
         OutputDirectory (1, 1) string = ""
-        SimulationIdentifier (1, 1) double = NaN
         BinCount (1, 1) double = 1
         Entries (1, :) cell = cell(1, 0)
     end
@@ -44,18 +42,14 @@ classdef DataAgeRecorder < v2xsim.hook.Hook
                     options.MaximumAgeSeconds ./ binWidthSeconds) + 1);
         end
 
-        function obj = build( ...
-                obj, outputDirectory, simulationIdentifier)
+        function obj = build(obj, outputDirectory)
             arguments (Input)
                 obj (1, 1)
                 outputDirectory (1, 1) ...
                     v2xsim.hook.dependencies.OutputDirectory
-                simulationIdentifier (1, 1) ...
-                    v2xsim.hook.dependencies.SimulationIdentifier
             end
 
             obj.OutputDirectory = outputDirectory.Path;
-            obj.SimulationIdentifier = simulationIdentifier.Value;
         end
 
         function [obj, invocation] = invoke(obj, invocation)
@@ -256,8 +250,8 @@ classdef DataAgeRecorder < v2xsim.hook.Hook
             filename = fullfile( ...
                 obj.OutputDirectory, ...
                 sprintf( ...
-                    "data_age_%d_%s%s%s.csv", ...
-                    obj.SimulationIdentifier, technology, ...
+                    "data_age_%s%s%s.csv", ...
+                    technology, ...
                     packetSuffix, channelSuffix));
         end
 

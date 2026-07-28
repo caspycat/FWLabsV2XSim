@@ -28,16 +28,17 @@ for ch = ch_model
             file_list = file_list(3:end);
             for i = 1:length(file_list)
                 cbrFileName = fullfile(file_list(i).folder, file_list(i).name,...
-                    "CBRofGenericVehicle_1_11p.csv");
+                    "CBRofGenericVehicle_11p.csv");
                 prrFileName = fullfile(file_list(i).folder, file_list(i).name,...
-                    "packet_reception_ratio_1_11p.csv");
+                    "packet_reception_ratio_11p.csv");
     
                 % load CBR data
                 cbrDataTemp = readmatrix(cbrFileName);
                 if ~isfield(data, nameCBRdata)
                     data.(nameCBRdata) = cbrDataTemp(:,2);
                 else
-                    data.(nameCBRdata) = [data.(nameCBRdata); cbrDataTemp(:, 2)];
+                    data.(nameCBRdata) = [ ...
+                        data.(nameCBRdata); cbrDataTemp(:, 2)];
                 end
 
                 % load PRR data
@@ -45,7 +46,8 @@ for ch = ch_model
                 if ~isfield(data, namePRRdata)
                     data.(namePRRdata) = prrDataTemp(:,[1,6]);
                 else
-                    data(namePRRdata) = [data, prrDataTemp(:,6)];
+                    data.(namePRRdata) = [ ...
+                        data.(namePRRdata), prrDataTemp(:,6)];
                 end
             end
         end

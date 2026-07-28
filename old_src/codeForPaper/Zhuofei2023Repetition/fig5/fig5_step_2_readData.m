@@ -39,7 +39,7 @@ for ch = ch_model
                     try
                         datatemp = readmatrix(fullfile( ...
                             fileList(i).folder, fileList(i).name, ...
-                            "packet_reception_ratio_1_11p.csv"));
+                            "packet_reception_ratio_11p.csv"));
                     catch
                         continue;
                     end

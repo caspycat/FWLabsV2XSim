@@ -32,6 +32,10 @@ on multiple CPU cores. They retain a serial backend when that toolbox or its
 license is unavailable. MATLAB Parallel Server™, Hadoop, Spark, and MATLAB
 `mapreduce` are not required.
 
+The [V7 correctness and integration testing
+guide](docs/testing-v7.md) describes the behavioral contracts, full ordinary
+test gate, coverage report, and process-worker isolation rules.
+
 The main reference for the simulator is 
 
 ***V. Todisco, S. Bartoletti, C. Campolo, A. Molinaro, A. O. Berthet, andA.  Bazzi,  “Performance  analysis  of  sidelink  5G-V2X  mode  2  through an  open-source  simulator,” IEEE Access,  2021***, open access at https://ieeexplore.ieee.org/abstract/document/9579000 

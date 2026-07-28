@@ -99,7 +99,20 @@ if sum(stationManagement.vehicleState(stationManagement.activeIDs)~=constants.V_
         for iPhyRaw=1:length(phyParams.Raw)
             stationManagement.awarenessID11p(:,:,iPhyRaw) = (neighborsDistance11p_of11p < phyParams.Raw(iPhyRaw)) .* stationManagement.neighborsID11p;
         end
-    end    
+    end
+
+    % Retain only same-technology neighbors. Other active technologies
+    % appear as infinite-distance zero padding after the distance sort.
+    stationManagement.neighborsID11p = ...
+        stationManagement.neighborsID11p( ...
+            :,1:length(stationManagement.activeIDs11p)-1);
+    if ~isempty(stationManagement.neighborsID11p)
+        stationManagement.awarenessID11p = ...
+            stationManagement.awarenessID11p( ...
+                :,1:length(stationManagement.activeIDs11p)-1,:);
+    else
+        stationManagement.awarenessID11p = [];
+    end
 
     % Keep only the distance of neighbors up to the maximum awareness range
     % and dealing with the technology of interest

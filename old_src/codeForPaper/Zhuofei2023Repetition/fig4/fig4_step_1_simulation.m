@@ -20,25 +20,18 @@ configFile = 'fig4_config.cfg';
 density = [1:10,12:2:30,40:20:100];
 ch_model = [0, 3];      % [winner+ B1, ECC rural]
 repNumbers = 1:4;       % statistic repetition number
-p_ch = [];
-p_roadL = [];
-p_dens = [];
-p_repNum = [];
-p_psize = [];
-p_outfolder = [];
+times = 1;              % archived quick-check setting
+runCount = numel(ch_model) * numel(density) * ...
+    numel(repNumbers) * times;
+p_ch = zeros(1, runCount);
+p_roadL = zeros(1, runCount);
+p_dens = zeros(1, runCount);
+p_repNum = zeros(1, runCount);
+p_outfolder = strings(runCount, 1);
+runIndex = 0;
 
 for ch = ch_model
     for dens_kms = density
-        % the lower density, the more simulations need to be repeat
-        % here for quick check, only set 1 times
-        if dens_kms <= 10
-            times = 1;          % 450
-        elseif dens_kms <= 30
-            times = 1;          % 250
-        else
-            times = 1;          % 20
-        end
-
         if ch == 0
             roadLength = 2000;
             dens = dens_kms;
@@ -48,15 +41,15 @@ for ch = ch_model
         end
 
         for repNum = repNumbers
-            for t = times
-                p_ch = [p_ch, ch];
-                p_roadL = [p_roadL, roadLength];
-                p_dens = [p_dens, dens];
-                p_repNum = [p_repNum, repNum];
-                p_outfolder = [p_outfolder;...
-                    fullfile(path_output,...
+            for t = 1:times
+                runIndex = runIndex + 1;
+                p_ch(runIndex) = ch;
+                p_roadL(runIndex) = roadLength;
+                p_dens(runIndex) = dens;
+                p_repNum(runIndex) = repNum;
+                p_outfolder(runIndex) = fullfile(path_output,...
                     sprintf("ch_%d_replicate_%d_dens_%.2f",ch, repNum, dens),...
-                    sprintf("sim_%d", t))];
+                    sprintf("sim_%d", t));
             end
         end
     end
@@ -68,7 +61,7 @@ par_num = length(p_ch);
 parfor i = 1:par_num
     % if not complete at last time, remove files and restart
     if exist(p_outfolder(i), "dir")
-        if ~exist(fullfile(p_outfolder(i), "MainOut.xls"), "file")
+        if ~exist(fullfile(p_outfolder(i), "simulation_summary.json"), "file")
             rmdir(p_outfolder(i),"s");
         else
             continue;

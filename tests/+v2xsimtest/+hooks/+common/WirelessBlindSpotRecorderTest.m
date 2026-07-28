@@ -2,7 +2,7 @@ classdef WirelessBlindSpotRecorderTest < matlab.unittest.TestCase
     methods (Test)
         function preservesEntryTimeForNoncontiguousUeIds(testCase)
             outputDirectory = testCase.makeOutputDirectory();
-            hook = testCase.buildHook(outputDirectory, 3);
+            hook = testCase.buildHook(outputDirectory);
 
             hook = testCase.invokeNeighborSnapshot(hook, 0);
             hook = testCase.invokeNeighborSnapshot(hook, 0.5);
@@ -11,7 +11,7 @@ classdef WirelessBlindSpotRecorderTest < matlab.unittest.TestCase
 
             values = readmatrix(fullfile( ...
                 outputDirectory, ...
-                "wireless_blind_spot_3_11p.csv"), ...
+                "wireless_blind_spot_11p.csv"), ...
                 FileType="text", Delimiter=",");
             testCase.verifyEqual(values(1, 1:3), [1, 2, 0]);
             testCase.verifyEqual(values(1, 4), 1, AbsTol=1e-12);
@@ -19,7 +19,7 @@ classdef WirelessBlindSpotRecorderTest < matlab.unittest.TestCase
 
         function consumesOnlyFirstCorrectFateForOnePacket(testCase)
             outputDirectory = testCase.makeOutputDirectory();
-            hook = testCase.buildHook(outputDirectory, 4);
+            hook = testCase.buildHook(outputDirectory);
 
             hook = testCase.invokeNeighborSnapshot(hook, 0);
             hook = testCase.invokeCorrectFate(hook, 0.2, 0.1);
@@ -30,7 +30,7 @@ classdef WirelessBlindSpotRecorderTest < matlab.unittest.TestCase
 
             values = readmatrix(fullfile( ...
                 outputDirectory, ...
-                "wireless_blind_spot_4_11p.csv"), ...
+                "wireless_blind_spot_11p.csv"), ...
                 FileType="text", Delimiter=",");
             testCase.verifyEqual(values(1, 1:3), [1, 2, 1]);
             testCase.verifyEqual( ...
@@ -45,14 +45,12 @@ classdef WirelessBlindSpotRecorderTest < matlab.unittest.TestCase
             outputDirectory = string(fixture.Folder);
         end
 
-        function hook = buildHook(~, outputDirectory, simulationId)
+        function hook = buildHook(~,outputDirectory)
             hook = v2xsim.hooks.common. ...
                 WirelessBlindSpotRecorder(1, 1);
             hook = hook.build( ...
                 v2xsim.hook.dependencies.OutputDirectory( ...
-                    outputDirectory), ...
-                v2xsim.hook.dependencies.SimulationIdentifier( ...
-                    simulationId));
+                    outputDirectory));
         end
 
         function hook = invokeNeighborSnapshot( ...
