@@ -1,0 +1,37 @@
+function result = buildResult( ...
+        grid,assignmentsBefore,resourceIds,decisionRows,reservations)
+%BUILDRESULT Construct a row-keyed allocation result from local row data.
+
+arguments (Input)
+    grid (1,1) v2xsim.resource.BRResourceGrid
+    assignmentsBefore table
+    resourceIds (:,:) double
+    decisionRows (:,1) double {mustBeInteger,mustBePositive}
+    reservations table = ...
+        v2xsim.resource.ResourceAllocationResult.emptyReservations()
+end
+
+ueIds = assignmentsBefore.UeId;
+if size(resourceIds,1) ~= numel(ueIds) || ...
+        any(decisionRows > numel(ueIds)) || ...
+        numel(unique(decisionRows)) ~= numel(decisionRows)
+    error( ...
+        "v2xsim:resource:InvalidAllocationInput", ...
+        "Allocator result rows must align with the assignment table.");
+end
+
+assignments = table( ...
+    ueIds,resourceIds,VariableNames=["UeId","ResourceIds"]);
+oldResourceIds = assignmentsBefore.ResourceIds;
+same = (oldResourceIds == resourceIds) | ...
+    (isnan(oldResourceIds) & isnan(resourceIds));
+changedRows = find(any(~same,2));
+reassignedRows = intersect(decisionRows,changedRows,"stable");
+reassignedRows = reassignedRows(~isnan(resourceIds(reassignedRows,1)));
+blockedRows = decisionRows(isnan(resourceIds(decisionRows,1)));
+
+result = v2xsim.resource.ResourceAllocationResult( ...
+    grid.NetworkSliceId,assignments, ...
+    ueIds(decisionRows),ueIds(reassignedRows),ueIds(blockedRows), ...
+    reservations);
+end

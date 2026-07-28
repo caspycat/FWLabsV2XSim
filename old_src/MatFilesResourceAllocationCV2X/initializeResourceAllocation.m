@@ -1,0 +1,59 @@
+function [simValues,stationManagement,simParams] = ...
+        initializeResourceAllocation( ...
+            simValues,stationManagement,timeManagement, ...
+            positionManagement,sinrManagement,simParams,phyParams,appParams)
+%INITIALIZERESOURCEALLOCATION Compose the global allocator and sensing.
+
+allocator = v2xsim.resource.createAllocator( ...
+    simParams,phyParams,appParams);
+activeIds = stationManagement.activeIDsCV2X(:);
+ueIds = simValues.world.UeIds(activeIds);
+allocator = allocator.synchronizeUes(ueIds);
+
+sensingWindowSeconds = simParams.cbrSensingInterval;
+if isfield(simParams,"TsensingPeriod")
+    sensingWindowSeconds = max( ...
+        sensingWindowSeconds,simParams.TsensingPeriod);
+end
+windowPeriodCount = ceil( ...
+    sensingWindowSeconds / appParams.allocationPeriod);
+sensingHistory = v2xsim.resource.sensing.SensingHistory( ...
+    allocator.Grid,windowPeriodCount);
+sensingHistory = sensingHistory.synchronizeUes(ueIds);
+
+stationManagement.sensingMatrixCV2X = zeros( ...
+    windowPeriodCount,allocator.Grid.ResourceCount,simValues.maxID);
+stationManagement.knownUsedMatrixCV2X = zeros( ...
+    allocator.Grid.ResourceCount,simValues.maxID);
+stationManagement.resourceReservations = false( ...
+    allocator.Grid.ResourceCount,simValues.maxID);
+stationManagement.correctSCImatrixCV2X = [];
+
+context = buildResourceAllocationContext( ...
+    allocator,sensingHistory,simValues,stationManagement, ...
+    timeManagement,positionManagement,sinrManagement,simParams,0);
+[allocator,result] = allocator.initialize(context);
+stationManagement = projectResourceAllocation( ...
+    stationManagement,simValues,result,allocator.Grid);
+
+simValues.resourceAllocator = allocator;
+simValues.sensingHistory = sensingHistory;
+simValues.resourceAllocationResult = result;
+metadata = allocator.metadata();
+contextMetadata = struct( ...
+    "MinimumSciSinrDb",phyParams.minSCIsinrDb);
+if isfield(simParams,"T1autonomousModeTTIs")
+    contextMetadata.SelectionWindowStartSlots = ...
+        simParams.T1autonomousModeTTIs;
+    contextMetadata.SelectionWindowEndSlots = ...
+        simParams.T2autonomousModeTTIs;
+end
+if isfield(simParams,"TsensingPeriod")
+    contextMetadata.SensingWindowSeconds = ...
+        simParams.TsensingPeriod;
+    contextMetadata.AverageSensingEnabled = ...
+        simParams.averageSensingActive;
+end
+metadata.Context = contextMetadata;
+simParams.resourceAllocationMetadata = metadata;
+end

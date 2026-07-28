@@ -43,40 +43,39 @@ if ~isempty(stationManagement.transmittingIDsCV2X)
     % plot(elapsedTime_subframes*ones(1,length(errorMatrix(1,:))),10*log10(errorMatrix(1,:)),'*');
     % hold on
 
-    % Check the correctness of SCI messages
-    if simParams.BRAlgorithm==18
-        % correctSCImatrix is nTXLTE x nNeighblors
-        stationManagement.correctSCImatrixCV2X = (sinrManagement.neighborsSINRsciAverageCV2X > phyParams.minSCIsinr);
+    % SCI decoding feeds the shared sensing component for every allocator.
+    stationManagement.correctSCImatrixCV2X = ...
+        sinrManagement.neighborsSINRsciAverageCV2X > ...
+        phyParams.minSCIsinr;
         
-        %if simParams.technology==4 && simParams.coexMethod>1 && simParams.coex_slotManagement==2
-        if simParams.technology==4 %&& simParams.coexMethod>1 && simParams.coex_slotManagement==2
-            % In mitigation methods with dynamic slot duration, 
-            % we need the calculation of the CBR_LTE
-            % To this aim, the correct/wrong reception of SCI messages in this subframe is
-            % stored in "stationManagement.correctSCImatrixCV2X(,)"
-            % A record with the SCI messages in the last 100 subframes is
-            % required: "stationManagement.coex_correctSCIhistory(subframe,idVehicle)" is used 
-            % Step 1: circular shift of the matrix and zeros to remove oldest record
-            sinrManagement.coex_correctSCIhistory(:,:) = circshift(sinrManagement.coex_correctSCIhistory(:,:),appParams.NbeaconsF);
-            sinrManagement.coex_correctSCIhistory(1:appParams.NbeaconsF,:) = 0;
-            % Step 2: new record
-            for i = 1:length(stationManagement.transmittingIDsCV2X)
-                
-                % Replicas do not cause an update of 'coex_correctSCIhistory'
-                if stationManagement.pckTxOccurring(activeIDsTXLTE(i))>1
-                    continue;
-                end
-                
-                indexVtxLte = stationManagement.indexInActiveIDsOnlyLTE_OfTxLTE(i);
-                for indexNeighborsOfVtx = 1:length(stationManagement.neighborsIDLTE(indexVtxLte,:))
-                   idVrx = stationManagement.neighborsIDLTE(indexVtxLte,indexNeighborsOfVtx);
-                   if idVrx<=0
-                       break;
-                   end
-                   if stationManagement.correctSCImatrixCV2X(i,indexNeighborsOfVtx) == 1 % correct reception of the SCI                       
-                       %sinrManagement.coex_correctSCIhistory(mod(stationManagement.BRid(stationManagement.transmittingIDsCV2X(i))-1,appParams.NbeaconsF)+1,idVrx) = 1;
-                       sinrManagement.coex_correctSCIhistory(stationManagement.transmittingFusedLTE(i),idVrx) = 1;
-                   end
+    %if simParams.technology==4 && simParams.coexMethod>1 && simParams.coex_slotManagement==2
+    if simParams.technology==4 %&& simParams.coexMethod>1 && simParams.coex_slotManagement==2
+        % In mitigation methods with dynamic slot duration,
+        % we need the calculation of the CBR_LTE
+        % To this aim, the correct/wrong reception of SCI messages in this subframe is
+        % stored in "stationManagement.correctSCImatrixCV2X(,)"
+        % A record with the SCI messages in the last 100 subframes is
+        % required: "stationManagement.coex_correctSCIhistory(subframe,idVehicle)" is used
+        % Step 1: circular shift of the matrix and zeros to remove oldest record
+        sinrManagement.coex_correctSCIhistory(:,:) = circshift(sinrManagement.coex_correctSCIhistory(:,:),appParams.NbeaconsF);
+        sinrManagement.coex_correctSCIhistory(1:appParams.NbeaconsF,:) = 0;
+        % Step 2: new record
+        for i = 1:length(stationManagement.transmittingIDsCV2X)
+
+            % Replicas do not cause an update of 'coex_correctSCIhistory'
+            if stationManagement.pckTxOccurring(activeIDsTXLTE(i))>1
+                continue;
+            end
+
+            indexVtxLte = stationManagement.indexInActiveIDsOnlyLTE_OfTxLTE(i);
+            for indexNeighborsOfVtx = 1:length(stationManagement.neighborsIDLTE(indexVtxLte,:))
+               idVrx = stationManagement.neighborsIDLTE(indexVtxLte,indexNeighborsOfVtx);
+               if idVrx<=0
+                   break;
+               end
+               if stationManagement.correctSCImatrixCV2X(i,indexNeighborsOfVtx) == 1 % correct reception of the SCI
+                   %sinrManagement.coex_correctSCIhistory(mod(stationManagement.BRid(stationManagement.transmittingIDsCV2X(i))-1,appParams.NbeaconsF)+1,idVrx) = 1;
+                   sinrManagement.coex_correctSCIhistory(stationManagement.transmittingFusedLTE(i),idVrx) = 1;
                 end
             end
         end

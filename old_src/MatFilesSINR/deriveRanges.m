@@ -37,15 +37,16 @@ if simParams.technology ~= constants.TECH_ONLY_11P % not only 11p
     %    fprintf('set to %.0f m\n\n', phyParams.Raw);
     end
     
-    % R reuse for some allocation algorithms
-    if simParams.BRAlgorithm==constants.REASSIGN_BR_REUSE_DIS_SCHEDULED_VEH
-        % Compute minimum reuse distance (m)
-        Rreuse1 = phyParams.Raw(end) + phyParams.Raw(end)/(((1/phyParams.sinrThresholdCV2X_LOS)-(phyParams.Pnoise_MHz/phyParams.P_ERP_MHz_CV2X)*(phyParams.L0_far*phyParams.Raw^phyParams.b_far)/phyParams.Gr)^(1/phyParams.b_far));
-        RreuseMin = max([Rreuse1 2*phyParams.Raw(end)]);
-        
-        % Reuse distance (m)
-        phyParams.Rreuse = RreuseMin + simParams.Mreuse;        
-    end
+    % Derive the controlled allocator's reuse-distance input without
+    % branching on the selected strategy.
+    awarenessRange = phyParams.Raw(end);
+    Rreuse1 = awarenessRange + awarenessRange / ( ...
+        (1 / phyParams.sinrThresholdCV2X_LOS - ...
+        (phyParams.Pnoise_MHz / phyParams.P_ERP_MHz_CV2X) * ...
+        (phyParams.L0_far * awarenessRange^phyParams.b_far) / ...
+        phyParams.Gr)^(1 / phyParams.b_far));
+    RreuseMin = max([Rreuse1,2 * awarenessRange]);
+    phyParams.Rreuse = RreuseMin + simParams.Mreuse;
     
 end
 

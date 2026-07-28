@@ -50,7 +50,16 @@ if simParams.technology ~= constants.TECH_ONLY_11P % not only 11p
     [simParams,phyParams,varargin] = initiateBRAssignmentAlgorithm(simParams,phyParams,appParams.allocationPeriod,fileCfg,varargin{1});
     
     % Derive CV2X resources available for beaconing (Beacon Resources)
-    [appParams,phyParams,varargin] = deriveBeaconResources(simParams,appParams,phyParams,fileCfg,varargin{1});    
+    [appParams,phyParams,varargin] = deriveBeaconResources( ...
+        simParams,appParams,phyParams,fileCfg,varargin{1});
+
+    % V7 currently composes one network slice. The grid owns the slice
+    % identity so local BR identifiers can never be confused across future
+    % per-slice numerologies.
+    globalSliceId = v2xsim.network.NetworkSliceId("global");
+    simParams.brResourceGrid = v2xsim.resource.BRResourceGrid( ...
+        globalSliceId,appParams.NbeaconsT,appParams.NbeaconsF, ...
+        phyParams.TTI);
 end
 
 % Additional parameters (currently only RSUs with DENM)

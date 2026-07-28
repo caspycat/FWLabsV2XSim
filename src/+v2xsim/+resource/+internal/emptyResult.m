@@ -1,0 +1,6 @@
+function result = emptyResult(allocator)
+%EMPTYRESULT Return unchanged assignments and no allocation decisions.
+result = v2xsim.resource.internal.buildResult( ...
+    allocator.Grid,allocator.Assignments, ...
+    allocator.Assignments.ResourceIds,zeros(0,1));
+end
