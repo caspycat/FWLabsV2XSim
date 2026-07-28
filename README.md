@@ -20,6 +20,12 @@ supported field, compatibility aliases, and fields removed from V6.
 NOTICE: The code is meant to be written to take advantage of modern MATLAB features. It is authored in R2026a. No guarantees of whether it will work with earlier versions.
 The Statistics and Machine Learning Toolbox™ is needed for the simulation and generation of 3GPP a-periodic traffic.
 
+Parallel Computing Toolbox™ is optional. Publication regression campaigns can
+use local process workers to run independent configurations and random seeds
+on multiple CPU cores. They retain a serial backend when that toolbox or its
+license is unavailable. MATLAB Parallel Server™, Hadoop, Spark, and MATLAB
+`mapreduce` are not required.
+
 The main reference for the simulator is 
 
 ***V. Todisco, S. Bartoletti, C. Campolo, A. Molinaro, A. O. Berthet, andA.  Bazzi,  “Performance  analysis  of  sidelink  5G-V2X  mode  2  through an  open-source  simulator,” IEEE Access,  2021***, open access at https://ieeexplore.ieee.org/abstract/document/9579000 

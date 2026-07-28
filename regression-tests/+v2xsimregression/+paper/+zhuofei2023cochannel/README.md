@@ -202,8 +202,23 @@ results = ...
         SidelinkFractions=[1/3, 1/2, 2/3], ...
         PacketIntervalVariationsSeconds=[0, -1], ...
         RandomSeeds=1:20, ...
-        SimulationTimeSeconds=120);
+        SimulationTimeSeconds=120, ...
+        ExecutionMode="parallel", ...
+        MaxWorkers=8);
 ```
+
+Each method/density/traffic/seed tuple is an independent work item.
+`ExecutionMode="auto"` (the default) uses a local process pool when Parallel
+Computing Toolbox is available and otherwise warns and runs serially.
+`ExecutionMode="serial"` never opens a pool; `"parallel"` requires one.
+Caller-owned process pools are retained, temporary pools are closed, and
+`MaxWorkers` limits CPU use. Metrics and both summary files are assembled on
+the client in their existing deterministic order.
+
+Thread pools, MATLAB `mapreduce`, Spark, and remote MATLAB Parallel Server
+clusters are outside this local multi-core backend. The common work-item
+scheduler isolates pool acquisition so a cluster backend can be added later
+without changing campaign definitions.
 
 That full matrix is intentionally not the default test: it contains thousands
 of long simulations. It is the appropriate workflow for checking the paper's

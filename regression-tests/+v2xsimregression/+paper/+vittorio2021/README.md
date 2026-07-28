@@ -36,6 +36,24 @@ results = run(suite);
 assertSuccess(results);
 ```
 
+`runPublishedCampaigns` uses local process workers by default when Parallel
+Computing Toolbox is available. It reuses a caller-owned process pool or opens
+and closes a temporary one. Limit CPU use or select the backend explicitly:
+
+```matlab
+campaign = ...
+    v2xsimregression.paper.vittorio2021.runPublishedCampaigns( ...
+        string(pwd), string(tempname), ...
+        Figures=[7, 9, 11], ...
+        ExecutionMode="parallel", MaxWorkers=4);
+```
+
+`ExecutionMode="serial"` never opens a pool. `"auto"` falls back to serial
+with a warning when parallel capability is unavailable, while an explicit
+`"parallel"` request fails. Completion order never changes result-table order.
+Thread pools are intentionally unsupported because the simulator changes
+process-wide MATLAB state.
+
 The suite targets the current repository layout. To exercise another checkout
 of the current simulator, set its repository root before creating the suite:
 
