@@ -37,7 +37,7 @@ validateCampaignOptions(options);
 [simulatorDirectory, fixtureDirectory] = ...
     resolveSimulatorDirectories(simulatorRoot);
 validateSimulatorRoot( ...
-    simulatorRoot, simulatorDirectory, fixtureDirectory);
+    simulatorRoot, fixtureDirectory);
 prepareOutputDirectory(outputDirectory);
 
 originalPath = path;
@@ -257,15 +257,17 @@ if ~ismember(method, ["only_NR", "only_ITS"])
         simulationArguments, coexistenceArguments]; %#ok<NASGU>
 end
 
-evalc("WiLabV2Xsim(simulationArguments{:});");
+evalc("v2xsim.runSimulation(simulationArguments{:});");
 validateSimulationOutputs( ...
     outputDirectory,technologiesForMethod(method),method);
 
-if ~contains(which("WiLabV2Xsim"), simulatorDirectory)
+resolvedEntrypoint = string(which("v2xsim.runSimulation"));
+expectedSourceDirectory = fullfile(fileparts(simulatorDirectory), "src");
+if ~startsWith(resolvedEntrypoint, expectedSourceDirectory)
     error( ...
         "v2xsimregression:zhuofei2023cochannel:WrongSimulator", ...
-        "WiLabV2Xsim resolved outside the requested simulator: %s", ...
-        which("WiLabV2Xsim"));
+        "v2xsim.runSimulation resolved outside the requested simulator: %s", ...
+        resolvedEntrypoint);
 end
 end
 
@@ -634,18 +636,18 @@ simulatorDirectory = fullfile(simulatorRoot, "old_src");
 fixtureDirectory = fullfile(fileparts(mfilename("fullpath")), "config");
 end
 
-function validateSimulatorRoot( ...
-        simulatorRoot, simulatorDirectory, fixtureDirectory)
+function validateSimulatorRoot(simulatorRoot, fixtureDirectory)
 if ~isfolder(simulatorRoot)
     error( ...
         "v2xsimregression:zhuofei2023cochannel:MissingSimulatorRoot", ...
         "SimulatorRoot is not a directory: %s", simulatorRoot);
 end
-if ~isfile(fullfile(simulatorDirectory, "WiLabV2Xsim.m"))
+if ~isfile(fullfile( ...
+        simulatorRoot, "src", "+v2xsim", "runSimulation.m"))
     error( ...
         "v2xsimregression:zhuofei2023cochannel:MissingSimulator", ...
-        "WiLabV2Xsim.m was not found under: %s", ...
-        simulatorDirectory);
+        "v2xsim.runSimulation was not found under: %s", ...
+        simulatorRoot);
 end
 if ~isfile(fullfile(fixtureDirectory, "cochannel.cfg"))
     error( ...

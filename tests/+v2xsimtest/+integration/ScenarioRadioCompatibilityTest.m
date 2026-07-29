@@ -93,7 +93,7 @@ classdef ScenarioRadioCompatibilityTest < matlab.unittest.TestCase
                 simulationArguments, scenarioArguments, ...
                 coexistenceArguments]; %#ok<NASGU>
 
-            evalc("WiLabV2Xsim(simulationArguments{:});");
+            evalc("v2xsim.runSimulation(simulationArguments{:});");
 
             summaryFile = fullfile( ...
                 outputDirectory, "simulation_summary.json");

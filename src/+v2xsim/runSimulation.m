@@ -1,5 +1,15 @@
-function WiLabV2Xsim(varargin)
-% The function WiLabV2Xsim() is the main function of the simulator
+function runSimulation(varargin)
+%RUNSIMULATION Run one WiLabV2Xsim simulation.
+%   v2xsim.runSimulation(CONFIGURATIONFILE, NAME, VALUE, ...) runs a
+%   simulation using CONFIGURATIONFILE as the baseline and applies dotted
+%   V7 name-value overrides.
+%
+%   v2xsim.runSimulation("help") prints the supported parameters and their
+%   default values.
+%
+%   The WiLabV2XSim MATLAB Project must be open before calling this
+%   function. Project metadata owns all source-path configuration; this
+%   entrypoint never mutates the MATLAB path.
 
 % ==============
 % Copyright (C) Alessandro Bazzi, University of Bologna, and Alberto Zanella, CNR
@@ -20,11 +30,8 @@ function WiLabV2Xsim(varargin)
 % Project:  WiLabV2Xsim (extension of the simulator LTEV2Vsim)
 % ==============
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%                WiLabV2Xsim           %%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Call it as
-% WiLabV2Xsim(fileCfg,paramName1,value1,...paramNameN,valueN)
+% v2xsim.runSimulation(fileCfg,paramName1,value1,...paramNameN,valueN)
 %
 % Parameters are optional.
 % If one or more parameters are given in input, the first corresponds to the
@@ -42,27 +49,24 @@ function WiLabV2Xsim(varargin)
 % line; the priority is: 1) command line; 2) config file; 3) default value.
 %
 % Example call:
-% WiLabV2Xsim('default','simulation.RandomSeed',0,'lteV2x.Mcs',2);
+% v2xsim.runSimulation( ...
+%     "default","simulation.RandomSeed",0,"lteV2x.Mcs",2);
 % In this example, the seed for random numbers is randomly selected and the
 % MCS 2 is set. Then the other parameters take the value from the default
 % config file if the file is present and the parameter is set; otherwise
 % the default value is used.
 %
 % Write
-% WiLabV2Xsim('help')
+% v2xsim.runSimulation("help")
 % for a full list of the parameters with their default values.
 
 %% Initialization
 
-% The path of the directory of the simulator is saved in 'fullPath'
-fullPath = fileparts(mfilename('fullpath'));
-addpath(genpath(fullPath));
-% chdir(fullPath);
 % Version of the simulator
 fprintf('WiLabV2Xsim %s\n\n',constants.SIM_VERSION);
 
 % 'help' feature:
-% "WiLabV2Xsim('help')" allows to print the full list of parameters
+% v2xsim.runSimulation("help") prints the full list of parameters
 % with default values
 if nargin == 1 && strcmp(varargin{1},'help')
     fprintf('Help: list of the parameters with default values\n\n');

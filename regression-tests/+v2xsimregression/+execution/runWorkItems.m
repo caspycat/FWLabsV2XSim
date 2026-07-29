@@ -1,7 +1,7 @@
 function outputs = runWorkItems(workItems, workerFunction, options)
 %RUNWORKITEMS Execute independent regression work in a stable order.
-%   The parallel backend intentionally uses process workers. WiLabV2Xsim
-%   changes process-wide MATLAB state and is not safe on a thread pool.
+%   The parallel backend intentionally uses process workers. Simulations
+%   change process-wide MATLAB state and are not safe on a thread pool.
 
 arguments (Input)
     workItems (1, :) cell

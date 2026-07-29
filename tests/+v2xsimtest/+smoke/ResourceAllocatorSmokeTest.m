@@ -62,7 +62,7 @@ classdef ResourceAllocatorSmokeTest < matlab.unittest.TestCase
                 "output.AverageNeighborCount.Enabled",false, ...
                 "output.ChannelBusyRatio.Enabled",false}; %#ok<NASGU>
 
-            evalc("WiLabV2Xsim(simulationArguments{:});");
+            evalc("v2xsim.runSimulation(simulationArguments{:});");
 
             output = jsondecode(fileread(fullfile( ...
                 outputDirectory,"simulation_summary.json")));

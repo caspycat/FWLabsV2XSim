@@ -6,8 +6,9 @@ classdef OutputHookCompositionTest < matlab.unittest.TestCase
             projectRoot = fileparts(fileparts(fileparts(fileparts( ...
                 mfilename("fullpath")))));
             pathToAdd = fullfile(projectRoot,"old_src","MatFilesInit");
+            originalPath = path;
+            testCase.addTeardown(@() path(originalPath));
             addpath(pathToAdd);
-            testCase.addTeardown(@() rmpath(pathToAdd));
         end
     end
 

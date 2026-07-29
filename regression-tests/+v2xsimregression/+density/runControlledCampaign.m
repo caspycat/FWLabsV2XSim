@@ -58,7 +58,7 @@ simulatorDirectory = fullfile(simulatorRoot, "old_src");
 configurationFile = fullfile( ...
     simulatorDirectory, "ConfigFiles", ...
     "EtsiHighwayMediumMode1.cfg");
-validateSimulator(simulatorRoot, simulatorDirectory, configurationFile);
+validateSimulator(simulatorRoot, configurationFile);
 
 originalPath = path;
 originalStream = RandStream.getGlobalStream();
@@ -179,7 +179,7 @@ if workItem.Technology ~= "80211p"
         "resourceAllocation.RandomSeed", ...
             workItem.RandomSeed}]; %#ok<NASGU>
 end
-evalc("WiLabV2Xsim(simulationArguments{:});");
+evalc("v2xsim.runSimulation(simulationArguments{:});");
 
 if ~isfile(fullfile( ...
         workItem.OutputDirectory, "simulation_summary.json"))
@@ -329,17 +329,17 @@ function token = technologyPathToken(technology)
 token = lower(replace(technology, "-V2X", ""));
 end
 
-function validateSimulator( ...
-        simulatorRoot, simulatorDirectory, configurationFile)
+function validateSimulator(simulatorRoot, configurationFile)
 if ~isfolder(simulatorRoot)
     error( ...
         "v2xsimregression:density:MissingSimulatorRoot", ...
         "Simulator root is not a directory: %s", simulatorRoot);
 end
-if ~isfile(fullfile(simulatorDirectory, "WiLabV2Xsim.m"))
+if ~isfile(fullfile( ...
+        simulatorRoot, "src", "+v2xsim", "runSimulation.m"))
     error( ...
         "v2xsimregression:density:MissingSimulator", ...
-        "WiLabV2Xsim.m was not found below %s.", simulatorDirectory);
+        "v2xsim.runSimulation was not found below %s.", simulatorRoot);
 end
 if ~isfile(configurationFile)
     error( ...

@@ -138,7 +138,7 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
             simulationArguments = [ ...
                 simulationArguments, outputArguments]; %#ok<NASGU>
 
-            evalc("WiLabV2Xsim(simulationArguments{:});");
+            evalc("v2xsim.runSimulation(simulationArguments{:});");
             summaryFilename = fullfile( ...
                 outputDirectory, "simulation_summary.json");
             testCase.assertTrue(isfile(summaryFilename));

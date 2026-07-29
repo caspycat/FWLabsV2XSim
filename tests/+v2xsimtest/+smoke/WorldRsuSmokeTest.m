@@ -86,7 +86,9 @@ classdef WorldRsuSmokeTest < matlab.unittest.TestCase
             simulationArguments = [ ...
                 baseSimulationArguments,algorithmArguments]; %#ok<NASGU>
 
-            evalc("WiLabV2Xsim(simulationArguments{:});");
+            pathBeforeSimulation = path;
+            evalc("v2xsim.runSimulation(simulationArguments{:});");
+            testCase.verifyEqual(path, pathBeforeSimulation);
 
             output = jsondecode(fileread(fullfile( ...
                 outputDirectory,"simulation_summary.json")));

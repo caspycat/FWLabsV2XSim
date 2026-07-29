@@ -8,9 +8,10 @@ classdef VehicleKinematicsDispatchTest < matlab.unittest.TestCase
             pathsToAdd = [ ...
                 fullfile(projectRoot,"old_src","MatFilesInit"), ...
                 fullfile(projectRoot,"old_src","MatFilesPosition")];
+            originalPath = path;
+            testCase.addTeardown(@() path(originalPath));
             for pathToAdd = pathsToAdd
                 addpath(pathToAdd);
-                testCase.addTeardown(@() rmpath(pathToAdd));
             end
         end
     end

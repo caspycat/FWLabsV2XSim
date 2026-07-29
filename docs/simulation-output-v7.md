@@ -1,6 +1,6 @@
 # Simulation output
 
-Each `WiLabV2Xsim` invocation exclusively owns one run directory. The
+Each `v2xsim.runSimulation` invocation exclusively owns one run directory. The
 `output.Directory` value must name either a nonexistent directory or an
 existing empty directory. The simulator never appends to, resumes, clears, or
 overwrites a prior run directory.

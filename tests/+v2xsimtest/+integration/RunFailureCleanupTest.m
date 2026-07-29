@@ -45,11 +45,13 @@ classdef RunFailureCleanupTest < matlab.unittest.TestCase
                 "output.Directory",outputDirectory}; %#ok<NASGU>
 
             thrownException = [];
+            pathBeforeSimulation = path;
             try
-                evalc("WiLabV2Xsim(simulationArguments{:});");
+                evalc("v2xsim.runSimulation(simulationArguments{:});");
             catch exception
                 thrownException = exception;
             end
+            testCase.verifyEqual(path, pathBeforeSimulation);
 
             testCase.verifyNotEmpty( ...
                 thrownException, ...

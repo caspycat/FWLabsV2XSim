@@ -6,8 +6,9 @@ classdef RampCampaignManifestTest < matlab.unittest.TestCase
             projectRoot = fileparts(fileparts(fileparts(fileparts( ...
                 mfilename("fullpath")))));
             regressionPath = fullfile(projectRoot, "regression-tests");
+            originalPath = path;
+            testCase.addTeardown(@() path(originalPath));
             addpath(regressionPath);
-            testCase.addTeardown(@() rmpath(regressionPath));
         end
     end
 

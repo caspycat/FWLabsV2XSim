@@ -7,8 +7,9 @@ classdef BRAssignmentParametersTest < matlab.unittest.TestCase
                 mfilename("fullpath")))));
             legacyInitializationPath = fullfile( ...
                 projectRoot, "old_src", "MatFilesInit");
+            originalPath = path;
+            testCase.addTeardown(@() path(originalPath));
             addpath(legacyInitializationPath);
-            testCase.addTeardown(@() rmpath(legacyInitializationPath));
         end
     end
 

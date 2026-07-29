@@ -17,6 +17,15 @@ Version 7 introduces dotted, domain-based simulator parameter names. See the
 mapping](docs/simulator-parameters-v7.md) for namespace descriptions, every
 supported field, compatibility aliases, and fields removed from V6.
 
+Open `WiLabV2XSim.prj` before using V7. The MATLAB Project owns source-path
+configuration, and simulations are launched through the namespaced,
+path-preserving entrypoint:
+
+```matlab
+v2xsim.runSimulation(configurationFile, ...
+    "simulation.DurationSeconds", 10);
+```
+
 V7 also exposes cellular-sidelink beacon-resource selection through named,
 slice-scoped allocator contracts. See the
 [BR resource-allocation architecture](docs/br-resource-allocation.md) for the
