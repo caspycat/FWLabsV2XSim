@@ -69,6 +69,9 @@ To run and develop the simulator in the MATLAB IDE, the following MathWorks prod
 - (for testing) MATLAB Test
 - (for compiling binaries) MATLAB Compiler
 
+The following external MATLAB libraries are added as git submodules and project references:
+- [matlab-toml](https://github.com/g-s-k/matlab-toml)
+- [matgeom](https://github.com/mattools/matGeom)
 
 The [V7 correctness and integration testing
 guide](docs/testing-v7.md) describes the behavioral contracts, full ordinary

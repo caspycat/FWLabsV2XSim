@@ -1,0 +1,6 @@
+[submodule "lib/matgeom"]
+	path = lib/matgeom
+	url = https://github.com/mattools/matGeom.git
+[submodule "lib/matlab-toml"]
+	path = lib/matlab-toml
+	url = https://github.com/g-s-k/matlab-toml.git
