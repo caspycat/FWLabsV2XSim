@@ -10,6 +10,10 @@ v2xsim.runSimulation("default", ...
     "nrV2x.Mcs", 7);
 ```
 
+The [progressive V7 examples](../examples/v7/README.md) include complete
+canonical configuration files and show how name-value arguments override a
+configuration baseline.
+
 The internal `simParams`, `appParams`, `phyParams`, and `outParams` fields
 retain their V6 layout. Public naming is translated at the input boundary so the
 namespace migration does not also rewrite the simulation engine. V6 names are

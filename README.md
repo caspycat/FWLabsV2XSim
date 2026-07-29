@@ -26,6 +26,11 @@ v2xsim.runSimulation(configurationFile, ...
     "simulation.DurationSeconds", 10);
 ```
 
+The [progressive V7 examples](examples/v7/README.md) provide short runnable
+scripts and canonical configuration files for a first simulation,
+component-owned random streams, named resource allocators, positioning-error
+chains, hook-backed outputs, and isolated multi-run sweeps.
+
 V7 also exposes cellular-sidelink beacon-resource selection through named,
 slice-scoped allocator contracts. See the
 [BR resource-allocation architecture](docs/br-resource-allocation.md) for the

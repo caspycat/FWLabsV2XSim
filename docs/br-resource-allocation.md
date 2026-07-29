@@ -1,5 +1,8 @@
 # BR resource-allocation architecture
 
+For runnable comparisons of every named allocator, see lesson 3 in the
+[progressive V7 examples](../examples/v7/README.md).
+
 WiLabV2Xsim models cellular-sidelink beacon-resource (BR) allocation through a
 single allocator lifecycle instead of selecting algorithms throughout the
 simulation loop. This architecture currently applies to LTE-V2X and NR-V2X.

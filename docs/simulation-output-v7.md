@@ -1,5 +1,10 @@
 # Simulation output
 
+Lessons 1, 4, 5, and 6 in the
+[progressive V7 examples](../examples/v7/README.md) demonstrate completion
+summaries, position-error traces, optional artifacts, and isolated campaign
+directories.
+
 Each `v2xsim.runSimulation` invocation exclusively owns one run directory. The
 `output.Directory` value must name either a nonexistent directory or an
 existing empty directory. The simulator never appends to, resumes, clears, or
