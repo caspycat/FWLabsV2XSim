@@ -7,7 +7,6 @@ When requirements compete, use this order:
 1. Robustness and correctness.
 2. Modern software design, maintainability, and extensibility.
 3. Runtime and resource efficiency.
-4. Compatibility with legacy APIs or older MATLAB releases.
 
 This repository targets MATLAB R2026a. Follow current MathWorks
 recommendations and use modern MATLAB features deliberately. Avoid deprecated
@@ -36,6 +35,9 @@ variables, warnings, or the global random stream.
 Use line continuation marks (`...`) conservatively. Prefer naturally readable
 expressions, well-named local variables, or small focused helpers to
 unnecessarily fragmented statements.
+
+Liberally add comments to code. When implementing technical standards or referencing papers,
+provide document reference numbers.
 
 ## Architecture and compatibility
 
