@@ -1,7 +1,7 @@
 # Published-paper regression tests
 
-These long-running tests check that the refactored simulator still supports
-the conclusions of published WiLabV2Xsim studies. They are separate from
+These long-running tests check that FWLabsV2XSim still supports the
+conclusions of published WiLabV2XSim v6 studies. They are separate from
 `tests/` so the ordinary unit and smoke suite stays fast.
 
 ## Todisco et al. 2021
@@ -59,7 +59,7 @@ of the current simulator, set its repository root before creating the suite:
 
 ```matlab
 setenv("V2XSIM_PAPER_SIMULATOR_ROOT", ...
-    "/path/to/current/WiLabV2Xsim");
+    "/path/to/current/FWLabsV2XSim");
 ```
 
 The paper-era implementation at commit

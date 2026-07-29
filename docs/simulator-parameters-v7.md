@@ -1,6 +1,6 @@
 # Simulator parameters in V7
 
-WiLabV2Xsim V7 uses dotted public parameter names. The names apply equally to
+FWLabsV2XSim v7 uses dotted public parameter names. The names apply equally to
 configuration files and MATLAB name-value arguments. For example:
 
 ```matlab

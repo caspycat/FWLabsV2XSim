@@ -7,7 +7,7 @@ nArgs = length(varargin{1});
 %%%%%%%%%
 % Check file config and read parameters
 if nArgs < 1 || strcmp(varargin{1}{1},'0') || strcmp(varargin{1}{1},'default')
-    fileCfg = 'WiLabV2Xsim.cfg';
+    fileCfg = 'FWLabsV2XSim.cfg';
 elseif mod(nArgs-1,2)~=0
     error('Error in the number or value of input parameters. Simulation aborted.');
 elseif nArgs == 1 && strcmp(varargin{1}{1},'help')

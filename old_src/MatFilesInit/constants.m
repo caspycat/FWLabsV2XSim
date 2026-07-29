@@ -1,5 +1,5 @@
 classdef constants
-    %The WiLabV2Xsim constants
+    % The FWLabsV2XSim constants
 
   properties (Constant = true)
     %% ****************************************

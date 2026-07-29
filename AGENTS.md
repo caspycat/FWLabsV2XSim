@@ -1,4 +1,4 @@
-# WiLabV2Xsim Agent Guide
+# FWLabsV2XSim Agent Guide
 
 ## Engineering priorities
 

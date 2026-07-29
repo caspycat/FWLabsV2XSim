@@ -1,7 +1,7 @@
-# WiLabV2Xsim V7 examples
+# FWLabsV2XSim v7 examples
 
 These examples form a short, progressive introduction to the public V7
-configuration and output contracts. Open `WiLabV2XSim.prj`, then run the
+configuration and output contracts. Open `FWLabsV2XSim.prj`, then run the
 MATLAB scripts in numerical order:
 
 | Lesson | Script | Main idea |

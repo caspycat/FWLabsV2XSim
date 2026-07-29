@@ -1,23 +1,45 @@
-# WiLabV2Xsim
+# FWLabsV2XSim
 
-We are uploading the simulator...some supporting documents could be found in the [Wiki Page](https://github.com/V2Xgithub/WiLabV2Xsim/wiki) and others may not be updated...
-For Octave compatible version, please see branch ***Octave-version***
+**FWLabsV2XSim** is a dynamic MATLAB simulator for resource-allocation
+research in sidelink C-V2X, NR-V2X, and IEEE 802.11p/ITS-G5 networks.
 
-***WiLabV2Xsim*** is a dynamic simulator, written in MATLAB, overhauling LTEV2Vsim (see https://github.com/alessandrobazzi/LTEV2Vsim) to support sidelink 5G-V2X. 
-It is designed for the investigation of resource allocation in networks based on ***sidelink C-V2X***, with focus on the cooperative awareness service, but it also allows to simulate ***IEEE 802.11p/ITS-G5***.
+## Name and lineage
 
-The simulator is shared under the GNU GPLv3. The software has been developed and shared by University of Bologna, CNR, and WiLab/CNIT - Italy. 
+This project is a hard-fork rewrite of [WiLabV2Xsim](https://github.com/V2Xgithub/WiLabV2Xsim/), hence the rename.
+It is not API compatible with the ancestor, but it tries to maintain feature parity and notably the ability to reassert the same scientific conclusions of some key papers that previously used WiLabV2Xsim. 
 
-The first release of this simulator is version 6.1 to remark the continuity with LTEV2Xsim, of which the last shared version was 5.4.
+The rewrite prioritises runtime code safety, robustness, and modern software design patterns for maintainability.
 
-From version 5.4 to version 6.1 the main modification is the addition of 5G-V2X, with NR and all the related settings (including numerology). A general refactoring was performed to generalize the parameters which are common for LTE and 5G, now indicated as CV2X. Minor corrections and improvements were also performed. 
+The version number is bumped to V7 to differentiate it from WiLabV2XSim.
+
+The project began as
+[LTEV2VSim](https://github.com/alessandrobazzi/LTEV2Vsim). When WiLab/CNIT
+became significantly involved and the simulator was promoted from v5 to v6,
+it was renamed **WiLabV2XSim**. Version 6.1 introduced 5G-V2X, including NR
+and its numerologies, while generalizing LTE- and NR-shared parameters as
+C-V2X concepts.
+
+Version 7 is named **FWLabsV2XSim** to recognize the significant involvement
+of the **Future Communications Connectivity Lab at the Singapore University
+of Technology and Design**. The leading `F` is the first letter of that lab's
+organisation name, prepended to the `W` inherited from WiLab.
+
+This naming convention preserves the project's institutional lineage. When
+another laboratory becomes significantly involved in a future major version,
+its contributors may prepend their organisation's initial to the existing
+name as part of that version upgrade.
+
+The simulator is shared under the GNU GPLv3. FWLabsV2XSim v7 is developed
+with contributions from the Future Communications Connectivity Lab at the
+Singapore University of Technology and Design, WiLab/CNIT, the University of
+Bologna, and CNR.
 
 Version 7 introduces dotted, domain-based simulator parameter names. See the
 [V7 parameter reference and V6 migration
 mapping](docs/simulator-parameters-v7.md) for namespace descriptions, every
 supported field, compatibility aliases, and fields removed from V6.
 
-Open `WiLabV2XSim.prj` before using V7. The MATLAB Project owns source-path
+Open `FWLabsV2XSim.prj` before using V7. The MATLAB Project owns source-path
 configuration, and simulations are launched through the namespaced,
 path-preserving entrypoint:
 
@@ -37,20 +59,22 @@ slice-scoped allocator contracts. See the
 centralized and autonomous interfaces, available algorithms, coexistence
 boundary, and migration from numeric algorithm IDs.
 
-NOTICE: The code is meant to be written to take advantage of modern MATLAB features. It is authored in R2026a. No guarantees of whether it will work with earlier versions.
-The Statistics and Machine Learning Toolbox™ is needed for the simulation and generation of 3GPP a-periodic traffic.
+# Dependencies
 
-Parallel Computing Toolbox™ is optional. Publication regression campaigns can
-use local process workers to run independent configurations and random seeds
-on multiple CPU cores. They retain a serial backend when that toolbox or its
-license is unavailable. MATLAB Parallel Server™, Hadoop, Spark, and MATLAB
-`mapreduce` are not required.
+To run and develop the simulator in the MATLAB IDE, the following MathWorks products are required:
+- MATLAB R2026a
+- Statistics and Machine Learning Toolbox
+- Signal Processing Toolbox
+- Parallel Computing Toolbox
+- (for testing) MATLAB Test
+- (for compiling binaries) MATLAB Compiler
+
 
 The [V7 correctness and integration testing
 guide](docs/testing-v7.md) describes the behavioral contracts, full ordinary
 test gate, coverage report, and process-worker isolation rules.
 
-The main reference for the simulator is 
+The main reference for the WiLabV2XSim v6 simulator is
 
 ***V. Todisco, S. Bartoletti, C. Campolo, A. Molinaro, A. O. Berthet, andA.  Bazzi,  “Performance  analysis  of  sidelink  5G-V2X  mode  2  through an  open-source  simulator,” IEEE Access,  2021***, open access at https://ieeexplore.ieee.org/abstract/document/9579000 
 
@@ -61,7 +85,7 @@ G. Cecchini, A. Bazzi, B. M. Masini, A. Zanella, “LTEV2Vsim: An LTE-V2V Simula
 A. Bazzi, G. Cecchini, M. Menarini, B. M. Masini, A. Zanella, “Survey and Perspectives of Vehicular Wi-Fi Versus Sidelink Cellular-V2X in the 5G Era,” invited paper in Future Internet, 29 May 2019, 11(6), 122. DOI: 10.3390/fi11060122 (Results obtained with version 3.5)
 
 *****
-Some references to papers where WiLabV2Xsim was used:
+Some references to papers where WiLabV2XSim v6 was used:
 
 A. Bazzi, C. Campolo, V. Todisco, S. Bartoletti, N. De Carli, A. Molinaro, A.O. Berthet, R.A. Stirling-Gallacher, “Towards 6G-V2X Sidelink: Non-Orthogonal Multiple Access in the Autonomous Mode”, IEEE Vehicular Technology Magazine, vol. 18, n. 2, pp. 50-59, 2023.
 

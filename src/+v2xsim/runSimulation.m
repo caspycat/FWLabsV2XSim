@@ -1,5 +1,5 @@
 function runSimulation(varargin)
-%RUNSIMULATION Run one WiLabV2Xsim simulation.
+%RUNSIMULATION Run one FWLabsV2XSim simulation.
 %   v2xsim.runSimulation(CONFIGURATIONFILE, NAME, VALUE, ...) runs a
 %   simulation using CONFIGURATIONFILE as the baseline and applies dotted
 %   V7 name-value overrides.
@@ -7,7 +7,7 @@ function runSimulation(varargin)
 %   v2xsim.runSimulation("help") prints the supported parameters and their
 %   default values.
 %
-%   The WiLabV2XSim MATLAB Project must be open before calling this
+%   The FWLabsV2XSim MATLAB Project must be open before calling this
 %   function. Project metadata owns all source-path configuration; this
 %   entrypoint never mutates the MATLAB path.
 
@@ -27,7 +27,7 @@ function runSimulation(varargin)
 % OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY OF THIS SOFTWARE 
 % OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
 % 
-% Project:  WiLabV2Xsim (extension of the simulator LTEV2Vsim)
+% Project: FWLabsV2XSim V7
 % ==============
 
 % Call it as
@@ -36,7 +36,7 @@ function runSimulation(varargin)
 % Parameters are optional.
 % If one or more parameters are given in input, the first corresponds to the
 % config file (a text file). Use 'default' or '0' to set the default config
-% file (i.e., WiLabV2Xsim.cfg). If a file that does not exist is set, the
+% file (i.e., FWLabsV2XSim.cfg). If a file that does not exist is set, the
 % simulation continues without considering the settings from the config
 % file.
 % In the config file, write couples with i) the parameter name within squared
@@ -63,7 +63,7 @@ function runSimulation(varargin)
 %% Initialization
 
 % Version of the simulator
-fprintf('WiLabV2Xsim %s\n\n',constants.SIM_VERSION);
+fprintf('FWLabsV2XSim %s\n\n',constants.SIM_VERSION);
 
 % 'help' feature:
 % v2xsim.runSimulation("help") prints the full list of parameters
