@@ -40,6 +40,53 @@ classdef AllocationKernelTest < matlab.unittest.TestCase
             testCase.verifyTrue(all(resources >= 1 & resources <= 4));
         end
 
+        function maximumReuseRandomPlanIsGeometryIndependent(testCase)
+            streamA = RandStream("mt19937ar","Seed",5);
+            streamB = RandStream("mt19937ar","Seed",5);
+            ueIds = ["a";"b";"c"];
+            apparent = [0 1 2;1 0 3;2 3 0];
+            truth = [0 3 2;3 0 1;2 1 0];
+
+            [live,~,trace,plan] = ...
+                v2xsim.resource.algorithm. ...
+                    assignByMaximumReuseDistance( ...
+                        NaN(3,1),zeros(0,1),apparent,[2 1], ...
+                        streamA,UeIds=ueIds);
+            oracle = v2xsim.resource.algorithm. ...
+                assignByMaximumReuseDistance( ...
+                    NaN(3,1),zeros(0,1),truth,[2 1], ...
+                    streamB,UeIds=ueIds);
+
+            testCase.verifyEqual(streamA.State,streamB.State);
+            testCase.verifyNotEqual(live,oracle);
+            testCase.verifySize(plan.DecisionPriority,[3 1]);
+            testCase.verifySize(plan.TimePriority,[3 2]);
+            testCase.verifySize(plan.FrequencyPriority,[3 1]);
+            testCase.verifyEqual(trace.WitnessUeId(end),"c");
+            testCase.verifyEqual(trace.SelectionScoreMeters(end),3);
+        end
+
+        function maximumReuseShadowPlanDoesNotConsumeStream(testCase)
+            planStream = RandStream("mt19937ar","Seed",8);
+            shadowStream = RandStream("mt19937ar","Seed",91);
+            ueIds = ["a";"b";"c"];
+            distance = [0 1 2;1 0 3;2 3 0];
+            [expected,~,~,plan] = ...
+                v2xsim.resource.algorithm. ...
+                    assignByMaximumReuseDistance( ...
+                        NaN(3,1),zeros(0,1),distance,[2 1], ...
+                        planStream,UeIds=ueIds);
+            stateBefore = shadowStream.State;
+
+            actual = v2xsim.resource.algorithm. ...
+                assignByMaximumReuseDistance( ...
+                    NaN(3,1),zeros(0,1),distance,[2 1], ...
+                    shadowStream,UeIds=ueIds,RandomPlan=plan);
+
+            testCase.verifyEqual(actual,expected);
+            testCase.verifyEqual(shadowStream.State,stateBefore);
+        end
+
         function minimumPowerCanRemoveKnownShadowing(testCase)
             streamA = RandStream("mt19937ar","Seed",3);
             streamB = RandStream("mt19937ar","Seed",3);

@@ -1,0 +1,13 @@
+function mustPreserveVehicleIdentities( ...
+        inputPositions, outputPositions)
+%MUSTPRESERVEVEHICLEIDENTITIES Require a transformation's vehicle set.
+
+inputVehicleIds = string(inputPositions.Properties.RowNames);
+outputVehicleIds = string(outputPositions.Properties.RowNames);
+if ~isequal(sort(inputVehicleIds), sort(outputVehicleIds))
+    error( ...
+        "v2xsim:positioning:VehicleSetChanged", ...
+        "A position error transformation must preserve the set of " + ...
+        "vehicle row names.");
+end
+end

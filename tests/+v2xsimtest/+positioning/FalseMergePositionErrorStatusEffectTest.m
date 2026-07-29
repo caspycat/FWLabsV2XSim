@@ -1,11 +1,12 @@
-classdef FalseMergePositionErrorTest < matlab.unittest.TestCase
-    %FALSEMERGEPOSITIONERRORTEST Tests false mainline-merge observations.
+classdef FalseMergePositionErrorStatusEffectTest < ...
+        matlab.unittest.TestCase
+    %FALSEMERGEPOSITIONERRORSTATUSEFFECTTEST False merge observations.
 
     methods (Test)
         function testProjectsExitingVehiclesOntoMergeRoute(testCase)
             scenario = testCase.createScenario(40);
             context = testCase.createContext(scenario);
-            module = v2xsim.positioning.FalseMergePositionError(1);
+            module = testCase.createInflictor(1);
             affected = context.VehicleRouteStates.Route == "Ramp";
             testCase.assertTrue(any(affected));
 
@@ -27,7 +28,7 @@ classdef FalseMergePositionErrorTest < matlab.unittest.TestCase
         function testZeroMergeDistanceUsesAdjacentLane(testCase)
             scenario = testCase.createScenario(0);
             context = testCase.createContext(scenario);
-            module = v2xsim.positioning.FalseMergePositionError(1);
+            module = testCase.createInflictor(1);
             affected = context.VehicleRouteStates.Route == "Ramp";
             testCase.assertTrue(any(affected));
 
@@ -46,7 +47,7 @@ classdef FalseMergePositionErrorTest < matlab.unittest.TestCase
         function testZeroProbabilityLeavesPositionsUnchanged(testCase)
             scenario = testCase.createScenario(40);
             context = testCase.createContext(scenario);
-            module = v2xsim.positioning.FalseMergePositionError(0);
+            module = testCase.createInflictor(0);
 
             [~, outputPositions] = module.apply( ...
                 context.ActualPositions, context);
@@ -57,6 +58,15 @@ classdef FalseMergePositionErrorTest < matlab.unittest.TestCase
     end
 
     methods (Access = private)
+        function module = createInflictor( ...
+                ~, affectedVehicleProbability, varargin)
+            effect = v2xsim.positioning. ...
+                FalseMergePositionErrorStatusEffect( ...
+                    affectedVehicleProbability, varargin{:});
+            module = v2xsim.positioning. ...
+                PositionErrorStatusEffectInflictor(effect);
+        end
+
         function scenario = createScenario(~, mergeDistance)
             scenario = ...
                 v2xsim.vehicle.scenarios.ExitRampHighwayScenario( ...

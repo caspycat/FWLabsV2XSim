@@ -1,6 +1,11 @@
-function [resourceIds,decisionRows] = assignByMaximumReuseDistance( ...
-        resourceIds,scheduledRows,distanceMeters,gridSize,randomStream)
-%ASSIGNBYMAXIMUMREUSEDISTANCE Reuse the resource of the farthest UE.
+function [resourceIds,decisionRows,decisionTrace,randomPlan] = ...
+        assignByMaximumReuseDistance( ...
+            resourceIds,scheduledRows,distanceMeters,gridSize, ...
+            randomStream,options)
+%ASSIGNBYMAXIMUMREUSEDISTANCE Maximize lexicographic reuse distance.
+%   A fixed-size random plan is generated before any geometry-dependent
+%   decisions. Passing that plan to a shadow run makes the two allocations
+%   differ only because of their distance matrices.
 
 arguments (Input)
     resourceIds (:,1) double
@@ -8,6 +13,8 @@ arguments (Input)
     distanceMeters (:,:) double {mustBeReal,mustBeNonnegative}
     gridSize (1,2) double {mustBeInteger,mustBePositive}
     randomStream (1,1) RandStream
+    options.UeIds string = strings(0,1)
+    options.RandomPlan (1,1) struct = struct()
 end
 
 ueCount = numel(resourceIds);
@@ -19,62 +26,213 @@ if ~isequal(size(distanceMeters),[ueCount ueCount]) || ...
 end
 resourceCount = prod(gridSize);
 validateRowsAndResources(scheduledRows,resourceIds,resourceCount);
+ueIds = normalizeUeIds(options.UeIds,ueCount);
+randomPlan = acceptRandomPlan( ...
+    options.RandomPlan,ueCount,gridSize,randomStream);
 
 decisionRows = unique([find(isnan(resourceIds)); scheduledRows],"stable");
+previousResourceIds = resourceIds;
 resourceIds(scheduledRows) = NaN;
-decisionOrder = decisionRows(randperm(randomStream,numel(decisionRows)));
+decisionOrder = orderDecisions( ...
+    decisionRows,randomPlan.DecisionPriority,ueIds);
+traceRequested = nargout >= 3;
+decisionTrace = table();
+if traceRequested
+    decisionTrace = emptyDecisionTrace(numel(decisionOrder));
+end
 
-for row = reshape(decisionOrder,1,[])
-    [~,neighborOrder] = sort(distanceMeters(row,:),"ascend");
-    neighborOrder(neighborOrder == row) = [];
-    resourceIds(row) = selectResource( ...
-        resourceIds(neighborOrder),gridSize,randomStream);
+for orderIndex = 1:numel(decisionOrder)
+    row = decisionOrder(orderIndex);
+    if traceRequested
+        [selectedResourceId,selection] = selectResource( ...
+            row,resourceIds,distanceMeters,gridSize, ...
+            randomPlan,ueIds);
+    else
+        selectedResourceId = selectResource( ...
+            row,resourceIds,distanceMeters,gridSize, ...
+            randomPlan,ueIds);
+    end
+    resourceIds(row) = selectedResourceId;
+    if traceRequested
+        decisionTrace(orderIndex,:) = table( ...
+            ueIds(row),orderIndex,previousResourceIds(row), ...
+            selectedResourceId,selection.TimeSlot, ...
+            selection.FrequencyResource,selection.ScoreMeters, ...
+            selection.TimeMarginMeters, ...
+            selection.FrequencyMarginMeters, ...
+            selection.WitnessUeId, ...
+            VariableNames=decisionTrace.Properties.VariableNames);
+    end
 end
 end
 
-function resourceId = selectResource(orderedResources,gridSize,stream)
+function plan = acceptRandomPlan( ...
+        candidate,ueCount,gridSize,randomStream)
 timeCount = gridSize(1);
 frequencyCount = gridSize(2);
-valid = ~isnan(orderedResources);
-orderedResources = orderedResources(valid);
-orderedTimes = ceil(orderedResources / frequencyCount);
-orderedFrequencies = mod(orderedResources - 1,frequencyCount) + 1;
-
-seenTimes = false(timeCount,1);
-selectedTime = NaN;
-coverageIndex = NaN;
-for index = 1:numel(orderedTimes)
-    selectedTime = orderedTimes(index);
-    seenTimes(selectedTime) = true;
-    if all(seenTimes)
-        coverageIndex = index;
-        break
-    end
+if isempty(fieldnames(candidate))
+    plan = struct( ...
+        "DecisionPriority",rand(randomStream,ueCount,1), ...
+        "TimePriority",rand(randomStream,ueCount,timeCount), ...
+        "FrequencyPriority", ...
+            rand(randomStream,ueCount,frequencyCount));
+    return
 end
 
-if isnan(coverageIndex)
-    freeTimes = find(~seenTimes);
-    selectedTime = freeTimes(randi(stream,numel(freeTimes)));
-    selectedFrequency = randi(stream,frequencyCount);
+expectedNames = [ ...
+    "DecisionPriority","TimePriority","FrequencyPriority"];
+actualNames = string(fieldnames(candidate)).';
+if ~isequal(sort(actualNames),sort(expectedNames)) || ...
+        ~isequal(size(candidate.DecisionPriority),[ueCount 1]) || ...
+        ~isequal(size(candidate.TimePriority),[ueCount timeCount]) || ...
+        ~isequal( ...
+            size(candidate.FrequencyPriority), ...
+            [ueCount frequencyCount])
+    error( ...
+        "v2xsim:resource:InvalidMaximumReuseRandomPlan", ...
+        "RandomPlan dimensions must match the UE and resource grid.");
+end
+values = [ ...
+    candidate.DecisionPriority(:); ...
+    candidate.TimePriority(:); ...
+    candidate.FrequencyPriority(:)];
+if ~isnumeric(values) || any(~isfinite(values)) || ...
+        any(values < 0 | values > 1)
+    error( ...
+        "v2xsim:resource:InvalidMaximumReuseRandomPlan", ...
+        "RandomPlan priorities must be finite values from zero to one.");
+end
+plan = candidate;
+end
+
+function decisionOrder = orderDecisions(rows,priorities,ueIds)
+if isempty(rows)
+    decisionOrder = zeros(0,1);
+    return
+end
+ordering = table( ...
+    priorities(rows),ueIds(rows),rows, ...
+    VariableNames=["Priority","UeId","RowIndex"]);
+ordering = sortrows(ordering,["Priority","UeId","RowIndex"]);
+decisionOrder = ordering.RowIndex;
+end
+
+function [resourceId,selection] = selectResource( ...
+        row,resourceIds,distanceMeters,gridSize,plan,ueIds)
+timeCount = gridSize(1);
+frequencyCount = gridSize(2);
+assignedRows = find(~isnan(resourceIds));
+assignedTimes = ceil(resourceIds(assignedRows) / frequencyCount);
+assignedFrequencies = ...
+    mod(resourceIds(assignedRows) - 1,frequencyCount) + 1;
+
+timeScores = inf(1,timeCount);
+for timeSlot = 1:timeCount
+    rowsAtTime = assignedRows(assignedTimes == timeSlot);
+    if ~isempty(rowsAtTime)
+        timeScores(timeSlot) = ...
+            min(distanceMeters(row,rowsAtTime));
+    end
+end
+detailsRequested = nargout >= 2;
+if detailsRequested
+    [timeSlot,timeMargin] = chooseMaximum( ...
+        timeScores,plan.TimePriority(row,:));
 else
-    sameTimeIndexes = find(orderedTimes == selectedTime);
-    seenFrequencies = false(frequencyCount,1);
-    selectedFrequency = NaN;
-    for index = reshape(sameTimeIndexes,1,[])
-        selectedFrequency = orderedFrequencies(index);
-        seenFrequencies(selectedFrequency) = true;
-        if all(seenFrequencies)
-            break
-        end
-    end
-    if ~all(seenFrequencies)
-        freeFrequencies = find(~seenFrequencies);
-        selectedFrequency = freeFrequencies( ...
-            randi(stream,numel(freeFrequencies)));
-    end
+    timeSlot = chooseMaximum( ...
+        timeScores,plan.TimePriority(row,:));
 end
 
-resourceId = (selectedTime - 1) * frequencyCount + selectedFrequency;
+frequencyScores = inf(1,frequencyCount);
+for frequency = 1:frequencyCount
+    rowsAtResource = assignedRows( ...
+        assignedTimes == timeSlot & ...
+        assignedFrequencies == frequency);
+    if ~isempty(rowsAtResource)
+        frequencyScores(frequency) = ...
+            min(distanceMeters(row,rowsAtResource));
+    end
+end
+if detailsRequested
+    [frequency,frequencyMargin] = chooseMaximum( ...
+        frequencyScores,plan.FrequencyPriority(row,:));
+else
+    frequency = chooseMaximum( ...
+        frequencyScores,plan.FrequencyPriority(row,:));
+end
+resourceId = (timeSlot - 1) * frequencyCount + frequency;
+if ~detailsRequested
+    return
+end
+
+coUserRows = assignedRows(assignedTimes == timeSlot);
+if isempty(coUserRows)
+    scoreMeters = Inf;
+    witnessUeId = string(missing);
+else
+    witnessOrdering = table( ...
+        distanceMeters(row,coUserRows).', ...
+        ueIds(coUserRows),coUserRows, ...
+        VariableNames=["Distance","UeId","RowIndex"]);
+    witnessOrdering = sortrows( ...
+        witnessOrdering,["Distance","UeId","RowIndex"]);
+    scoreMeters = timeScores(timeSlot);
+    witnessUeId = witnessOrdering.UeId(1);
+end
+selection = struct( ...
+    "TimeSlot",timeSlot, ...
+    "FrequencyResource",frequency, ...
+    "ScoreMeters",scoreMeters, ...
+    "TimeMarginMeters",timeMargin, ...
+    "FrequencyMarginMeters",frequencyMargin, ...
+    "WitnessUeId",witnessUeId);
+end
+
+function [selectedIndex,margin] = chooseMaximum(scores,priorities)
+candidateIndexes = (1:numel(scores)).';
+ordering = table( ...
+    -scores(:),priorities(:),candidateIndexes, ...
+    VariableNames=["NegativeScore","Priority","Index"]);
+ordering = sortrows( ...
+    ordering,["NegativeScore","Priority","Index"]);
+selectedIndex = ordering.Index(1);
+orderedScores = -ordering.NegativeScore;
+if isscalar(orderedScores)
+    margin = Inf;
+elseif isinf(orderedScores(1)) && isinf(orderedScores(2))
+    margin = 0;
+else
+    margin = orderedScores(1) - orderedScores(2);
+end
+end
+
+function ueIds = normalizeUeIds(candidate,ueCount)
+if isempty(candidate)
+    ueIds = "row-" + compose("%012d",(1:ueCount).');
+    return
+end
+if ~isvector(candidate) || numel(candidate) ~= ueCount
+    error( ...
+        "v2xsim:resource:InvalidAllocationInput", ...
+        "UeIds must contain one identifier per distance-matrix row.");
+end
+ueIds = candidate(:);
+v2xsim.resource.validation.mustBeUeIds(ueIds);
+end
+
+function trace = emptyDecisionTrace(rowCount)
+trace = table( ...
+    strings(rowCount,1),zeros(rowCount,1), ...
+    nan(rowCount,1),nan(rowCount,1), ...
+    zeros(rowCount,1),zeros(rowCount,1), ...
+    nan(rowCount,1),nan(rowCount,1),nan(rowCount,1), ...
+    strings(rowCount,1), ...
+    VariableNames=[ ...
+        "UeId","DecisionOrder","PreviousResourceId", ...
+        "SelectedResourceId","SelectedTimeSlot", ...
+        "SelectedFrequencyResource","SelectionScoreMeters", ...
+        "WinningTimeMarginMeters", ...
+        "WinningFrequencyMarginMeters","WitnessUeId"]);
 end
 
 function validateRowsAndResources(rows,resourceIds,resourceCount)

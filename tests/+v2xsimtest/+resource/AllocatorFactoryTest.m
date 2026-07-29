@@ -77,6 +77,19 @@ classdef AllocatorFactoryTest < matlab.unittest.TestCase
             testCase.verifyEqual(allocator.ReassignmentCycleCount,3);
         end
 
+        function testFactoryControlsMaximumReuseDiagnostics(testCase)
+            [simParams,phyParams,appParams] = ...
+                testCase.createParameters("MaximumReuseDistance");
+            simParams.controllerDiagnosticsEnabled = true;
+
+            allocator = v2xsim.resource.createAllocator( ...
+                simParams,phyParams,appParams);
+
+            testCase.verifyTrue(allocator.DiagnosticsEnabled);
+            testCase.verifyTrue( ...
+                allocator.metadata().Options.DiagnosticsEnabled);
+        end
+
         function testMetadataIncludesResolvedAllocatorOptions(testCase)
             [simParams,phyParams,appParams] = ...
                 testCase.createParameters("ThreeGppAutonomous");

@@ -1,5 +1,6 @@
 function result = buildResult( ...
-        grid,assignmentsBefore,resourceIds,decisionRows,reservations)
+        grid,assignmentsBefore,resourceIds,decisionRows, ...
+        reservations,diagnostics)
 %BUILDRESULT Construct a row-keyed allocation result from local row data.
 
 arguments (Input)
@@ -9,6 +10,7 @@ arguments (Input)
     decisionRows (:,1) double {mustBeInteger,mustBePositive}
     reservations table = ...
         v2xsim.resource.ResourceAllocationResult.emptyReservations()
+    diagnostics (1,1) struct = struct()
 end
 
 ueIds = assignmentsBefore.UeId;
@@ -33,5 +35,5 @@ blockedRows = decisionRows(isnan(resourceIds(decisionRows,1)));
 result = v2xsim.resource.ResourceAllocationResult( ...
     grid.NetworkSliceId,assignments, ...
     ueIds(decisionRows),ueIds(reassignedRows),ueIds(blockedRows), ...
-    reservations);
+    reservations,diagnostics);
 end

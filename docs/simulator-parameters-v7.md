@@ -98,12 +98,40 @@ Ordered positioning-error models and their settings.
 | V7 field | V6 field | Type | Description |
 |---|---|---|---|
 | `positioning.ErrorModules` | `positionErrorModules` | `string` | Ordered position error modules |
-| `positioning.Gaussian.StandardDeviationMeters` | `positionErrorOptions.Gaussian.StandardDeviationMeters` | `double` | Gaussian radial standard deviation (m) |
+| `positioning.Gaussian.StandardDeviationMeters` | `positionErrorOptions.Gaussian.StandardDeviationMeters` | `double` | Standard deviation of each independent Cartesian error component, X and Y (m) |
+| `positioning.Gaussian.DisplacementRandomSeed` | `positionErrorOptions.Gaussian.DisplacementRandomSeed` | `integer` | Seed of the Gaussian displacement stream, independent of traffic, radio, allocation, and cohort selection |
+| `positioning.Gaussian.AffectedVehicleProbability` | `positionErrorOptions.Gaussian.AffectedVehicleProbability` | `double` | Fraction of eligible vehicles selected into the persistent Gaussian-error cohort |
+| `positioning.Gaussian.SelectionRandomSeed` | `positionErrorOptions.Gaussian.SelectionRandomSeed` | `integer` | Seed of the Gaussian cohort-selection stream |
+| `positioning.Gaussian.ResetAfterSeconds` | `positionErrorOptions.Gaussian.ResetAfterSeconds` | `double` | Time from first activation until the Gaussian status effect permanently resets; defaults to `Inf` |
+| `positioning.Gaussian.ActiveRoutes` | `positionErrorOptions.Gaussian.ActiveRoutes` | `string` | Comma-separated exit-ramp routes on which Gaussian error is active (`All`, `Ramp`, `Merge`, or `Adjacent`) |
 | `positioning.Delay.DelaySeconds` | `positionErrorOptions.Delay.DelaySeconds` | `double` | Position observation delay (s) |
-| `positioning.FalseExit.AffectedVehicleProbability` | `positionErrorOptions.FalseExit.CurseProbability` | `double` | Fraction of vehicles affected by this route-perception error |
-| `positioning.FalseExit.ResetAfterSeconds` | `positionErrorOptions.FalseExit.ResetAfterSeconds` | `double` | Time before the route-perception error resets, in seconds |
-| `positioning.FalseMerge.AffectedVehicleProbability` | `positionErrorOptions.FalseMerge.CurseProbability` | `double` | Fraction of vehicles affected by this route-perception error |
-| `positioning.FalseMerge.ResetAfterSeconds` | `positionErrorOptions.FalseMerge.ResetAfterSeconds` | `double` | Time before the route-perception error resets, in seconds |
+| `positioning.FalseExit.AffectedVehicleProbability` | `positionErrorOptions.FalseExit.AffectedVehicleProbability` | `double` | Fraction of vehicles affected by this route-perception error |
+| `positioning.FalseExit.ResetAfterSeconds` | `positionErrorOptions.FalseExit.ResetAfterSeconds` | `double` | Time from first activation until the route-perception status effect permanently resets and deselects the vehicle |
+| `positioning.FalseExit.DisplacementScale` | `positionErrorOptions.FalseExit.DisplacementScale` | `double` | Multiplier applied to the false-route displacement; zero preserves the true position and one selects the full apparent route |
+| `positioning.FalseExit.SelectionRandomSeed` | `positionErrorOptions.FalseExit.SelectionRandomSeed` | `integer` | Seed of the false-exit cohort-selection stream |
+| `positioning.FalseMerge.AffectedVehicleProbability` | `positionErrorOptions.FalseMerge.AffectedVehicleProbability` | `double` | Fraction of vehicles affected by this route-perception error |
+| `positioning.FalseMerge.ResetAfterSeconds` | `positionErrorOptions.FalseMerge.ResetAfterSeconds` | `double` | Time from first activation until the route-perception status effect permanently resets and deselects the vehicle |
+| `positioning.FalseMerge.DisplacementScale` | `positionErrorOptions.FalseMerge.DisplacementScale` | `double` | Multiplier applied to the false-route displacement; zero preserves the true position and one selects the full apparent route |
+| `positioning.FalseMerge.SelectionRandomSeed` | `positionErrorOptions.FalseMerge.SelectionRandomSeed` | `integer` | Seed of the false-merge cohort-selection stream |
+
+Gaussian, false-exit, and false-merge entries configure positioning status
+effects. Each effect owns cohort selection and activation state, and a generic
+position-error inflictor module applies the active effect to apparent
+positions. Delay is a direct position-error module. `PositionErrorChain` owns
+the ordered modules and applies them from left to right; it is not itself a
+module.
+
+The Gaussian effect draws independent zero-mean X and Y errors. Its radial error
+is therefore Rayleigh distributed, with mean
+`StandardDeviationMeters * sqrt(pi/2)`. Component-owned streams make
+position-error draws reproducible without consuming the simulator's global
+random stream. `ActiveRoutes` is available only with
+`ExitRampHighwayScenario`; route-restricted Gaussian arms are useful for
+matching the populations exposed to false-exit and false-merge errors.
+The superseded `positioning.Gaussian.RandomSeed`,
+`positioning.Gaussian.ExposureRandomSeed`, and model-level false-route
+`RandomSeed` names are not accepted as aliases. Position-error study artifacts
+produced with the old option schema must be regenerated.
 
 ### `application`
 
@@ -316,6 +344,16 @@ Output directory and optional metrics or reports.
 | `output.DelayMetrics.BinWidthSeconds` | `delayResolution` | `double` | Delay resolution (s) |
 | `output.PacketReceptionRatio.Enabled` | `printPacketReceptionRatio` | `bool` | Activate the print to file of detailed PRR up to the maximum awareness range |
 | `output.PacketReceptionRatio.DistanceBinWidthMeters` | `prrResolution` | `integer` | Step of the distance for the calculation of the pdr [m] |
+| `output.PositionErrorTrace.Enabled` | — | `bool` | Record per-vehicle apparent displacement, active error state, and error lifecycle events |
+| `output.PositionErrorTrace.FlushRowCount` | — | `integer` | Maximum number of buffered position-error rows written to each numbered CSV chunk |
+| `output.ControllerDiagnostics.Enabled` | — | `bool` | Record apparent-versus-true neighbor topology and live-versus-oracle maximum-reuse allocations |
+| `output.ControllerDiagnostics.TopK` | — | `integer` | Nearest-neighbor set size used by the controller top-k Jaccard metric |
+| `output.ControllerDiagnostics.RankDisplacementEnabled` | — | `bool` | Record the optional O(N²) ego-neighbor rank-detail artifact; defaults to `false` |
+| `output.ControllerDiagnostics.FlushRowCount` | — | `integer` | Maximum aggregate buffered controller-diagnostic rows before append |
+| `output.PacketFateTrace.Enabled` | — | `bool` | Record one terminal directed fate per transmitter-packet-receiver identity |
+| `output.PacketFateTrace.FlushRowCount` | — | `integer` | Maximum number of buffered terminal packet-fate rows per numbered chunk |
+| `output.PacketFateTrace.FileFormat` | — | `string` | Packet-fate chunk format: `parquet` (default) or `csv` |
+| `output.InterferenceClassification.Enabled` | — | `bool` | Enable the source traces and PHY counterfactual evidence needed for hidden-terminal analysis |
 | `output.ChannelBusyRatio.Enabled` | `printCBR` | `bool` | Activate the print to file of the channel busy ratio |
 | `output.CoexistenceTechnologyShare.Enabled` | `coex_printTechPercentage` | `bool` | Coex: print technology percentage to file |
 
@@ -324,6 +362,9 @@ other artifacts succeed. Output is never appended to a shared workbook, and
 artifact filenames do not contain a simulation ID. See
 [Simulation output](simulation-output-v7.md) for the directory lifecycle,
 JSON schema, completion semantics, and complete filename contract.
+The paired workflow and interpretation rules for these research traces are
+documented in the
+[Ramp position-error structure study](ramp-error-structure-study.md).
 
 When average-neighbor-count output is enabled, each applicable technology
 produces an over-time file and a simulation-wide file. C-V2X-only simulations

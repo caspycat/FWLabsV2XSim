@@ -122,6 +122,11 @@ classdef HookRegistry < handle
     end
 
     methods (Access = ?v2xsim.hook.HookDispatcher)
+        function result = hasHooks(obj, hookPoint)
+            obj.mustBeDispatchable();
+            result = ~isempty(obj.findHookIndices(hookPoint));
+        end
+
         function invocation = dispatchHooks( ...
                 obj, hookPoint, invocation)
             obj.mustBeDispatchable();

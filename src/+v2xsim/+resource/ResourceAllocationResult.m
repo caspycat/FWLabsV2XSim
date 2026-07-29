@@ -10,12 +10,13 @@ classdef ResourceAllocationResult
         ReassignedUeIds (:, 1) string = strings(0, 1)
         BlockedUeIds (:, 1) string = strings(0, 1)
         Reservations table = table()
+        Diagnostics (1, 1) struct = struct()
     end
 
     methods
         function obj = ResourceAllocationResult( ...
                 networkSliceId, assignments, decisionUeIds, ...
-                reassignedUeIds, blockedUeIds, reservations)
+                reassignedUeIds, blockedUeIds, reservations,diagnostics)
             arguments (Input)
                 networkSliceId (1, 1) v2xsim.network.NetworkSliceId
                 assignments table
@@ -23,6 +24,7 @@ classdef ResourceAllocationResult
                 reassignedUeIds string
                 blockedUeIds string
                 reservations table
+                diagnostics (1,1) struct = struct()
             end
 
             identifierInputs = { ...
@@ -64,6 +66,7 @@ classdef ResourceAllocationResult
             obj.ReassignedUeIds = reassignedUeIds;
             obj.BlockedUeIds = blockedUeIds;
             obj.Reservations = reservations;
+            obj.Diagnostics = diagnostics;
         end
     end
 

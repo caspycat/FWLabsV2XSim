@@ -25,13 +25,12 @@ classdef ExitRampPositionErrorContextTest < matlab.unittest.TestCase
                 scenario.VehicleRouteStates);
         end
 
-        function testRampModuleAcceptsExitRampContext(testCase)
+        function testFalseRouteInflictorAcceptsExitRampContext(testCase)
             scenario = testCase.createScenario();
             context = ...
                 v2xsim.positioning.ExitRampPositionErrorContext( ...
                     scenario, 0, 0.1, 10);
-            module = ...
-                v2xsimtest.positioning.fixture.ExitRampPositionErrorModuleStub();
+            module = testCase.createFalseExitInflictor();
 
             [~, apparentPositions] = module.apply( ...
                 context.ActualPositions, context);
@@ -40,14 +39,13 @@ classdef ExitRampPositionErrorContextTest < matlab.unittest.TestCase
                 apparentPositions, context.ActualPositions);
         end
 
-        function testRampModuleRejectsGenericContext(testCase)
+        function testFalseRouteInflictorRejectsGenericContext(testCase)
             scenario = testCase.createScenario();
             actualPositions = ...
                 scenario.VehicleKinematics(:, ["X", "Y"]);
             context = v2xsim.positioning.PositionErrorContext( ...
                 actualPositions, 0, 0.1, 10);
-            module = ...
-                v2xsimtest.positioning.fixture.ExitRampPositionErrorModuleStub();
+            module = testCase.createFalseExitInflictor();
 
             testCase.verifyError( ...
                 @() module.apply(actualPositions, context), ...
@@ -56,6 +54,13 @@ classdef ExitRampPositionErrorContextTest < matlab.unittest.TestCase
     end
 
     methods (Access = private)
+        function module = createFalseExitInflictor(~)
+            effect = v2xsim.positioning. ...
+                FalseExitPositionErrorStatusEffect(1);
+            module = v2xsim.positioning. ...
+                PositionErrorStatusEffectInflictor(effect);
+        end
+
         function scenario = createScenario(~)
             scenario = ...
                 v2xsim.vehicle.scenarios.ExitRampHighwayScenario( ...

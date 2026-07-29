@@ -127,7 +127,7 @@ classdef ScenarioRadioCompatibilityTest < matlab.unittest.TestCase
                 "SchemaVersion", "Run", "Configuration", "Results"];
             testCase.verifyTrue(all(isfield( ...
                 summary, cellstr(requiredFields))));
-            testCase.verifyEqual(summary.SchemaVersion, 1);
+            testCase.verifyEqual(summary.SchemaVersion, 2);
             testCase.verifyEqual( ...
                 string(summary.Run.SimulatorVersion), "V7");
             testCase.verifyEqual(summary.Run.RandomSeed, 711);

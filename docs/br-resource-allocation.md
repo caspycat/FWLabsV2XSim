@@ -35,6 +35,20 @@ position-error, and reuse-margin settings. `MinimumReusePower` can use
 implement the 3GPP sensing procedure. `OrderedBenchmark` has no
 algorithm-specific parameters.
 
+`MaximumReuseDistance` ranks reuse choices using the controller-visible
+estimated distance matrix. Physical neighbor discovery and radio propagation
+continue to use true geometry. When controller diagnostics are enabled, the
+allocator also evaluates a one-step oracle with true distances from the same
+pre-decision state and the same pre-generated random priorities; that oracle
+is observational and never changes the live allocation.
+
+The diagnostic comparison keeps two distinct pair graphs. The exact-resource
+graph asks whether two UEs share one resource, while the interference-overlap
+graph also includes adjacent-frequency resources in the same time slot.
+Keeping both prevents a cochannel-to-adjacent oracle change from being
+mistaken for removed interference and allows adjacent-channel placement
+errors to be joined to causal PHY counterfactual evidence.
+
 Partial frequency overlap and more than one transmission per packet are
 supported only by `ThreeGppAutonomous` and `RandomBenchmark`.
 `ThreeGppAutonomous` supports at most two transmissions.

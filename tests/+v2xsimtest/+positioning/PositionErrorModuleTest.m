@@ -107,6 +107,30 @@ classdef PositionErrorModuleTest < matlab.unittest.TestCase
             testCase.verifyEqual(actualPositions, positions);
         end
 
+        function testDiagnosticsNormalizeSinglePositionsToDouble( ...
+                testCase)
+            positions = testCase.createPositions();
+            positions.X = single(positions.X);
+            positions.Y = single(positions.Y);
+            context = testCase.createContext(positions, 0);
+            module = testCase.createIdentityModule();
+
+            [~, actualPositions, diagnostics] = ...
+                module.apply(positions, context);
+
+            testCase.verifyClass(actualPositions.X, "single");
+            testCase.verifyClass(actualPositions.Y, "single");
+            numericNames = [ ...
+                "InputXMeters", "InputYMeters", ...
+                "OutputXMeters", "OutputYMeters", ...
+                "DisplacementXMeters", "DisplacementYMeters", ...
+                "DisplacementMagnitudeMeters"];
+            for numericName = numericNames
+                testCase.verifyClass( ...
+                    diagnostics.(numericName), "double");
+            end
+        end
+
         function testApplyRejectsMismatchedContextVehicles(testCase)
             positions = testCase.createPositions();
             actualPositions = positions;

@@ -151,7 +151,7 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
                 outputDirectory, "simulation_summary.json");
             summaryText = string(fileread(summaryFilename));
 
-            testCase.verifyEqual(summary.SchemaVersion, 1);
+            testCase.verifyEqual(summary.SchemaVersion, 2);
             testCase.verifyEqual( ...
                 string(fieldnames(summary)).', ...
                 ["SchemaVersion", "Run", "Configuration", "Results"]);

@@ -1,5 +1,21 @@
 function [sinrManagement] = initLastPowerCV2X(timeManagement,stationManagement,sinrManagement,simParams,appParams,phyParams)
 
+interferenceEvidenceEnabled = ...
+    isfield(simParams,"interferenceClassificationEnabled") && ...
+    simParams.interferenceClassificationEnabled;
+sinrManagement.cv2xInterferenceEvidenceEnabled = ...
+    interferenceEvidenceEnabled;
+if interferenceEvidenceEnabled
+    % Reset every TTI so stale contributors can never be attributed to a
+    % later transmission. The tensor is populated only for enabled runs.
+    sinrManagement.cv2xIndividualInterferencePowerData = ...
+        zeros(0,0,0);
+    sinrManagement.cv2xInterferenceTransmitterIds = zeros(0,1);
+    sinrManagement.cv2xInterferenceFrequencyResourceIds = zeros(0,1);
+    sinrManagement.cv2xInterferenceEvidenceIsExhaustive = ...
+        simParams.technology == constants.TECH_ONLY_CV2X;
+end
+
 if phyParams.fadingRayleigh
     nV = length(sinrManagement.P_RX_MHz_no_fading(1,:));
     %fadingMatrix = ones(nV,nV);
@@ -33,6 +49,19 @@ if ~isempty(stationManagement.transmittingIDsCV2X)
     sinrManagement.neighborsSINRsciAverageCV2X = zeros(Ntx,length(stationManagement.activeIDsCV2X)-1);
     sinrManagement.instantThisPstartedCV2X = timeManagement.timeNow;
     sinrManagement.instantTheSINRaverageStartedCV2X = timeManagement.timeNow;
+    if interferenceEvidenceEnabled
+        neighborSlotCount = ...
+            length(stationManagement.activeIDsCV2X)-1;
+        sinrManagement.cv2xIndividualInterferencePowerData = ...
+            zeros(Ntx,neighborSlotCount,Ntx);
+        sinrManagement.cv2xInterferenceTransmitterIds = ...
+            stationManagement.transmittingIDsCV2X(:);
+        sinrManagement.cv2xInterferenceFrequencyResourceIds = ...
+            stationManagement.transmittingFusedLTE(1:Ntx);
+        sinrManagement.cv2xInterferenceFrequencyResourceIds = ...
+            sinrManagement. ...
+                cv2xInterferenceFrequencyResourceIds(:);
+    end
 
     % Find not assigned BRid
     %indexNOT = (stationManagement.BRid(:,1)<=0);
@@ -89,6 +118,15 @@ if ~isempty(stationManagement.transmittingIDsCV2X)
                         %I = RXpower_MHz_ofLTE(stationManagement.activeIDsCV2X==IDrx,stationManagement.indexInActiveIDsOnlyLTE_OfTxLTE(k));
                         % Sum interference in that BRF
                         Isums(BRFInt,1) = Isums(BRFInt,1) + I;% THIS LINE
+                        if interferenceEvidenceEnabled
+                            contribution = ...
+                                phyParams.IBEmatrixData( ...
+                                    BRFtx,BRFInt) * I * ...
+                                phyParams.BwMHz_cv2xBR;
+                            sinrManagement. ...
+                                cv2xIndividualInterferencePowerData( ...
+                                    i_tx,j_neigh,k) = contribution;
+                        end
                     end
                 end
             end
@@ -106,6 +144,14 @@ if ~isempty(stationManagement.transmittingIDsCV2X)
             else
                 % No self-interference
                 selfI = 0;
+            end
+            if interferenceEvidenceEnabled && selfI > 0
+                receiverTransmitterIndex = find( ...
+                    stationManagement.transmittingIDsCV2X == IDrx,1);
+                sinrManagement. ...
+                    cv2xIndividualInterferencePowerData( ...
+                        i_tx,j_neigh,receiverTransmitterIndex) = ...
+                    selfI * phyParams.BwMHz_cv2xBR;
             end
 
             %% FROM VERSION 5.3.0

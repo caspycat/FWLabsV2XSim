@@ -42,6 +42,10 @@ simParams.fileCfg = fileCfg;
 % Initialize Output parameters
 [outParams,varargin,outputHookOptions] = ...
     initiateOutParameters(simParams,phyParams,fileCfg,varargin{1});
+simParams.controllerDiagnosticsEnabled = ...
+    outputHookOptions.ControllerDiagnosticsEnabled;
+simParams.interferenceClassificationEnabled = ...
+    outputHookOptions.InterferenceClassificationEnabled;
     
 % C-V2X derived parameters
 if simParams.technology ~= constants.TECH_ONLY_11P % not only 11p

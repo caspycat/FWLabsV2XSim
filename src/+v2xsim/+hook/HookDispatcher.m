@@ -18,6 +18,19 @@ classdef (Sealed) HookDispatcher
     end
 
     methods
+        function result = hasHooks(obj, hookPoint)
+            %HASHOOKS Return whether a point has registered consumers.
+            arguments (Input)
+                obj (1, 1)
+                hookPoint (1, 1) v2xsim.hook.point.Point
+            end
+            arguments (Output)
+                result (1, 1) logical
+            end
+
+            result = obj.Registry.hasHooks(hookPoint);
+        end
+
         function invocation = dispatch( ...
                 obj, hookPoint, invocation)
             %DISPATCH Invoke registered hooks at one point.
