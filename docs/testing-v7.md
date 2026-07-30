@@ -81,6 +81,13 @@ LTE-V2X/IEEE 802.11p operation from otherwise identical shared-channel
 operation. Publication-level mitigation conclusions remain separate,
 explicitly tagged regressions.
 
+The [Bazzi et al. 2020 wireless-blind-spot regression](../regression-tests/+v2xsimregression/+paper/+bazzi2020blindspots/README.md)
+combines a fast analytical two-vehicle oracle with a routine shortened
+highway campaign. It pools raw PRR and wireless-blind-spot counts across
+paired seeds and checks the paper's reliability-versus-blind-spot tradeoff.
+Its 4 km, 120-second publication profile is a separate explicit run and is
+not implied by the shortened result.
+
 ## Parallel execution
 
 Independent density points, seeds, and campaign configurations may be

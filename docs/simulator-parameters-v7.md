@@ -308,6 +308,7 @@ and migration from numeric algorithm IDs.
 | `resourceAllocation.Autonomous.ReevaluateAfterSkippedTransmissionEnabled` | `reEvalAfterEmptyResource` | `bool` | Activates the resource re-evaluation in NR-V2X after empty transmission |
 | `resourceAllocation.Autonomous.ReselectEveryPacketEnabled` | `dynamicScheduling` | `bool` | Reselect a resource for every packet |
 | `resourceAllocation.Autonomous.KeepResourceProbability` | `probResKeep` | `double` | Probability to keep the previously selected BR |
+| `resourceAllocation.Autonomous.MaximumConsecutiveReservationIntervals` | — | positive integer or `Inf` | Maximum consecutive SPS reservation-counter intervals over which a UE may retain the same allocation; defaults to `Inf` |
 | `resourceAllocation.Autonomous.MinimumCandidateFraction` | `ratioSelectedAutonomousMode` | `double` | Minimum fraction of resources surviving RSRP filtering |
 | `resourceAllocation.Autonomous.L2CandidateFraction` | `ratioSelectedL2` | `double` | Fraction of possible resources retained by L2 ranking |
 | `resourceAllocation.Autonomous.L2RankingEnabled` | `L2active` | `bool` | Activate or De-activate L2 in mode2/mode4 |
@@ -329,6 +330,15 @@ The selected allocator's canonical type, category, and network-slice ID are
 written under `Configuration.ResourceAllocation.Metadata` in
 `simulation_summary.json`. The runtime currently uses only the `global`
 network slice.
+
+The consecutive-reservation cap counts the initial reselection-counter
+interval as one. Each accepted keep-probability decision increments the
+count, while reselection resets it to one. A value of `1` disables retention
+at interval boundaries and is behaviorally equivalent to a zero keep
+probability. The default `Inf` preserves uncapped 3GPP SPS behavior and its
+allocator random sequence. Allocator metadata records both the resolved
+numeric value and whether it is unlimited; the latter remains explicit in
+strict JSON, where nonfinite numeric values are encoded as `null`.
 
 ### `output`
 
