@@ -1,0 +1,29 @@
+classdef CorrectnessSuiteParallelismTest < matlab.unittest.TestCase
+    %CORRECTNESSSUITEPARALLELISMTEST Guards the top-level pool-size contract.
+    %   This is a source-level assertion because the correctness suite can
+    %   execute this test on a process worker, where starting a nested pool
+    %   solely to inspect its size would be invalid.
+
+    methods (Test)
+        function requestsEveryWorkerConfiguredByTheProfile(testCase)
+            repositoryRoot = string(fileparts(fileparts(fileparts( ...
+                fileparts(mfilename("fullpath"))))));
+            runnerFile = fullfile( ...
+                repositoryRoot, "tests", "runCorrectnessSuite.m");
+            source = fileread(runnerFile);
+
+            fullProfilePoolPattern = ...
+                "pool\s*=\s*parpool\s*\(\s*cluster\s*,\s*" + ...
+                "cluster\.NumWorkers\s*\)\s*;";
+            preferredPoolPattern = ...
+                "pool\s*=\s*parpool\s*\(\s*cluster\s*\)\s*;";
+
+            testCase.verifyNotEmpty( ...
+                regexp(source, fullProfilePoolPattern, "once"), ...
+                "The correctness suite must request cluster.NumWorkers.");
+            testCase.verifyEmpty( ...
+                regexp(source, preferredPoolPattern, "once"), ...
+                "The correctness suite must not use a preferred-size pool.");
+        end
+    end
+end

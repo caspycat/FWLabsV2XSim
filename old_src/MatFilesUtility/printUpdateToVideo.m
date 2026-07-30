@@ -1,7 +1,8 @@
-function reverseStr = printUpdateToVideo(elapsedTime,simTime,reverseStr)
+function reverseStr = printUpdateToVideo( ...
+        elapsedTime,simTime,elapsedWallSeconds,reverseStr)
 % Function to print time to video and estimate end of simulation
 
-elapsedSeconds = toc;
+elapsedSeconds = elapsedWallSeconds;
 remainingSeconds = elapsedSeconds * (simTime-elapsedTime)/elapsedTime;
 remainingDays = floor(remainingSeconds/(60*60*24));
 remainingSeconds = remainingSeconds - (remainingDays*60*60*24);
@@ -25,5 +26,4 @@ else
 end
 fprintf([reverseStr, msg]);
 reverseStr = repmat(sprintf('\b'), 1, length(msg));
-
 

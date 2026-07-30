@@ -95,8 +95,9 @@ of -121.67 m and -265.75 m.
 ## Randomness and diagnostics
 
 The scenario owns its private random stream for placement and mobility.
-`simulation.RandomSeed` continues to control the simulator's radio/MAC
-randomness, while `scenarioOptions.RandomSeed` controls that scenario stream.
+`Simulation.RandomSeed` continues to control the simulator's radio/MAC
+randomness, while `Scenario.BidirectionalHighway.RandomSeed` controls that
+scenario stream.
 The campaign deliberately pairs the same numeric value for both options. This
 is a reproducible pairing convention across separately owned streams, not a
 shared stream or an attempt to recreate the legacy draw order. The runner does
@@ -121,20 +122,20 @@ to use the pooled summary rather than selecting favorable individual samples.
 ## Refactored parameter mapping
 
 The legacy paper scripts remain unmodified and are outside this migration.
-The package-local `config/cochannel.cfg` and `runPublishedCampaigns` use the
+The package-local `config/cochannel.toml` and `runPublishedCampaigns` use the
 V7 API and have no runtime dependency on `old_src/codeForPaper`.
 
 | Paper-era input | V7 input |
 |---|---|
-| `ETSI-Highway` | `BidirectionalHighwayScenario` |
-| `rho` | `scenarioOptions.VehicleCount = density * 8 km` |
-| `roadLength`, `roadWidth`, `NLanes` | `scenarioOptions.RoadLength`, `LaneWidth`, `NLanes` |
-| `vMean = 120`, `vStDev = 12` km/h | `scenarioOptions.MeanVehicleSpeed = 120/3.6`, `VehicleSpeedStandardDeviation = 12/3.6` m/s |
-| `averageTbeacon` | `application.ResourceReservationIntervalSeconds` |
-| empty PER-curve directory | `channel.PacketErrorRateCurveDirectory = null` |
+| `ETSI-Highway` | `Scenario.Type = "BidirectionalHighway"` |
+| `rho` | `Scenario.BidirectionalHighway.VehicleCount = density * 8 km` |
+| `roadLength`, `roadWidth`, `NLanes` | `Scenario.BidirectionalHighway.RoadLength`, `LaneWidth`, `NLanes` |
+| `vMean = 120`, `vStDev = 12` km/h | `Scenario.BidirectionalHighway.MeanVehicleSpeed = 120/3.6`, `VehicleSpeedStandardDeviation = 12/3.6` m/s |
+| `averageTbeacon` | `Application.ResourceReservationIntervalSeconds` |
+| empty PER-curve directory | resolved `Channel.PacketError.Model = "Threshold"`; `CurveDirectory` omitted |
 
-`BidirectionalHighwayScenario` is intentional. The refactored
-`EtsiHighwayScenario` exposes the standardized 250/140/70 km/h traffic points,
+`BidirectionalHighway` is intentional. The refactored
+`EtsiHighway` scenario exposes the standardized 250/140/70 km/h traffic points,
 whereas the paper sweeps arbitrary density at 120 +/- 12 km/h.
 
 The legacy unbalanced scripts refer to nonexistent `wp_*.cfg` files, and the
@@ -203,8 +204,7 @@ results = ...
         PacketIntervalVariationsSeconds=[0, -1], ...
         RandomSeeds=1:20, ...
         SimulationTimeSeconds=120, ...
-        ExecutionMode="parallel", ...
-        MaxWorkers=8);
+        ExecutionMode="parallel");
 ```
 
 Each method/density/traffic/seed tuple is an independent work item.
@@ -212,8 +212,9 @@ Each method/density/traffic/seed tuple is an independent work item.
 Computing Toolbox is available and otherwise warns and runs serially.
 `ExecutionMode="serial"` never opens a pool; `"parallel"` requires one.
 Caller-owned process pools are retained, temporary pools are closed, and
-`MaxWorkers` limits CPU use. Metrics and both summary files are assembled on
-the client in their existing deterministic order.
+temporary pools use every worker exposed by the `Processes` profile. A finite
+`MaxWorkers` value is an explicit CPU cap. Metrics and both summary files are
+assembled on the client in their existing deterministic order.
 
 Thread pools, MATLAB `mapreduce`, Spark, and remote MATLAB Parallel Server
 clusters are outside this local multi-core backend. The common work-item

@@ -1,4 +1,4 @@
-function [timeManagement,stationManagement,sinrManagement] = updateVehicleEndingTx11p(idEvent,indexEvent,timeManagement,stationManagement,sinrManagement,phyParams,simParams,outParams)
+function [timeManagement,stationManagement,sinrManagement] = updateVehicleEndingTx11p(idEvent,indexEvent,timeManagement,stationManagement,sinrManagement,phyParams,simParams,~)
 % A transmission is concluded in IEEE 802.11p
 
 % If the vehicle is exiting the scenario, indexEvent is set to -1
@@ -74,9 +74,10 @@ else
     end
 
     %% In both cases, the channel busy ratio is updated 
-    if ~isempty(stationManagement.channelSensedBusyMatrix11p) && timeManagement.cbr11p_timeStartBusy(idEvent) ~= -1
+    if simParams.cbrActive && ...
+            ~isempty(stationManagement.channelSensedBusyMatrix11p) && ...
+            timeManagement.cbr11p_timeStartBusy(idEvent) ~= -1
        stationManagement.channelSensedBusyMatrix11p(1,idEvent) = stationManagement.channelSensedBusyMatrix11p(1,idEvent) + (timeManagement.timeNow-timeManagement.cbr11p_timeStartBusy(idEvent));
        timeManagement.cbr11p_timeStartBusy(idEvent) = -1;
     end
 end
-

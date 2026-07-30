@@ -60,6 +60,146 @@ classdef RunWorkItemsTest < matlab.unittest.TestCase
             end
         end
 
+        function testMutableGlobalStreamPropertiesAreRestored(testCase)
+            callerStream = RandStream.getGlobalStream();
+            streamCleanup = onCleanup( ...
+                @() RandStream.setGlobalStream(callerStream));
+            testStream = RandStream("mrg32k3a",Seed=20260730);
+            referenceStream = RandStream("mrg32k3a",Seed=20260730);
+            RandStream.setGlobalStream(testStream);
+
+            expectedState = testStream.State;
+            expectedAntithetic = testStream.Antithetic;
+            expectedFullPrecision = testStream.FullPrecision;
+            expectedNormalTransform = testStream.NormalTransform;
+            expectedSubstream = testStream.Substream;
+            expectedUniformValues = rand(referenceStream,1,8);
+            expectedNormalValues = randn(referenceStream,1,8);
+
+            outputs = v2xsimregression.execution.runWorkItems( ...
+                {17}, @mutateExistingGlobalStream, ...
+                ExecutionMode="serial");
+
+            testCase.verifyEqual(outputs,{17});
+            testCase.verifyTrue( ...
+                RandStream.getGlobalStream() == testStream);
+            testCase.verifyEqual(testStream.State,expectedState);
+            testCase.verifyEqual( ...
+                testStream.Antithetic,expectedAntithetic);
+            testCase.verifyEqual( ...
+                testStream.FullPrecision,expectedFullPrecision);
+            testCase.verifyEqual( ...
+                testStream.NormalTransform,expectedNormalTransform);
+            testCase.verifyEqual( ...
+                testStream.Substream,expectedSubstream);
+            testCase.verifyEqual( ...
+                rand(testStream,1,8),expectedUniformValues);
+            testCase.verifyEqual( ...
+                randn(testStream,1,8),expectedNormalValues);
+            streamCleanup; %#ok<VUNUS>
+        end
+
+        function testSerialProgressJournalRecordsLifecycleAndHeartbeat( ...
+                testCase)
+            progressLogFile = createProgressLogFile(testCase);
+
+            outputs = v2xsimregression.execution.runWorkItems( ...
+                num2cell([2,4]), @reportProgressAndSquare, ...
+                Labels=["two","four"], ExecutionMode="serial", ...
+                ProgressLogFile=progressLogFile);
+
+            testCase.verifyEqual(cell2mat(outputs),[4,16]);
+            events = readProgressEvents(progressLogFile);
+            testCase.verifyEqual( ...
+                string({events.Event}), ...
+                ["queued","queued", ...
+                "started","heartbeat","completed", ...
+                "started","heartbeat","completed"]);
+            testCase.verifyEqual([events.Sequence],1:numel(events));
+            testCase.verifyTrue(all(strlength( ...
+                string({events.ReceivedAtUtc})) > 0));
+            verifyWorkItemAttempt(testCase,events,1,true);
+            verifyWorkItemAttempt(testCase,events,2,true);
+
+            firstHeartbeat = events(find( ...
+                string({events.Event}) == "heartbeat",1));
+            testCase.verifyEqual( ...
+                string(firstHeartbeat.Stage),"simulation");
+            testCase.verifyEqual( ...
+                firstHeartbeat.SimulatedTimeSeconds,2);
+            testCase.verifyEqual( ...
+                firstHeartbeat.SimulationDurationSeconds,10);
+            testCase.verifyEqual(firstHeartbeat.FractionComplete,0.2);
+            testCase.verifyEqual(firstHeartbeat.ElapsedWallSeconds,2.5);
+            testCase.verifyEqual( ...
+                string(firstHeartbeat.Message),"work-item-2");
+        end
+
+        function testOneInputWorkerRemainsCompatibleWithProgressJournal( ...
+                testCase)
+            progressLogFile = createProgressLogFile(testCase);
+
+            outputs = v2xsimregression.execution.runWorkItems( ...
+                {17}, @identity, Labels="one-input", ...
+                ExecutionMode="serial", ...
+                ProgressLogFile=progressLogFile);
+
+            testCase.verifyEqual(outputs,{17});
+            events = readProgressEvents(progressLogFile);
+            testCase.verifyEqual( ...
+                string({events.Event}), ...
+                ["queued","started","completed"]);
+            verifyWorkItemAttempt(testCase,events,1,false);
+        end
+
+        function testFailureJournalRetainsHeartbeatAndTerminalFailure( ...
+                testCase)
+            progressLogFile = createProgressLogFile(testCase);
+
+            testCase.verifyError( ...
+                @() v2xsimregression.execution.runWorkItems( ...
+                    {17}, @reportProgressAndFail, ...
+                    Labels="failing-item", ExecutionMode="serial", ...
+                    ProgressLogFile=progressLogFile), ...
+                "v2xsimregression:execution:WorkItemFailed");
+
+            events = readProgressEvents(progressLogFile);
+            testCase.verifyEqual( ...
+                string({events.Event}), ...
+                ["queued","started","heartbeat","failed"]);
+            testCase.verifySubstring( ...
+                string(events(end).Message), ...
+                "v2xsimregression:test:ExpectedFailure");
+            verifyWorkItemAttempt(testCase,events,1,true);
+        end
+
+        function testExistingProgressLogIsNotOverwritten(testCase)
+            progressLogFile = createProgressLogFile(testCase);
+            writelines("existing journal",progressLogFile);
+
+            testCase.verifyError( ...
+                @() v2xsimregression.execution.runWorkItems( ...
+                    {1}, @identity, ExecutionMode="serial", ...
+                    ProgressLogFile=progressLogFile), ...
+                "v2xsimregression:execution:ProgressLogFileExists");
+            contents = readlines(progressLogFile);
+            contents(strlength(contents) == 0) = [];
+            testCase.verifyEqual( ...
+                contents,"existing journal");
+        end
+
+        function testOptionalAndVariadicWorkersRetainOneInputCall(testCase)
+            builtinOutputs = ...
+                v2xsimregression.execution.runWorkItems( ...
+                    {[1,2,3]}, @sum, ExecutionMode="serial");
+            variadicOutputs = ...
+                v2xsimregression.execution.runWorkItems( ...
+                    {17}, @variadicIdentity, ExecutionMode="serial");
+
+            testCase.verifyEqual(builtinOutputs,{6});
+            testCase.verifyEqual(variadicOutputs,{17});
+        end
+
         function testWrongLabelCountIsRejected(testCase)
             testCase.verifyError( ...
                 @() v2xsimregression.execution.runWorkItems( ...
@@ -100,12 +240,14 @@ classdef RunWorkItemsTest < matlab.unittest.TestCase
         end
 
         function testCollectAllFailuresReportsEveryLabelInOrder(testCase)
+            progressLogFile = createProgressLogFile(testCase);
             try
                 v2xsimregression.execution.runWorkItems( ...
                     num2cell(1:4), @failOddWorkItems, ...
                     Labels="item-" + string(1:4), ...
                     ExecutionMode="serial", ...
-                    CollectAllFailures=true);
+                    CollectAllFailures=true, ...
+                    ProgressLogFile=progressLogFile);
                 testCase.assertFail("Odd work items should have failed.");
             catch exception
                 testCase.verifyEqual( ...
@@ -123,6 +265,16 @@ classdef RunWorkItemsTest < matlab.unittest.TestCase
                     string(exception.cause{2}.cause{1}.identifier), ...
                     "v2xsimregression:test:ExpectedFailure");
             end
+
+            events = readProgressEvents(progressLogFile);
+            terminalEvents = events(ismember( ...
+                string({events.Event}),["completed","failed"]));
+            testCase.verifyEqual( ...
+                string({terminalEvents.Event}), ...
+                ["failed","completed","failed","completed"]);
+            testCase.verifyEqual( ...
+                string({terminalEvents.Label}), ...
+                ["item-1","item-2","item-3","item-4"]);
         end
 
         function testFailureRestoresDeclaredEnvironment(testCase)
@@ -165,6 +317,49 @@ classdef RunWorkItemsTest < matlab.unittest.TestCase
             testCleanup; %#ok<VUNUS>
         end
 
+        function testCleanupFailureEmitsTerminalFailure(testCase)
+            originalWorkingDirectory = string(pwd);
+            temporaryFolder = testCase.applyFixture( ...
+                matlab.unittest.fixtures.TemporaryFolderFixture);
+            temporaryRoot = string(temporaryFolder.Folder);
+            deletedWorkingDirectory = fullfile( ...
+                temporaryRoot,"deleted-working-directory");
+            mkdir(deletedWorkingDirectory);
+            progressLogFile = fullfile( ...
+                temporaryRoot,"cleanup-failure-progress.jsonl");
+            workingDirectoryCleanup = onCleanup( ...
+                @() cd(originalWorkingDirectory));
+            cd(deletedWorkingDirectory);
+
+            try
+                v2xsimregression.execution.runWorkItems( ...
+                    {deletedWorkingDirectory}, ...
+                    @deleteWorkingDirectoryAndSucceed, ...
+                    ExecutionMode="serial", ...
+                    ProgressLogFile=progressLogFile);
+                testCase.assertFail( ...
+                    "Environment restoration should have failed.");
+            catch exception
+                testCase.verifyEqual( ...
+                    string(exception.identifier), ...
+                    "v2xsimregression:execution:WorkItemFailed");
+                identifiers = exceptionIdentifiers(exception);
+                testCase.verifyTrue(any(identifiers == ...
+                    "v2xsimregression:execution:" + ...
+                    "EnvironmentRestoreFailed"));
+                testCase.verifyTrue(any(identifiers == ...
+                    "v2xsimregression:execution:" + ...
+                    "WorkingDirectoryRestoreFailed"));
+            end
+
+            events = readProgressEvents(progressLogFile);
+            testCase.verifyEqual( ...
+                string({events.Event}), ...
+                ["queued","started","failed"]);
+            testCase.verifyFalse(isfolder(deletedWorkingDirectory));
+            workingDirectoryCleanup; %#ok<VUNUS>
+        end
+
         function testInvalidWorkerLimitIsRejected(testCase)
             testCase.verifyError( ...
                 @() v2xsimregression.execution.mustBeWorkerLimit(0), ...
@@ -179,6 +374,23 @@ classdef RunWorkItemsTest < matlab.unittest.TestCase
             v2xsimregression.execution.mustBeWorkerLimit(2);
         end
 
+        function testDefaultWorkerCountUsesEntireProfile(testCase)
+            workerCount = ...
+                v2xsimregression.execution.internal. ...
+                resolveWorkerCount(Inf,12);
+
+            testCase.verifyEqual(workerCount,12);
+        end
+
+        function testFiniteWorkerCountIsCappedByProfile(testCase)
+            resolver = @(maxWorkers) ...
+                v2xsimregression.execution.internal. ...
+                resolveWorkerCount(maxWorkers,12);
+
+            testCase.verifyEqual(resolver(4),4);
+            testCase.verifyEqual(resolver(20),12);
+        end
+
         function testParallelExecutionPreservesOrder(testCase)
             testCase.assumeTrue( ...
                 ~isempty(ver("parallel")) && ...
@@ -191,13 +403,70 @@ classdef RunWorkItemsTest < matlab.unittest.TestCase
                 isa(originalPool,"parallel.ProcessPool"), ...
                 "The caller owns a non-process parallel pool.");
             additionalPath = createAdditionalPathProbe(testCase);
+            progressLogFile = createProgressLogFile(testCase);
             outputs = v2xsimregression.execution.runWorkItems( ...
-                num2cell([4, 1, 3, 2]), @callAdditionalPathProbe, ...
-                ExecutionMode="parallel", MaxWorkers=2, ...
-                AdditionalPaths=additionalPath);
+                num2cell([4, 1, 3, 2]), ...
+                @callAdditionalPathProbeAndReport, ...
+                ExecutionMode="parallel", ...
+                AdditionalPaths=additionalPath, ...
+                ProgressLogFile=progressLogFile);
 
             testCase.verifyEqual( ...
                 cell2mat(outputs), [104, 101, 103, 102]);
+            events = readProgressEvents(progressLogFile);
+            testCase.verifyEqual( ...
+                [events.Sequence],1:numel(events));
+            testCase.verifyEqual( ...
+                nnz(string({events.Event}) == "queued"),4);
+            for workIndex = 1:4
+                verifyWorkItemAttempt(testCase,events,workIndex,true);
+            end
+            if isempty(originalPool)
+                testCase.verifyEmpty(gcp("nocreate"), ...
+                    "A scheduler-owned process pool must be closed.");
+            else
+                testCase.verifyTrue(isvalid(originalPool), ...
+                    "A caller-owned pool must remain open.");
+            end
+        end
+
+        function testParallelJournalFailureIsAttachedToWorkerFailure( ...
+                testCase)
+            testCase.assumeTrue( ...
+                ~isempty(ver("parallel")) && ...
+                license("test", "Distrib_Computing_Toolbox"), ...
+                "Parallel Computing Toolbox is unavailable.");
+
+            originalPool = gcp("nocreate");
+            testCase.assumeTrue( ...
+                isempty(originalPool) || ...
+                isa(originalPool,"parallel.ProcessPool"), ...
+                "The caller owns a non-process parallel pool.");
+            progressLogFile = createProgressLogFile(testCase);
+            workItems = { ...
+                struct( ...
+                    ProgressLogFile=progressLogFile, ...
+                    SabotageJournal=true, FailWorker=true, Value=1), ...
+                struct( ...
+                    ProgressLogFile=progressLogFile, ...
+                    SabotageJournal=false, FailWorker=false, Value=2)};
+
+            try
+                v2xsimregression.execution.runWorkItems( ...
+                    workItems, @sabotageJournalAndMaybeFail, ...
+                    ExecutionMode="parallel", ...
+                    MaxWorkers=2, ...
+                    ProgressLogFile=progressLogFile);
+                testCase.assertFail( ...
+                    "The worker and progress journal should have failed.");
+            catch exception
+                identifiers = exceptionIdentifiers(exception);
+                testCase.verifyTrue(any(identifiers == ...
+                    "v2xsimregression:test:ExpectedFailure"));
+                testCase.verifyTrue(any(identifiers == ...
+                    "v2xsimregression:execution:" + ...
+                    "ProgressLogFileWriteFailed"));
+            end
             if isempty(originalPool)
                 testCase.verifyEmpty(gcp("nocreate"), ...
                     "A scheduler-owned process pool must be closed.");
@@ -225,9 +494,29 @@ function output = identity(input)
 output = input;
 end
 
+function output = mutateExistingGlobalStream(input)
+stream = RandStream.getGlobalStream();
+stream.Antithetic = ~stream.Antithetic;
+stream.FullPrecision = ~stream.FullPrecision;
+if string(stream.NormalTransform) == "Inversion"
+    stream.NormalTransform = "Ziggurat";
+else
+    stream.NormalTransform = "Inversion";
+end
+stream.Substream = stream.Substream + 4;
+rand(stream,1,8);
+randn(stream,1,8);
+output = input;
+end
+
 function output = callAdditionalPathProbe(input)
 probe = str2func("v2xsimAdditionalPathProbe");
 output = probe(input);
+end
+
+function output = callAdditionalPathProbeAndReport(input,reportProgress)
+reportProgress(struct(Stage="additional-path-probe"));
+output = callAdditionalPathProbe(input);
 end
 
 function additionalPath = createAdditionalPathProbe(testCase)
@@ -253,6 +542,33 @@ setenv("V2XSIM_RUN_WORK_ITEMS_TEST_VALUE", "mutated-value");
 output = input .^ 2;
 end
 
+function output = reportProgressAndSquare(input,reportProgress)
+reportProgress(struct( ...
+    Stage="simulation", ...
+    SimulatedTimeSeconds=input, ...
+    SimulationDurationSeconds=10, ...
+    FractionComplete=input ./ 10, ...
+    ElapsedWallSeconds=input + 0.5, ...
+    Message="work-item-" + input));
+output = input .^ 2;
+end
+
+function output = reportProgressAndFail(input,reportProgress) %#ok<STOUT>
+reportProgress(struct( ...
+    Stage="before-failure", ...
+    Message="Failure probe reached the worker."));
+failWorkItem(input);
+end
+
+function output = variadicIdentity(input,varargin)
+if ~isempty(varargin)
+    error( ...
+        "v2xsimregression:test:UnexpectedProgressCallback", ...
+        "A variadic legacy worker must retain its one-input invocation.");
+end
+output = input;
+end
+
 function output = failOddWorkItems(input)
 if mod(input, 2) == 1
     failWorkItem(input);
@@ -267,6 +583,48 @@ RandStream.setGlobalStream(RandStream("mrg32k3a",Seed=911));
 warning("off", "v2xsimregression:test:EnvironmentMutation");
 setenv("V2XSIM_RUN_WORK_ITEMS_TEST_VALUE", "failure-value");
 failWorkItem([]);
+end
+
+function output = deleteWorkingDirectoryAndSucceed(workingDirectory)
+cd(tempdir);
+rmdir(workingDirectory);
+output = 42;
+end
+
+function output = sabotageJournalAndMaybeFail(workItem,reportProgress)
+if workItem.SabotageJournal
+    replaceFileWithDirectory(workItem.ProgressLogFile);
+end
+reportProgress(struct(Stage="journal-sabotage-probe"));
+if workItem.FailWorker
+    failWorkItem([]);
+end
+output = workItem.Value;
+end
+
+function replaceFileWithDirectory(file)
+deadline = tic;
+lastFailure = [];
+while ~isfolder(file)
+    try
+        if isfile(file)
+            delete(file);
+        end
+        mkdir(file);
+    catch cause
+        lastFailure = cause;
+    end
+    if toc(deadline) >= 10
+        exception = MException( ...
+            "v2xsimregression:test:JournalSabotageFailed", ...
+            "Could not replace the progress file with a directory.");
+        if ~isempty(lastFailure)
+            exception = addCause(exception,lastFailure);
+        end
+        throw(exception);
+    end
+    pause(0.01);
+end
 end
 
 function output = failWorkItem(~) %#ok<STOUT>
@@ -284,4 +642,48 @@ RandStream.setGlobalStream(stream);
 stream.State = streamState;
 warning(warningState);
 setenv(environmentVariableName, environmentVariableValue);
+end
+
+function progressLogFile = createProgressLogFile(testCase)
+temporaryFolder = testCase.applyFixture( ...
+    matlab.unittest.fixtures.TemporaryFolderFixture);
+progressLogFile = fullfile( ...
+    string(temporaryFolder.Folder),"progress.jsonl");
+end
+
+function events = readProgressEvents(progressLogFile)
+lines = readlines(progressLogFile);
+lines(strlength(lines) == 0) = [];
+eventCells = cell(1,numel(lines));
+for lineIndex = 1:numel(lines)
+    eventCells{lineIndex} = jsondecode(lines(lineIndex));
+end
+events = [eventCells{:}];
+end
+
+function verifyWorkItemAttempt( ...
+        testCase, events, workIndex, expectHeartbeat)
+selected = events([events.WorkItemIndex] == workIndex);
+eventTypes = string({selected.Event});
+testCase.verifyEqual(nnz(eventTypes == "started"),1);
+testCase.verifyEqual(nnz(eventTypes == "completed"), ...
+    double(~any(eventTypes == "failed")));
+testCase.verifyEqual(nnz(eventTypes == "failed"), ...
+    double(any(eventTypes == "failed")));
+testCase.verifyEqual(nnz(eventTypes == "heartbeat"), ...
+    double(expectHeartbeat));
+
+attemptEvents = selected(eventTypes ~= "queued");
+attemptIds = unique(string({attemptEvents.AttemptId}));
+testCase.verifyNumElements(attemptIds,1);
+testCase.verifyGreaterThan(strlength(attemptIds),0);
+end
+
+function identifiers = exceptionIdentifiers(exception)
+identifiers = string(exception.identifier);
+for causeIndex = 1:numel(exception.cause)
+    identifiers = [ ...
+        identifiers, ...
+        exceptionIdentifiers(exception.cause{causeIndex})]; %#ok<AGROW>
+end
 end

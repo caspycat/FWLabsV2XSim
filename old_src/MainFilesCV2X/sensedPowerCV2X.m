@@ -49,7 +49,16 @@ if ~isempty(stationManagement.transmittingIDsCV2X)
         % Including possible interference from 11p (note: the
         % interfering power is already calculated per BR)
         for BRFi = 1:NbeaconsF
-            sensedPower_MHz(BRFi,indexSensingV) = phyParams.IBEmatrixData(BRFi,:)*rxPsums_MHz; 
+            frequencyCoupling = phyParams.IBEmatrixData(BRFi,:);
+            coupledResources = frequencyCoupling ~= 0;
+            % Half-duplex self-power is intentionally represented by Inf.
+            % Structural zero IBE coefficients mean no coupling and must
+            % not participate in arithmetic because 0*Inf produces NaN.
+            if any(coupledResources)
+                sensedPower_MHz(BRFi,indexSensingV) = ...
+                    frequencyCoupling(coupledResources) * ...
+                    rxPsums_MHz(coupledResources);
+            end
         end
     end
 end

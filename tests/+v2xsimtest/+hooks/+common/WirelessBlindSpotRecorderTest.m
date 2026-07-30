@@ -36,6 +36,50 @@ classdef WirelessBlindSpotRecorderTest < matlab.unittest.TestCase
             testCase.verifyEqual( ...
                 values(1, 4), 2 / 3, AbsTol=1e-6);
         end
+
+        function preservesStrictAndInclusiveThresholdBoundaries(testCase)
+            outputDirectory = testCase.makeOutputDirectory();
+            hook = testCase.buildHook(outputDirectory);
+
+            hook = testCase.invokeNeighborSnapshot(hook, 0);
+            hook = testCase.invokeCorrectFate(hook, 0, 0);
+            hook = testCase.invokeNeighborSnapshot(hook, 1);
+            hook.cleanup();
+
+            values = readmatrix(fullfile( ...
+                outputDirectory, ...
+                "wireless_blind_spot_11p.csv"), ...
+                FileType="text", Delimiter=",");
+            testCase.verifyEqual(values(1, 1:3), [1, 1, 0]);
+            testCase.verifyEqual(values(1, 4), 1, AbsTol=1e-12);
+        end
+
+        function absentTechnologyCanAppearLater(testCase)
+            outputDirectory = testCase.makeOutputDirectory();
+            hook = v2xsim.hooks.common. ...
+                WirelessBlindSpotRecorder( ...
+                    1, 1, Cv2xTechnology="LTE");
+            hook = hook.build( ...
+                v2xsim.hook.dependencies.OutputDirectory( ...
+                    outputDirectory));
+
+            hook = invokePartitionedNeighborSnapshot( ...
+                hook, 0, zeros(0, 1), [2; 5]);
+            hook = invokePartitionedNeighborSnapshot( ...
+                hook, 0.5, [2; 5], zeros(0, 1));
+            hook = invokePartitionedNeighborSnapshot( ...
+                hook, 1.6, [2; 5], zeros(0, 1));
+            hook.cleanup();
+
+            values = readmatrix(fullfile( ...
+                outputDirectory, ...
+                "wireless_blind_spot_LTE.csv"), ...
+                FileType="text", Delimiter=",");
+            testCase.verifyEqual(values(1, 1:3), [1, 2, 0]);
+            testCase.verifyEqual(values(1, 4), 1, AbsTol=1e-12);
+            testCase.verifyFalse(isfile(fullfile( ...
+                outputDirectory, "wireless_blind_spot_11p.csv")));
+        end
     end
 
     methods (Access = private)
@@ -81,4 +125,13 @@ classdef WirelessBlindSpotRecorderTest < matlab.unittest.TestCase
                         transmitters, links));
         end
     end
+end
+
+function hook = invokePartitionedNeighborSnapshot( ...
+        inputHook, timeSeconds, cv2xUeIds, itsG5UeIds)
+invocation = v2xsim.hook.invocations. ...
+    AfterNeighborGraphUpdatedInvocation( ...
+        timeSeconds, [2; 5], cv2xUeIds, itsG5UeIds, ...
+        [0, 10; 10, 0], 20, 1, 1);
+hook = inputHook.invoke(invocation);
 end

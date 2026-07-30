@@ -1,0 +1,84 @@
+# Exit-ramp position-error-chain configuration.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 14
+DurationSeconds = 1.5
+
+[Scenario]
+Type = "ExitRampHighway"
+UpdateIntervalSeconds = 0.1
+
+[Scenario.ExitRampHighway]
+RandomSeed = 104
+VehicleCount = 16
+NLanes = 2
+LaneWidth = 4
+RoadLength = 240
+CentralDividerWidth = 0
+MeanVehicleSpeed = 20
+VehicleSpeedStandardDeviation = 2
+RerollSpeedOnWrapAround = false
+ExitProbability = 0.5
+MergeDistance = 40
+
+[[Positioning.Errors]]
+Type = "Gaussian"
+StandardDeviationMeters = 3
+DisplacementRandomSeed = 304
+AffectedVehicleProbability = 1
+SelectionRandomSeed = 404
+
+[[Positioning.Errors]]
+Type = "FalseExit"
+AffectedVehicleProbability = 1
+DisplacementScale = 1
+SelectionRandomSeed = 504
+
+[[Positioning.Errors]]
+Type = "Delay"
+DelaySeconds = 0.1
+
+[Application]
+PacketSizeBytes = 190
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Application.CongestionControl]
+Enabled = false
+
+[Radio]
+Type = "LteV2X"
+BandwidthMHz = 10
+TransmitPowerDbm = 23
+FixedPowerDensityEnabled = false
+ReceiverNoiseFigureDb = 6
+
+[Radio.LteV2X]
+Mcs = 7
+AdjacentPscchAndPsschEnabled = true
+
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 10
+PartialFrequencyOverlapEnabled = false
+
+[Awareness]
+RangesMeters = [150]
+
+[ResourceAllocation]
+Type = "MaximumReuseDistance"
+RandomSeed = 204
+
+[ResourceAllocation.MaximumReuseDistance]
+ReassignmentIntervalSeconds = 0.1
+
+[Outputs.VehicleKinematics]
+Enabled = true
+
+[Outputs.PositionErrorTrace]
+Enabled = true
+FlushRowCount = 500

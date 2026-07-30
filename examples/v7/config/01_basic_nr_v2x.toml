@@ -1,0 +1,65 @@
+# V7 first-run configuration in the native TOML schema.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 11
+DurationSeconds = 0.5
+
+[Scenario]
+Type = "BidirectionalHighway"
+UpdateIntervalSeconds = 0.1
+
+[Scenario.BidirectionalHighway]
+RandomSeed = 101
+VehicleCount = 8
+NLanes = 2
+LaneWidth = 4
+RoadLength = 400
+CentralDividerWidth = 0
+MeanVehicleSpeed = 20
+VehicleSpeedStandardDeviation = 2
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 190
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Application.CongestionControl]
+Enabled = false
+
+[Radio]
+Type = "NrV2X"
+BandwidthMHz = 10
+TransmitPowerDbm = 23
+FixedPowerDensityEnabled = false
+TransmitAntennaGainDb = 3
+ReceiveAntennaGainDb = 3
+ReceiverNoiseFigureDb = 6
+
+[Radio.NrV2X]
+SubcarrierSpacingKilohertz = 15
+DmrsResourceElementCountPerSlot = 24
+Mcs = 7
+
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 10
+PartialFrequencyOverlapEnabled = false
+
+[Awareness]
+RangesMeters = [200]
+
+[ResourceAllocation]
+Type = "SensingBased"
+RandomSeed = 201
+
+[ResourceAllocation.SensingBased]
+KeepResourceProbability = 0.4
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 25

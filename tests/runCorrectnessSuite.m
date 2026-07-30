@@ -1,9 +1,15 @@
 function [results, coverageDirectory] = runCorrectnessSuite(options)
 %RUNCORRECTNESSSUITE Run V7 tests and produce an HTML coverage report.
 %   RESULTS = RUNCORRECTNESSSUITE runs every test below the tests folder,
-%   prefers decision coverage for src/+v2xsim (falling back to statement
-%   coverage when MATLAB Test is unavailable), and fails when any test is
-%   unsuccessful.
+%   uses all workers exposed by the local Processes profile when parallel
+%   capability is available, prefers decision coverage for src/+v2xsim
+%   (falling back to statement coverage when MATLAB Test is unavailable),
+%   and fails when any test is unsuccessful.
+%
+%   IncludeRegressionTests=true adds routine regressions and shortened
+%   conclusion-level publication campaigns. Full-duration registered
+%   campaigns tagged PublicationCampaign remain excluded unless
+%   IncludePublicationCampaigns=true is also supplied.
 %
 %   [RESULTS,COVERAGEDIRECTORY] = RUNCORRECTNESSSUITE(...) also returns the
 %   directory containing the generated HTML report. By default, that
@@ -15,11 +21,23 @@ arguments (Input)
         options.CoverageMetric, ...
         ["auto","statement","decision","condition","mcdc"])} = "auto"
     options.IncludeRegressionTests (1,1) logical = false
+    options.IncludePublicationCampaigns (1,1) logical = false
+    options.ExecutionMode (1,1) string {mustBeMember( ...
+        options.ExecutionMode, ["auto","serial","parallel"])} = "auto"
 end
 
 arguments (Output)
     results (1,:) matlab.unittest.TestResult
     coverageDirectory (1,1) string
+end
+
+if options.IncludePublicationCampaigns && ...
+        ~options.IncludeRegressionTests
+    error( ...
+        "v2xsimtest:correctness:" + ...
+        "PublicationCampaignsRequireRegressionTests", ...
+        "IncludePublicationCampaigns=true requires " + ...
+        "IncludeRegressionTests=true.");
 end
 
 projectRoot = string(fileparts(fileparts(mfilename("fullpath"))));
@@ -41,15 +59,24 @@ addpath(sourceParent);
 addpath(testsRoot);
 addpath(genpath(legacyRoot));
 
-suite = matlab.unittest.TestSuite.fromFolder( ...
+ordinarySuite = matlab.unittest.TestSuite.fromFolder( ...
     testsRoot, IncludingSubfolders=true);
+regressionSuite = matlab.unittest.TestSuite.empty;
 if options.IncludeRegressionTests
     addpath(regressionRoot);
     regressionSuite = matlab.unittest.TestSuite.fromFolder( ...
         regressionRoot, IncludingSubfolders=true);
-    suite = [suite,regressionSuite];
+    [regressionSuite,excludedPublicationCampaignCount] = ...
+        v2xsimtest.execution.selectRegressionCampaigns( ...
+            regressionSuite,options.IncludePublicationCampaigns);
+    if excludedPublicationCampaignCount > 0
+        fprintf( ...
+            "Excluded %d registered PublicationCampaign test(s). " + ...
+            "Set IncludePublicationCampaigns=true to include them.\n", ...
+            excludedPublicationCampaignCount);
+    end
 end
-if isempty(suite)
+if isempty(ordinarySuite)
     error( ...
         "v2xsimtest:correctness:NoTestsDiscovered", ...
         "No tests were discovered below %s.", testsRoot);
@@ -62,38 +89,40 @@ else
         absolutePath(options.CoverageDirectory, projectRoot);
 end
 
-coverageFormat = ...
-    matlab.unittest.plugins.codecoverage.CoverageReport( ...
-        coverageDirectory);
-selectedCoverageMetric = options.CoverageMetric;
-if selectedCoverageMetric == "auto"
-    selectedCoverageMetric = "decision";
-end
-try
-    coveragePlugin = createCoveragePlugin( ...
-        sourceRoot,coverageFormat,selectedCoverageMetric);
-catch cause
-    if options.CoverageMetric ~= "auto" || ...
-            string(cause.identifier) ~= ...
-            "MATLAB:unittest:CodeCoveragePlugin:InvalidMetric"
-        rethrow(cause);
-    end
-    selectedCoverageMetric = "statement";
-    warning( ...
-        "v2xsimtest:correctness:DecisionCoverageUnavailable", ...
-        "Decision coverage requires MATLAB Test. " + ...
-        "Falling back to statement coverage.");
-    coveragePlugin = createCoveragePlugin( ...
-        sourceRoot,coverageFormat,selectedCoverageMetric);
+selectedCoverageMetric = selectCoverageMetric( ...
+    options.CoverageMetric,sourceRoot);
+[useParallel,pool,poolCleanup] = prepareExecution( ...
+    options.ExecutionMode);
+if useParallel
+    fprintf( ...
+        "Using %d workers from process pool profile %s.\n", ...
+        pool.NumWorkers,string(pool.Cluster.Profile));
+else
+    fprintf("Using serial test execution.\n");
 end
 
-runner = matlab.unittest.TestRunner.withTextOutput;
-runner.addPlugin(coveragePlugin);
-fprintf( ...
-    "Running %d tests with %s coverage. Report: %s\n", ...
-    numel(suite), selectedCoverageMetric, coverageDirectory);
-results = runner.run(suite);
+[ordinaryResults,coverageResults] = runSuiteWithCoverage( ...
+    ordinarySuite,sourceRoot,selectedCoverageMetric,useParallel, ...
+    "ordinary");
+results = ordinaryResults;
+if options.IncludeRegressionTests && ~isempty(regressionSuite)
+    % Regression methods launch process-parallel campaign work themselves.
+    % Keep their outer test layer on the client to avoid nested pools while
+    % allowing runWorkItems to reuse the full profile-sized process pool.
+    [regressionResults,regressionCoverageResults] = ...
+        runSuiteWithCoverage( ...
+            regressionSuite,sourceRoot,selectedCoverageMetric,false, ...
+            "regression");
+    results = [results,regressionResults];
+    coverageResults = coverageResults + regressionCoverageResults;
+end
+
+generateHTMLReport( ...
+    coverageResults,coverageDirectory, ...
+    MetricLevel=selectedCoverageMetric);
+fprintf("Coverage report: %s\n",coverageDirectory);
 assertSuccess(results);
+poolCleanup; %#ok<VUNUS>
 end
 
 function plugin = createCoveragePlugin( ...
@@ -103,6 +132,121 @@ plugin = matlab.unittest.plugins.CodeCoveragePlugin.forFolder( ...
     IncludingSubfolders=true, ...
     Producing=coverageFormat, ...
     MetricLevel=coverageMetric);
+end
+
+function coverageMetric = selectCoverageMetric( ...
+        requestedCoverageMetric,sourceRoot)
+coverageMetric = requestedCoverageMetric;
+if coverageMetric == "auto"
+    coverageMetric = "decision";
+end
+
+try
+    coverageFormat = ...
+        matlab.unittest.plugins.codecoverage.CoverageResult;
+    createCoveragePlugin(sourceRoot,coverageFormat,coverageMetric);
+catch cause
+    if requestedCoverageMetric ~= "auto" || ...
+            string(cause.identifier) ~= ...
+            "MATLAB:unittest:CodeCoveragePlugin:InvalidMetric"
+        rethrow(cause);
+    end
+    coverageMetric = "statement";
+    warning( ...
+        "v2xsimtest:correctness:DecisionCoverageUnavailable", ...
+        "Decision coverage requires MATLAB Test. " + ...
+        "Falling back to statement coverage.");
+end
+end
+
+function [results,coverageResults] = runSuiteWithCoverage( ...
+        suite,sourceRoot,coverageMetric,useParallel,suiteLabel)
+coverageFormat = ...
+    matlab.unittest.plugins.codecoverage.CoverageResult;
+coveragePlugin = createCoveragePlugin( ...
+    sourceRoot,coverageFormat,coverageMetric);
+runner = matlab.unittest.TestRunner.withTextOutput;
+runner.addPlugin(coveragePlugin);
+fprintf( ...
+    "Running %d %s tests with %s coverage.\n", ...
+    numel(suite),suiteLabel,coverageMetric);
+if useParallel
+    results = runner.runInParallel(suite);
+else
+    results = runner.run(suite);
+end
+coverageResults = coverageFormat.Result;
+end
+
+function [useParallel,pool,poolCleanup] = prepareExecution(executionMode)
+useParallel = false;
+pool = [];
+poolCleanup = onCleanup.empty;
+if executionMode == "serial"
+    return
+end
+
+if ~parallelComputingIsAvailable()
+    if executionMode == "parallel"
+        error( ...
+            "v2xsimtest:correctness:ParallelUnavailable", ...
+            "Parallel execution requires an available Parallel " + ...
+            "Computing Toolbox license.");
+    end
+    warning( ...
+        "v2xsimtest:correctness:ParallelUnavailable", ...
+        "Parallel Computing Toolbox is unavailable; running serially.");
+    return
+end
+
+pool = gcp("nocreate");
+if ~isempty(pool)
+    if isa(pool,"parallel.ProcessPool")
+        useParallel = true;
+        return
+    end
+    message = compose( ...
+        "Parallel correctness testing requires a process pool; " + ...
+        "the caller owns a %s pool.",class(pool));
+    if executionMode == "parallel"
+        error( ...
+            "v2xsimtest:correctness:ProcessPoolRequired", ...
+            "%s",message);
+    end
+    warning( ...
+        "v2xsimtest:correctness:ProcessPoolRequired", ...
+        "%s Running serially.",message);
+    pool = [];
+    return
+end
+
+try
+    cluster = parcluster("Processes");
+    % Request the profile's configured capacity explicitly. Calling
+    % parpool(cluster) may instead honor PreferredPoolNumWorkers, which can
+    % be lower than NumWorkers and would then constrain publication
+    % campaigns that reuse this caller-owned pool.
+    pool = parpool(cluster,cluster.NumWorkers);
+    poolCleanup = onCleanup(@() delete(pool));
+    useParallel = true;
+catch cause
+    pool = [];
+    if executionMode == "parallel"
+        exception = MException( ...
+            "v2xsimtest:correctness:ParallelStartupFailed", ...
+            "Could not start the Processes profile for parallel tests.");
+        throwAsCaller(addCause(exception,cause));
+    end
+    warning( ...
+        "v2xsimtest:correctness:ParallelStartupFailed", ...
+        "Could not start the Processes profile (%s); running serially.", ...
+        cause.message);
+end
+end
+
+function tf = parallelComputingIsAvailable()
+tf = ~isempty(ver("parallel")) && ...
+    license("test","Distrib_Computing_Toolbox");
 end
 
 function restoreProcessState( ...

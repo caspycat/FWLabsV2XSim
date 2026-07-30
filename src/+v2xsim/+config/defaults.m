@@ -1,0 +1,9 @@
+function result = defaults()
+%DEFAULTS Return the complete default V7 configuration.
+
+template = v2xsim.config.ConfigurationTemplate( ...
+    struct(SchemaVersion=1), ...
+    v2xsim.config.internal.Operations.provenanceForData( ...
+        struct(SchemaVersion=1), "Default"));
+result = v2xsim.config.resolve(template);
+end

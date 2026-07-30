@@ -1,0 +1,58 @@
+# Named resource-allocator comparison configuration.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 13
+DurationSeconds = 0.3
+
+[Scenario]
+Type = "BidirectionalHighway"
+UpdateIntervalSeconds = 0.1
+
+[Scenario.BidirectionalHighway]
+RandomSeed = 103
+VehicleCount = 4
+NLanes = 1
+LaneWidth = 4
+RoadLength = 200
+CentralDividerWidth = 0
+MeanVehicleSpeed = 15
+VehicleSpeedStandardDeviation = 0
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 190
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Application.CongestionControl]
+Enabled = false
+
+[Radio]
+Type = "LteV2X"
+BandwidthMHz = 10
+TransmitPowerDbm = 23
+FixedPowerDensityEnabled = false
+ReceiverNoiseFigureDb = 6
+
+[Radio.LteV2X]
+Mcs = 7
+AdjacentPscchAndPsschEnabled = true
+
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 10
+PartialFrequencyOverlapEnabled = false
+
+[Awareness]
+RangesMeters = [100]
+
+[ResourceAllocation]
+Type = "SensingBased"
+RandomSeed = 203
+
+[ResourceAllocation.SensingBased]
+KeepResourceProbability = 0.4

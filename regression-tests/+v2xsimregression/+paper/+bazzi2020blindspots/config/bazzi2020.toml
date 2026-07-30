@@ -1,0 +1,87 @@
+# Bazzi et al. 2020 wireless-blind-spot baseline.
+SchemaVersion = 1
+
+[Simulation]
+DurationSeconds = 30
+
+[Scenario]
+Type = "BidirectionalHighway"
+UpdateIntervalSeconds = 0.1
+
+[Scenario.BidirectionalHighway]
+VehicleCount = 100
+NLanes = 3
+LaneWidth = 4
+RoadLength = 1000
+CentralDividerWidth = 0
+MeanVehicleSpeed = 38.8888888888889
+VehicleSpeedStandardDeviation = 0
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 300
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Application.ChannelLoad]
+Enabled = true
+MeasurementWindowSeconds = 0.1
+UpdateStepsPerWindow = 100
+
+[Application.CongestionControl]
+Enabled = false
+
+[Radio]
+Type = "LteV2X"
+BandwidthMHz = 10
+TransmitPowerDbm = 23
+FixedPowerDensityEnabled = false
+TransmitAntennaGainDb = 3
+ReceiveAntennaGainDb = 3
+ReceiverNoiseFigureDb = 9
+
+[Radio.LteV2X]
+Mcs = 6
+AdjacentPscchAndPsschEnabled = true
+
+[Radio.Sidelink]
+MaximumTransmissionCount = 1
+
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 10
+PartialFrequencyOverlapEnabled = false
+
+[Channel.PacketError]
+Model = "Threshold"
+SidelinkLosThresholdDb = 5.79
+
+[Channel.PathLoss]
+Model = "WinnerPlusB1"
+
+[Channel.Shadowing]
+LosStandardDeviationDb = 3
+NlosStandardDeviationDb = 4
+
+[Awareness]
+RangesMeters = [100, 300]
+
+[ResourceAllocation]
+Type = "SensingBased"
+
+[ResourceAllocation.SensingBased]
+ReselectionCounterMinimum = 5
+ReselectionCounterMaximum = 15
+KeepResourceProbability = 0.8
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 10
+
+[Outputs.WirelessBlindSpot]
+Enabled = true
+MaximumDelaySeconds = 15
+BinWidthSeconds = 0.1

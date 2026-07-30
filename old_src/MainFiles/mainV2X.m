@@ -1,4 +1,6 @@
-function [simValues,outputValues,appParams,simParams,phyParams,sinrManagement,outParams,stationManagement] = mainV2X(appParams,simParams,phyParams,outParams,simValues,outputValues,positionManagement)
+function [simValues,outputValues,appParams,simParams,phyParams,sinrManagement,outParams,stationManagement] = mainV2X( ...
+        appParams,simParams,phyParams,outParams,simValues,outputValues, ...
+        positionManagement,progressFcn)
 % Core function where events are sorted and executed
 
 %% Initialization
@@ -8,6 +10,8 @@ function [simValues,outputValues,appParams,simParams,phyParams,sinrManagement,ou
 
 % The variable 'timeNextPrint' is used only for printing purposes
 timeNextPrint = 0;
+progressFractionResolution = 0.01;
+nextProgressFraction = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Simulation Cycle
@@ -16,7 +20,7 @@ timeNextPrint = 0;
 % earlier)
 
 % Start stopwatch
-tic
+simulationStopwatch = tic;
 
 fprintf('Message: %s\n',outParams.message);
 fprintf('Simulation Time: ');
@@ -115,7 +119,24 @@ while timeManagement.timeNow < simParams.simulationTime
     %%
     % Print time to video
     while timeManagement.timeNow > timeNextPrint  - 1e-9
-        reverseStr = printUpdateToVideo(timeManagement.timeNow,simParams.simulationTime,reverseStr);
+        elapsedWallSeconds = toc(simulationStopwatch);
+        reverseStr = printUpdateToVideo( ...
+            timeManagement.timeNow,simParams.simulationTime, ...
+            elapsedWallSeconds,reverseStr);
+        fractionComplete = min( ...
+            timeManagement.timeNow ./ simParams.simulationTime,1);
+        if ~isempty(progressFcn) && ...
+                fractionComplete + eps(fractionComplete) >= ...
+                nextProgressFraction
+            v2xsim.runtime.internal.reportProgress( ...
+                progressFcn,"simulating",timeManagement.timeNow, ...
+                simParams.simulationTime,elapsedWallSeconds, ...
+                "Simulation event loop is advancing.");
+            nextProgressFraction = ...
+                (floor( ...
+                    fractionComplete ./ progressFractionResolution) + 1) .* ...
+                progressFractionResolution;
+        end
         timeNextPrint = timeNextPrint + simParams.positionTimeResolution;
     end
 
@@ -400,6 +421,6 @@ fprintf([reverseStr, msg]);
 simValues.snapshots = positionManagement.NposUpdates;
 
 % Stop stopwatch
-outputValues.computationTime = toc;
+outputValues.computationTime = toc(simulationStopwatch);
 
 end

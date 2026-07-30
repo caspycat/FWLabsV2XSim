@@ -13,10 +13,10 @@ fprintf("Completed output: %s\n",exampleOutputDirectory);
 function [results,outputDirectory] = runExample(exampleDirectory)
 timer = tic;
 configurationFile = fullfile( ...
-    exampleDirectory,"config","05_output_artifacts.cfg");
+    exampleDirectory,"config","05_output_artifacts.toml");
 outputDirectory = string(tempname);
 [summary,simulationElapsedSeconds] = runV7ExampleSimulation( ...
-    configurationFile,outputDirectory);
+    configurationFile,outputDirectory,struct(),"output-artifacts");
 
 artifactFiles = dir(outputDirectory);
 artifactFiles = artifactFiles(~[artifactFiles.isdir]);

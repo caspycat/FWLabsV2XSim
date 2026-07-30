@@ -1,11 +1,12 @@
 function [summary, elapsedSeconds] = runV7ExampleSimulation( ...
-        configurationFile, outputDirectory, overrides)
+        configurationFile, outputDirectory, patchData, runLabel)
 %RUNV7EXAMPLESIMULATION Run one isolated V7 example simulation.
 
 arguments (Input)
     configurationFile (1,1) string
     outputDirectory (1,1) string
-    overrides (1,:) cell = cell(1,0)
+    patchData (1,1) struct = struct()
+    runLabel (1,1) string = ""
 end
 
 if ~isfile(configurationFile)
@@ -23,7 +24,7 @@ end
 privateDirectory = fileparts(mfilename("fullpath"));
 projectRoot = fileparts(fileparts(fileparts(privateDirectory)));
 sourceDirectory = fullfile(projectRoot,"src");
-simulatorDirectory = fullfile(projectRoot,"old_src");
+tomlDirectory = fullfile(projectRoot,"lib","matlab-toml");
 if ~isfile(fullfile(sourceDirectory,"+v2xsim","runSimulation.m"))
     error( ...
         "v2xsimexample:SimulatorNotFound", ...
@@ -39,13 +40,20 @@ stateCleanup = onCleanup(@() restoreProcessState( ...
     originalWarningState));
 
 addpath(sourceDirectory);
-addpath(simulatorDirectory);
+addpath(tomlDirectory);
 
-simulationArguments = [ ...
-    {configurationFile}, overrides, ...
-    {"output.Directory",outputDirectory}]; %#ok<NASGU>
+template = v2xsim.config.load(configurationFile);
+if isempty(fieldnames(patchData))
+    configuration = template.resolve();
+else
+    configuration = template.resolve( ...
+        Patch=v2xsim.config.patch(patchData));
+end
 timer = tic;
-evalc("v2xsim.runSimulation(simulationArguments{:});");
+v2xsim.runSimulation( ...
+    configuration, ...
+    OutputDirectory=outputDirectory, ...
+    RunLabel=runLabel);
 elapsedSeconds = toc(timer);
 
 summaryFile = fullfile(outputDirectory,"simulation_summary.json");

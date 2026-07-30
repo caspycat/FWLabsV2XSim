@@ -11,31 +11,32 @@ retain their existing behavior.
 
 ## Selecting an allocator
 
-Set `resourceAllocation.Type` to one of the canonical string values below.
-`ThreeGppAutonomous` is the default.
+Set `ResourceAllocation.Type` to one of the canonical string values below.
+`SensingBased` is the default.
 
 | Type | Category | Behavior |
 |---|---|---|
 | `ReuseDistance` | Centralized | Reuses resources subject to the configured minimum reuse distance. |
 | `MaximumReuseDistance` | Centralized | Chooses reuse assignments that maximize distance between co-resource UEs. |
 | `MinimumReusePower` | Centralized | Chooses reuse assignments that minimize estimated received reuse power. |
-| `ThreeGppAutonomous` | Autonomous | Implements the current 3GPP sensing-based semi-persistent selection procedure for LTE Mode 4 and NR Mode 2. |
-| `RandomBenchmark` | Benchmark | Selects packet-triggered resources randomly from the eligible set. |
-| `OrderedBenchmark` | Benchmark | Assigns frequency-first resources in longitudinal-position order. |
+| `SensingBased` | Autonomous | Implements the current 3GPP sensing-based semi-persistent selection procedure for LTE Mode 4 and NR Mode 2. |
+| `Random` | Benchmark | Selects packet-triggered resources randomly from the eligible set. |
+| `Ordered` | Benchmark | Assigns frequency-first resources in longitudinal-position order. |
 
-`resourceAllocation.RandomSeed` seeds an allocator-owned random stream. Its
-default is `simulation.RandomSeed`. Allocator randomness is stored as value
+`ResourceAllocation.RandomSeed` seeds an allocator-owned random stream. Its
+default is `Simulation.RandomSeed`. Allocator randomness is stored as value
 state, so copying an allocator does not make two allocator instances share a
 mutable MATLAB random-stream handle.
 
 The centralized algorithms use
-`resourceAllocation.Controlled.ReassignmentIntervalSeconds`.
+their selected `ResourceAllocation.<Type>.ReassignmentIntervalSeconds`.
 `ReuseDistance` additionally uses the controlled positioning-update,
-position-error, and reuse-margin settings. `MinimumReusePower` can use
-`resourceAllocation.Controlled.KnownShadowingEnabled`.
-`ThreeGppAutonomous` uses the `resourceAllocation.Autonomous` settings.
-`RandomBenchmark` uses the autonomous selection-window bounds but does not
-implement the 3GPP sensing procedure. `OrderedBenchmark` has no
+position-error, and reuse-margin settings in
+`ResourceAllocation.ReuseDistance`. `MinimumReusePower` can use
+`ResourceAllocation.MinimumReusePower.KnownShadowingEnabled`.
+`SensingBased` uses the `ResourceAllocation.SensingBased` settings.
+`Random` uses its selection-window bounds but does not implement the 3GPP
+sensing procedure. `Ordered` has no
 algorithm-specific parameters.
 
 `MaximumReuseDistance` ranks reuse choices using the controller-visible
@@ -53,8 +54,8 @@ mistaken for removed interference and allows adjacent-channel placement
 errors to be joined to causal PHY counterfactual evidence.
 
 Partial frequency overlap and more than one transmission per packet are
-supported only by `ThreeGppAutonomous` and `RandomBenchmark`.
-`ThreeGppAutonomous` supports at most two transmissions.
+supported only by `SensingBased` and `Random`.
+`SensingBased` supports at most two transmissions.
 It keeps resource identifiers in transmission order relative to the packet's
 selection origin, preallocates every configured HARQ column even when DCC
 temporarily permits fewer attempts, and validates only the attempts currently
@@ -88,7 +89,7 @@ The two algorithm families differ in the information their contracts permit:
 - `AutonomousAllocationContext` provides UE-local eligibility and a
   `SensingSnapshot`. `ThreeGppAllocationContext` extends it with SPS,
   packet-state, and per-UE transmission-count facts. The only standards-based
-  autonomous implementation today is `ThreeGppAutonomous`.
+  autonomous configuration today is `SensingBased`.
 
 A concrete allocator declares its context contract and whether it consumes a
 selection window. The legacy-array adapter dispatches on those capabilities,
@@ -120,30 +121,16 @@ Coexistence remains an integration concern around the cellular-sidelink
 allocator. Coexistence logic supplies external eligibility or unavailable-slot
 masks and shared sensing observations; it is not a separate allocator family.
 Same-band coexistence mitigation currently requires
-`ThreeGppAutonomous`. Other allocators can still be used where no such
+`SensingBased`. Other allocators can still be used where no such
 same-band mitigation is active. The IEEE 802.11p/ITS-G5 scheduler is not routed
 through `ResourceAllocator`.
 
-## Migration from numeric algorithms
+## Removed numeric selectors
 
-Numeric algorithm selection has been removed. Neither
-`resourceAllocation.Algorithm` nor the legacy `BRAlgorithm` alias is accepted.
-Use the named type corresponding to the historical implementation:
-
-| Removed ID | `resourceAllocation.Type` |
-|---:|---|
-| `2` | `ReuseDistance` |
-| `7` | `MaximumReuseDistance` |
-| `10` | `MinimumReusePower` |
-| `18` | `ThreeGppAutonomous` |
-| `101` | `RandomBenchmark` |
-| `102` | `OrderedBenchmark` |
-
-Historical algorithm `9` is not available in the new contract. The
-asynchronous-transmitter allocation options and the full-duplex allocation
-algorithm/dynamic-threshold enhancements have also been removed. Full-duplex
-radio and self-interference parameters that are not allocation-algorithm
-selectors remain separate physical-layer settings.
+V7 has no numeric allocation selector, alias, or compatibility adapter.
+Configuration must use one of the six names in the table above. Full-duplex
+radio and self-interference settings remain separate physical-layer choices;
+they are not allocator selectors.
 
 ## Output metadata
 
@@ -160,7 +147,7 @@ selection and sensing windows:
   "Configuration": {
     "ResourceAllocation": {
       "Metadata": {
-        "Type": "ThreeGppAutonomous",
+        "Type": "SensingBased",
         "Category": "Autonomous",
         "NetworkSliceId": "global",
         "RandomSeed": 7
@@ -170,5 +157,5 @@ selection and sensing windows:
 }
 ```
 
-This keeps command-line overrides with the result and makes simulations
-self-describing without depending on a numeric algorithm table.
+This records the resolved declarative choice with the result and makes
+simulations self-describing without a numeric algorithm table.

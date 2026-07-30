@@ -13,10 +13,10 @@ fprintf("Completed output: %s\n",exampleOutputDirectory);
 function [results,outputDirectory] = runExample(exampleDirectory)
 timer = tic;
 configurationFile = fullfile( ...
-    exampleDirectory,"config","04_position_errors.cfg");
+    exampleDirectory,"config","04_position_errors.toml");
 outputDirectory = string(tempname);
 [summary,simulationElapsedSeconds] = runV7ExampleSimulation( ...
-    configurationFile,outputDirectory);
+    configurationFile,outputDirectory,struct(),"position-errors");
 
 traceFiles = dir(fullfile( ...
     outputDirectory,"position_error_trace_*.csv"));

@@ -13,11 +13,11 @@ fprintf("Completed output: %s\n",exampleOutputDirectory);
 function [results,outputDirectory] = runExample(exampleDirectory)
 timer = tic;
 configurationFile = fullfile( ...
-    exampleDirectory,"config","01_basic_nr_v2x.cfg");
+    exampleDirectory,"config","01_basic_nr_v2x.toml");
 outputDirectory = string(tempname);
 
 [summary,simulationElapsedSeconds] = runV7ExampleSimulation( ...
-    configurationFile,outputDirectory);
+    configurationFile,outputDirectory,struct(),"v7-first-run");
 assert(summary.SchemaVersion == 2, ...
     "The example expected completion-summary schema version 2.");
 

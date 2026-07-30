@@ -23,4 +23,5 @@ change test strength and must not be presented as the full regression.
 Each technology/count/seed tuple has its own output directory and can be
 scheduled on process workers through
 `v2xsimregression.execution.runWorkItems`. Thread pools are intentionally not
-used because the legacy simulator mutates process-wide state.
+used because the legacy simulator mutates process-wide state. A temporary pool
+uses every worker exposed by the local `Processes` profile by default.

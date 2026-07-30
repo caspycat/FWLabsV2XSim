@@ -212,7 +212,7 @@ classdef Zhuofei2023CoChannelTest < matlab.unittest.TestCase
         end
     end
 
-    methods (Test, TestTags = {'HighDensity'})
+    methods (Test, TestTags = {'ShortCampaign', 'HighDensity'})
         function testHighDensityMethodFReducesIeee80211pRange(testCase)
             results = ...
                 v2xsimregression.paper.zhuofei2023cochannel. ...

@@ -1,0 +1,50 @@
+# Vittorio et al. 2021 Figure 11 baseline.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 10
+DurationSeconds = 10
+
+[Scenario]
+Type = "BidirectionalHighway"
+
+[Scenario.BidirectionalHighway]
+VehicleCount = 200
+NLanes = 3
+LaneWidth = 4
+RoadLength = 2000
+CentralDividerWidth = 0
+MeanVehicleSpeed = 19.4444444444
+VehicleSpeedStandardDeviation = 1.9444444444
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 190
+
+[Radio]
+Type = "NrV2X"
+ReceiverNoiseFigureDb = 6
+TransmitAntennaGainDb = 3
+ReceiveAntennaGainDb = 3
+FixedPowerDensityEnabled = false
+
+[Radio.NrV2X]
+SubcarrierSpacingKilohertz = 15
+DmrsResourceElementCountPerSlot = 24
+Mcs = 7
+
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 10
+PartialFrequencyOverlapEnabled = false
+
+[Awareness]
+RangesMeters = [300]
+
+[ResourceAllocation]
+Type = "SensingBased"
+
+[ResourceAllocation.SensingBased]
+KeepResourceProbability = 0.4
+
+[Outputs.PacketReceptionRatio]
+Enabled = true

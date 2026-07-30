@@ -6,7 +6,7 @@ summaries, position-error traces, optional artifacts, and isolated campaign
 directories.
 
 Each `v2xsim.runSimulation` invocation exclusively owns one run directory. The
-`output.Directory` value must name either a nonexistent directory or an
+`OutputDirectory` run option must name either a nonexistent directory or an
 existing empty directory. The simulator never appends to, resumes, clears, or
 overwrites a prior run directory.
 
@@ -25,6 +25,24 @@ campaign/
   seed-10/
   seed-11/
 ```
+
+## Live progress observations
+
+`v2xsim.runSimulation` accepts an optional run-owned
+`ProgressFcn=functionHandle`. The callback receives a scalar struct with:
+
+- `Stage`: `initializing`, `simulating`, or `finalizing`;
+- `SimulatedTimeSeconds` and `SimulationDurationSeconds`;
+- `FractionComplete`;
+- `ElapsedWallSeconds`;
+- `Message`.
+
+Simulated-time observations are throttled to approximately one-percent
+increments. They are execution diagnostics, not scientific inputs, and do not
+change the configuration or random streams. Callback failures stop the run
+with `v2xsim:runtime:ProgressCallbackFailed`; the output-directory lease is
+still released. Campaign runners can forward these observations through a
+process-safe queue to an append-only progress journal.
 
 ## Completion summary
 
@@ -50,8 +68,10 @@ effect type and effect options nested beneath them. Version-1 positioning
 configuration artifacts are not translated into this representation.
 
 `Run` records simulator provenance, the simulation random seed, durations,
-the configuration file, and the user-supplied run label. `Configuration`
-contains typed nested objects
+the configuration file, and the user-supplied run label. `ConfigurationFile`
+is the absolute TOML source when all file-authored leaves share one source; it
+is empty for wholly programmatic or multi-file-derived configurations.
+`Configuration` contains typed nested objects
 for scenario, infrastructure, positioning, packet generation, resource pool,
 radio channels, cellular sidelink, IEEE 802.11p, propagation, coexistence,
 resource allocation, and awareness ranges.
@@ -119,7 +139,7 @@ and `itsg5`.
 
 The position-error, packet-fate, and interference-evidence traces are bounded
 numbered chunks. `<chunk>` is a zero-padded six-digit sequence. Packet fates
-can instead use CSV when `output.PacketFateTrace.FileFormat` is `csv`; a run
+can instead use CSV when `Outputs.PacketFateTrace.FileFormat` is `csv`; a run
 never mixes the two packet-fate formats.
 
 ## Position-error trace
@@ -167,7 +187,7 @@ when the allocator makes a decision.
   distance, mean and maximum rank displacement, and top-k neighbor Jaccard.
 - `controller_rank_displacement.csv` contains every ego-neighbor true and
   apparent rank pair only when
-  `output.ControllerDiagnostics.RankDisplacementEnabled` is `true`. It is
+  `Outputs.ControllerDiagnostics.RankDisplacementEnabled` is `true`. It is
   disabled by default because its row count is O(N²) per allocation epoch.
 - `controller_range_topology.csv` contains true/apparent counts, missed and
   phantom counts, and set Jaccard at each configured awareness range.
@@ -260,7 +280,7 @@ alone is not classified as a hidden terminal. The PHY evidence is not yet
 slice-qualified, so this join explicitly accepts only the simulator's single
 `global` network slice.
 
-When `output.InterferenceClassification.Enabled` is true,
+When `Outputs.InterferenceClassification.Enabled` is true,
 `interference_attempts_<chunk>.csv` records terminal error attempts, their
 observed SINR, sampled decode threshold, the SINR after removing all
 attributed C-V2X interferers, contributor count, and whether the attribution

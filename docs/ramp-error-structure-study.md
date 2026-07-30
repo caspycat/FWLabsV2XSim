@@ -22,6 +22,16 @@ addpath("regression-tests");
         NormalizedMagnitudes=[0.25, 0.5, 1]);
 ```
 
+The campaign uses every worker exposed by the local `Processes` profile by
+default. Specify a finite `MaxWorkers` value only when an explicit resource cap
+is required; `ExecutionMode="serial"` disables pool creation.
+
+The runner loads
+`tests/+v2xsimtest/+fixtures/config/ExitRampHighwaySmoke.toml` as its declarative
+baseline and applies nested, typed configuration patches for each treatment.
+The run label and output directory remain runtime options rather than
+configuration data.
+
 The output root must be new or empty. Every work item receives its own run
 directory and completion summary. The runner writes
 `campaign_manifest.csv` before dispatch. It writes `seed_results.csv`
@@ -218,7 +228,7 @@ Kendall distance should not be used alone. The compact trace also records:
 
 These distinguish a harmless reorder among distant vehicles from a topology
 change at the controller's relevant neighborhood boundary.
-Set `output.ControllerDiagnostics.RankDisplacementEnabled=true` only when
+Set `Outputs.ControllerDiagnostics.RankDisplacementEnabled=true` only when
 the O(N²)-per-epoch signed and absolute ego-neighbor rank detail is required.
 Seed-level controller scalars pool all eligible egos and decision epochs.
 That is the total-network-impact estimand and includes spillovers onto

@@ -1,0 +1,57 @@
+# Zhuofei et al. 2023 Figures 4 and 5 WINNER+ B1 baseline.
+# The campaign supplies the complete ThreeSlope model when selecting ECC.
+SchemaVersion = 1
+
+[Simulation]
+DurationSeconds = 120
+
+[Scenario]
+Type = "BidirectionalHighway"
+
+[Scenario.BidirectionalHighway]
+VehicleCount = 10
+NLanes = 3
+LaneWidth = 4
+RoadLength = 2000
+CentralDividerWidth = 0
+MeanVehicleSpeed = 33.3333333333333
+VehicleSpeedStandardDeviation = 3.33333333333333
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 350
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+
+[Application.ChannelLoad]
+Enabled = true
+MeasurementWindowSeconds = 0.1
+UpdateStepsPerWindow = 100
+
+[Application.CongestionControl]
+Enabled = false
+
+[Radio]
+Type = "Ieee80211p"
+ReceiverNoiseFigureDb = 6
+
+[Radio.Ieee80211p]
+RelativeInterferenceLevelModelEnabled = true
+Mcs = 2
+
+[Radio.Ieee80211p.Repetition]
+Mode = "Static"
+BackoffMicroseconds = 32
+
+[Channel.PathLoss]
+Model = "WinnerPlusB1"
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 10
+
+[Outputs.ChannelBusyRatio]
+Enabled = true

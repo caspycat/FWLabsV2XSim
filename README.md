@@ -34,18 +34,24 @@ with contributions from the Future Communications Connectivity Lab at the
 Singapore University of Technology and Design, WiLab/CNIT, the University of
 Bologna, and CNR.
 
-Version 7 introduces dotted, domain-based simulator parameter names. See the
-[V7 parameter reference and V6 migration
-mapping](docs/simulator-parameters-v7.md) for namespace descriptions, every
-supported field, compatibility aliases, and fields removed from V6.
+Version 7 uses a strict, namespaced TOML 1.0 configuration schema. See the
+[V7 configuration reference](docs/toml-configuration-v7.md) for the
+namespace hierarchy, defaults, tagged variants, and validation rules. Legacy
+`.cfg` files and V6 parameter aliases are intentionally unsupported.
 
 Open `FWLabsV2XSim.prj` before using V7. The MATLAB Project owns source-path
 configuration, and simulations are launched through the namespaced,
 path-preserving entrypoint:
 
 ```matlab
-v2xsim.runSimulation(configurationFile, ...
-    "simulation.DurationSeconds", 10);
+template = v2xsim.config.load("experiment.toml");
+patch = v2xsim.config.patch(struct( ...
+    Simulation=struct(DurationSeconds=10)));
+configuration = template.resolve(Patch=patch);
+result = v2xsim.runSimulation( ...
+    configuration, ...
+    OutputDirectory="results/seed-1", ...
+    RunLabel="seed-1");
 ```
 
 The [progressive V7 examples](examples/v7/README.md) provide short runnable
@@ -57,7 +63,7 @@ V7 also exposes cellular-sidelink beacon-resource selection through named,
 slice-scoped allocator contracts. See the
 [BR resource-allocation architecture](docs/br-resource-allocation.md) for the
 centralized and autonomous interfaces, available algorithms, coexistence
-boundary, and migration from numeric algorithm IDs.
+boundary, and named V7 selectors.
 
 # Dependencies
 

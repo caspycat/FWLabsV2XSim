@@ -48,6 +48,7 @@ provide document reference numbers.
 - Treat `old_src` as a behavioral and scientific reference, not an
   architecture or API that v7 must preserve.
 - Put public documentation in `docs` and the relevant workflow README files.
+- Don't reinvent the wheel, use external library functions where possible.
 
 V7 is effectively a rewrite. Preserve feature parity and scientifically
 meaningful behavior, not v6 API compatibility. Do not preserve v6 function
@@ -99,6 +100,11 @@ Validation is tiered:
 4. Run shortened paper regressions when scientific workflows may be affected.
 5. Run full-duration publication campaigns only when explicitly requested or
    when a change may alter a published conclusion.
+
+Parallel tests and campaigns must default to all workers exposed by the
+selected local `Processes` profile. Do not impose an agent-selected worker
+cap. A finite `MaxWorkers` value is an explicit caller override for constrained
+or contract-specific runs, not a routine default.
 
 Report exactly which checks ran, their results, and any relevant checks that
 were omitted. Do not imply that a shortened campaign proves a full-duration

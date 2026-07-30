@@ -1,0 +1,83 @@
+# Zhuofei et al. 2023 cochannel baseline.
+SchemaVersion = 1
+
+[Simulation]
+DurationSeconds = 120
+
+[Scenario]
+Type = "BidirectionalHighway"
+
+[Scenario.BidirectionalHighway]
+VehicleCount = 24
+NLanes = 3
+LaneWidth = 4
+RoadLength = 8000
+CentralDividerWidth = 0
+MeanVehicleSpeed = 33.3333333333333
+VehicleSpeedStandardDeviation = 3.33333333333333
+RerollSpeedOnWrapAround = false
+
+[Application]
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+IntervalVariationSeconds = 0
+
+[Application.ChannelLoad]
+Enabled = true
+
+[Application.CongestionControl]
+Enabled = false
+
+[Radio]
+Type = "Coexistence"
+ReceiverNoiseFigureDb = 6
+FixedPowerDensityEnabled = false
+
+[Radio.Coexistence]
+SidelinkType = "NrV2X"
+InterferenceModel = "Cochannel"
+
+[Radio.NrV2X]
+Mcs = 8
+SubcarrierSpacingKilohertz = 30
+DmrsResourceElementCountPerSlot = 18
+SciSymbolCount = 3
+SciResourceBlockCount = 12
+
+[Radio.Ieee80211p]
+RelativeInterferenceLevelModelEnabled = true
+Mcs = 2
+
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 12
+PartialFrequencyOverlapEnabled = true
+
+[Channel.PathLoss]
+Model = "ThreeSlope"
+ReferenceLossAtOneMeterDb = 47.85
+Exponent1 = 2
+BreakpointDistance1Meters = 128
+Exponent2 = 2.8
+BreakpointDistance2Meters = 512
+Exponent3 = 3.3
+
+[ResourceAllocation]
+Type = "SensingBased"
+
+[ResourceAllocation.SensingBased]
+KeepResourceProbability = 0.5
+
+[Coexistence]
+Method = "Standard"
+
+[Coexistence.VehiclePattern]
+SidelinkVehicleCount = 12
+ItsG5VehicleCount = 12
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 50
+
+[Outputs.ChannelBusyRatio]
+Enabled = true

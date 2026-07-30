@@ -104,13 +104,13 @@ sweep directly.
 
 | Paper-era input | V7 input |
 |---|---|
-| `ETSI-Highway` | `BidirectionalHighwayScenario` |
-| `rho` | `scenarioOptions.VehicleCount = round(rho * roadLength / 1000)` |
-| `roadLength`, `roadWidth`, `NLanes` | `scenarioOptions.RoadLength`, `LaneWidth`, `NLanes` |
-| `vMean = 120`, `vStDev = 12` km/h | `scenarioOptions.MeanVehicleSpeed = 120/3.6`, `VehicleSpeedStandardDeviation = 12/3.6` m/s |
-| `averageTbeacon` | `application.ResourceReservationIntervalSeconds` and `application.PacketGeneration.IntervalSeconds` |
-| implicit CBR schedule | `channelLoad.Enabled`, `MeasurementWindowSeconds`, and `UpdateStepsPerWindow` |
-| seed `0` | matching deterministic positive `simulation.RandomSeed` and `scenarioOptions.RandomSeed` values |
+| `ETSI-Highway` | `Scenario.Type = "BidirectionalHighway"` |
+| `rho` | `Scenario.BidirectionalHighway.VehicleCount = round(rho * roadLength / 1000)` |
+| `roadLength`, `roadWidth`, `NLanes` | `Scenario.BidirectionalHighway.RoadLength`, `LaneWidth`, and `NLanes` |
+| `vMean = 120`, `vStDev = 12` km/h | `Scenario.BidirectionalHighway.MeanVehicleSpeed = 120/3.6` and `VehicleSpeedStandardDeviation = 12/3.6` m/s |
+| `averageTbeacon` | `Application.ResourceReservationIntervalSeconds` and `Application.PacketGeneration.IntervalSeconds` |
+| implicit CBR schedule | `Application.ChannelLoad.Enabled`, `MeasurementWindowSeconds`, and `UpdateStepsPerWindow` |
+| seed `0` | matching deterministic positive `Simulation.RandomSeed` and `Scenario.BidirectionalHighway.RandomSeed` values |
 
 `BidirectionalHighwayScenario` is intentional. `EtsiHighwayScenario` exposes
 the standardized ETSI traffic points, while this paper varies density at
@@ -152,7 +152,6 @@ results = ...
         RandomSeeds=1:20, ...
         SimulationTimeSeconds=120, ...
         ExecutionMode="parallel", ...
-        MaxWorkers=8, ...
         LoadDensitiesVehiclesPerKilometer=[1:10, 12:2:30, 40:20:100], ...
         StaticTransmissionCounts=1:4, ...
         EccDensitiesVehiclesPerKilometer=[1:10, 12:2:30, 40:20:100], ...
@@ -166,8 +165,9 @@ Each configuration/seed pair is an independent work item. With Parallel
 Computing Toolbox, `ExecutionMode="auto"` (the default) reuses a local process
 pool or creates and later closes a temporary one. Use `"serial"` to prohibit
 pool creation or `"parallel"` to require the toolbox and a usable process
-pool. `MaxWorkers` caps CPU use. Aggregation and CSV writing remain on the
-client in deterministic campaign order.
+pool. A temporary pool uses every worker exposed by the `Processes` profile;
+a finite `MaxWorkers` value is an explicit CPU cap. Aggregation and CSV writing
+remain on the client in deterministic campaign order.
 
 MATLAB `mapreduce` and Spark are not execution backends for these campaigns:
 they target distributed data analytics rather than independent MATLAB

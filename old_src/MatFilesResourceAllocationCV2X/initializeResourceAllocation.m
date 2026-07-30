@@ -4,13 +4,21 @@ function [simValues,stationManagement,simParams] = ...
             positionManagement,sinrManagement,simParams,phyParams,appParams)
 %INITIALIZERESOURCEALLOCATION Compose the global allocator and sensing.
 
-allocator = v2xsim.resource.createAllocator( ...
-    simParams,phyParams,appParams);
+if simParams.compiledPlan.ResourceAllocation.Type == "ReuseDistance"
+    allocator = v2xsim.resource.createAllocator( ...
+        simParams.compiledPlan,simParams.brResourceGrid, ...
+        ReuseDistanceMeters=phyParams.Rreuse);
+else
+    allocator = v2xsim.resource.createAllocator( ...
+        simParams.compiledPlan,simParams.brResourceGrid);
+end
 activeIds = stationManagement.activeIDsCV2X(:);
 ueIds = simValues.world.UeIds(activeIds);
 allocator = allocator.synchronizeUes(ueIds);
 
-sensingWindowSeconds = simParams.cbrSensingInterval;
+sensingWindowSeconds = ...
+    simParams.compiledPlan.Application.ChannelLoad. ...
+        MeasurementWindowSeconds;
 if isfield(simParams,"TsensingPeriod")
     sensingWindowSeconds = max( ...
         sensingWindowSeconds,simParams.TsensingPeriod);
@@ -43,6 +51,8 @@ simValues.resourceAllocator = allocator;
 simValues.sensingHistory = sensingHistory;
 simValues.resourceAllocationResult = result;
 metadata = allocator.metadata();
+metadata.ImplementationType = metadata.Type;
+metadata.Type = simParams.compiledPlan.ResourceAllocation.Type;
 contextMetadata = struct( ...
     "MinimumSciSinrDb",phyParams.minSCIsinrDb);
 if isfield(simParams,"T1autonomousModeTTIs")

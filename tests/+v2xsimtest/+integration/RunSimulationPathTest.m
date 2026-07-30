@@ -1,16 +1,13 @@
 classdef RunSimulationPathTest < matlab.unittest.TestCase
-    %RUNSIMULATIONPATHTEST The public entrypoint preserves MATLAB's path.
+    %RUNSIMULATIONPATHTEST Contracts for the public V7 entrypoint.
 
     methods (Test)
         function testNamespacedEntrypointIsTheOnlyActiveEntrypoint(testCase)
             projectRoot = string(fileparts(fileparts(fileparts( ...
                 fileparts(mfilename("fullpath"))))));
-            project = currentProject;
             expectedEntrypoint = fullfile( ...
                 projectRoot, "src", "+v2xsim", "runSimulation.m");
 
-            testCase.verifyNotEmpty(project);
-            testCase.verifyEqual(string(project.Name), "FWLabsV2XSim");
             testCase.verifyEqual( ...
                 string(which("v2xsim.runSimulation")), ...
                 expectedEntrypoint);
@@ -22,15 +19,23 @@ classdef RunSimulationPathTest < matlab.unittest.TestCase
                 projectRoot, "WiLabV2XSim.prj")));
         end
 
-        function testHelpDoesNotChangeMatlabPath(testCase)
+        function testLegacyConfigurationPathIsRejectedWithoutSideEffects( ...
+                testCase)
             originalPath = path;
             testCase.addTeardown(@() path(originalPath));
+            temporaryFolder = testCase.applyFixture( ...
+                matlab.unittest.fixtures.TemporaryFolderFixture);
+            outputDirectory = fullfile( ...
+                temporaryFolder.Folder,"must-not-exist");
 
-            output = evalc("v2xsim.runSimulation(""help"");");
+            testCase.verifyError( ...
+                @() v2xsim.runSimulation( ...
+                    "legacy.cfg", ...
+                    OutputDirectory=outputDirectory), ...
+                "v2xsim:runtime:ResolvedConfigurationRequired");
 
             testCase.verifyEqual(path, originalPath);
-            testCase.verifySubstring(output, "FWLabsV2XSim V7");
-            testCase.verifyFalse(contains(output, "WiLabV2X"));
+            testCase.verifyFalse(isfolder(outputDirectory));
         end
     end
 end

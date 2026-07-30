@@ -13,6 +13,13 @@ interference mode changes. Raw correct, error, and blocked packet counts are
 pooled across seeds and across the ten 50 m bins through 500 m before PRR is
 calculated.
 
+The archived `.cfg` campaign inherited enabled channel-load measurement even
+though it did not publish CBR files. The V7 TOML makes that measurement,
+its 0.1 s window, and its 100 desynchronization steps explicit while keeping
+congestion control and CBR output disabled. This preserves the established
+simulation behavior and seeded random-stream consumption; channel-load
+measurement and CBR artifact publication remain separate controls.
+
 The correctness contract requires the orthogonal-mode pooled PRR to exceed
 the shared-channel pooled PRR by more than 0.015 for both IEEE 802.11p and
 LTE-V2X. During calibration, seeds 10 and 11 individually produced
@@ -26,7 +33,8 @@ work item scheduled by `v2xsimregression.execution.runWorkItems`.
 `ExecutionMode="auto"` can use local process workers; thread workers are not
 used because the simulator mutates process-wide MATLAB state. The scheduler
 restores each execution process's current folder, MATLAB path, warning state,
-and exact global random-stream object and state.
+and exact global random-stream object and state. A temporary pool uses every
+worker exposed by the local `Processes` profile by default.
 
 This focused comparison deliberately keeps the cellular technology fixed at
 LTE-V2X so the interference-mode effect is not confounded with LTE-versus-NR
@@ -51,3 +59,4 @@ assertSuccess(results);
 For direct campaign use, `runModeComparison` accepts `ExecutionMode` and
 `MaxWorkers`. It writes `seed-summary.csv`, `mode-comparison.csv`, and the
 simulator outputs beneath a caller-provided path that must not already exist.
+A finite `MaxWorkers` value is an explicit resource cap.

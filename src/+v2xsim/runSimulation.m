@@ -1,11 +1,16 @@
-function runSimulation(varargin)
-%RUNSIMULATION Run one FWLabsV2XSim simulation.
-%   v2xsim.runSimulation(CONFIGURATIONFILE, NAME, VALUE, ...) runs a
-%   simulation using CONFIGURATIONFILE as the baseline and applies dotted
-%   V7 name-value overrides.
+function result = runSimulation(configuration, options)
+%RUNSIMULATION Run one simulation from a resolved V7 configuration.
+%   RESULT = v2xsim.runSimulation(CONFIGURATION,
+%   OutputDirectory=DIRECTORY) compiles one immutable
+%   v2xsim.config.ResolvedConfiguration and runs it in an exclusively
+%   reserved directory.
 %
-%   v2xsim.runSimulation("help") prints the supported parameters and their
-%   default values.
+%   RunLabel is optional execution metadata. Scientific inputs belong in
+%   the TOML configuration or a typed, nested ConfigurationPatch. This
+%   entrypoint intentionally accepts neither configuration filenames nor
+%   dotted name-value overrides. ProgressFcn is an optional run-owned
+%   observer that receives structured initialization, simulated-time, and
+%   finalization events without changing scientific state.
 %
 %   The FWLabsV2XSim MATLAB Project must be open before calling this
 %   function. Project metadata owns all source-path configuration; this
@@ -30,62 +35,45 @@ function runSimulation(varargin)
 % Project: FWLabsV2XSim V7
 % ==============
 
-% Call it as
-% v2xsim.runSimulation(fileCfg,paramName1,value1,...paramNameN,valueN)
-%
-% Parameters are optional.
-% If one or more parameters are given in input, the first corresponds to the
-% config file (a text file). Use 'default' or '0' to set the default config
-% file (i.e., FWLabsV2XSim.cfg). If a file that does not exist is set, the
-% simulation continues without considering the settings from the config
-% file.
-% In the config file, write couples with i) the parameter name within squared
-% brackets and ii) the value of the parameter.
-%
-% In the command line, couples of parameters follow the config file. Each couple
-% must include i) the parameter name and ii) the value.
-%
-% All parameters can be set in the config file and/or in the command
-% line; the priority is: 1) command line; 2) config file; 3) default value.
-%
-% Example call:
-% v2xsim.runSimulation( ...
-%     "default","simulation.RandomSeed",0,"lteV2x.Mcs",2);
-% In this example, the seed for random numbers is randomly selected and the
-% MCS 2 is set. Then the other parameters take the value from the default
-% config file if the file is present and the parameter is set; otherwise
-% the default value is used.
-%
-% Write
-% v2xsim.runSimulation("help")
-% for a full list of the parameters with their default values.
-
-%% Initialization
-
-% Version of the simulator
-fprintf('FWLabsV2XSim %s\n\n',constants.SIM_VERSION);
-
-% 'help' feature:
-% v2xsim.runSimulation("help") prints the full list of parameters
-% with default values
-if nargin == 1 && strcmp(varargin{1},'help')
-    fprintf('Help: list of the parameters with default values\n\n');
-    initiateParameters({'help'});
-    fprintf('End of the list.\n');
-    return
+arguments (Input)
+    configuration (1, 1) {mustBeResolvedConfiguration}
+    options.OutputDirectory (1, 1) string
+    options.RunLabel (1, 1) string = ""
+    options.ProgressFcn {mustBeProgressFunctionOrEmpty} = []
+end
+arguments (Output)
+    result (1, 1) v2xsim.runtime.SimulationResult
 end
 
-% Simulator parameters and initial settings
-[simParams,appParams,phyParams,outParams,outputHookOptions] = ...
-    initiateParameters(varargin);
+plan = v2xsim.runtime.compile(configuration);
+runOptions = v2xsim.runtime.RunOptions( ...
+    OutputDirectory=options.OutputDirectory, ...
+    RunLabel=options.RunLabel);
+outputSession = v2xsim.runtime.OutputSession(runOptions);
+outputCleanup = onCleanup(@() outputSession.close());
+engineRunOptions = v2xsim.runtime.RunOptions( ...
+    OutputDirectory=outputSession.RunDirectory, ...
+    RunLabel=runOptions.RunLabel);
+simulationDurationSeconds = plan.Simulation.DurationSeconds;
+if ~isempty(options.ProgressFcn)
+    v2xsim.runtime.internal.reportProgress( ...
+        options.ProgressFcn, "initializing", 0, ...
+        simulationDurationSeconds, 0, ...
+        "Initializing the established radio engine.");
+end
 
-% Reserve one exclusive directory for this run. The lease is intentionally
-% held until all artifacts, including the completion summary, are written.
-[runOutputDirectory,runDirectoryLease] = ...
-    v2xsim.output.acquireRunDirectory( ...
-        outParams.outputFolder); %#ok<ASGLU>
-outParams.outputFolder = runOutputDirectory;
-fprintf('Full path of the output directory = %s\n',runOutputDirectory);
+% The established radio engine still consumes MATLAB's global stream.
+% Confine that side effect to this orchestration boundary and restore the
+% caller's exact generator settings on every success and failure path.
+callerRandomState = rng;
+randomCleanup = onCleanup(@() rng(callerRandomState));
+
+[simParams,appParams,phyParams,outParams,outputHookOptions] = ...
+    v2xsim.runtime.internal.initializeEstablishedEngine( ...
+        plan, engineRunOptions);
+fprintf('FWLabsV2XSim %s\n\n',constants.SIM_VERSION);
+fprintf('Full path of the output directory = %s\n', ...
+    outputSession.RunDirectory);
 
 % Update PHY structure with the ranges
 [phyParams] = deriveRanges(phyParams,simParams);
@@ -119,6 +107,8 @@ outputValues = struct('computationTime',-1,...
 % Load scenario from Trace File or generate initial positions of vehicles
 [simParams,simValues,positionManagement,appParams] = ...
     initVehiclePositions(simParams,appParams,hookDispatcher);
+[simValues,positionManagement] = applyConfiguredRsuIds( ...
+    simValues,positionManagement,appParams);
 
 % Obstacle maps and PRR maps belonged to the removed trace scenarios.
 [positionManagement.XminMap,positionManagement.YmaxMap, ...
@@ -126,10 +116,19 @@ outputValues = struct('computationTime',-1,...
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Start Simulation
-[simValues,outputValues,appParams,simParams,phyParams,sinrManagement,outParams,stationManagement] = mainV2X(appParams,simParams,phyParams,outParams,simValues,outputValues,positionManagement);    
+[simValues,outputValues,appParams,simParams,phyParams,sinrManagement,outParams,stationManagement] = mainV2X( ...
+    appParams,simParams,phyParams,outParams,simValues,outputValues, ...
+    positionManagement,options.ProgressFcn);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% KPIs Computation (Output)
+if ~isempty(options.ProgressFcn)
+    v2xsim.runtime.internal.reportProgress( ...
+        options.ProgressFcn, "finalizing", ...
+        simulationDurationSeconds, simulationDurationSeconds, ...
+        outputValues.computationTime, ...
+        "Simulation events completed; finalizing output artifacts.");
+end
 fprintf('\nElaborating the outputs...\n');
 
 % First of all convert from cumulative to groups
@@ -245,6 +244,71 @@ summary = v2xsim.output.buildSimulationSummary( ...
     sinrManagement,outParams,outputValues);
 v2xsim.output.writeSimulationSummary( ...
     outParams.outputFolder,summary);
-clear runDirectoryLease
 
+metrics = v2xsim.runtime.MetricsAccumulator();
+metrics.setMetric( ...
+    "ComputationDurationSeconds", outputValues.computationTime);
+metrics.setMetric("AverageUeCount", outputValues.AvgNUEsTOT);
+metrics.recordEvent( ...
+    "SimulationCompleted", simParams.simulationTime, ...
+    struct("RunLabel", runOptions.RunLabel));
+metricSnapshot = metrics.finalize();
+artifacts = collectArtifactPaths(outputSession.RunDirectory);
+
+outputSession.close();
+result = v2xsim.runtime.SimulationResult( ...
+    configuration, plan, metricSnapshot, artifacts, ...
+    outputSession.RunDirectory);
+clear outputCleanup randomCleanup
+
+end
+
+function [simValues, positionManagement] = applyConfiguredRsuIds( ...
+        simValues, positionManagement, appParams)
+if ~isfield(appParams, "RSU_ids") || isempty(appParams.RSU_ids)
+    return
+end
+
+world = simValues.world;
+rsuPositions = world.RsuPositions;
+rsuPositions.Properties.RowNames = cellstr(appParams.RSU_ids);
+world = v2xsim.World( ...
+    world.TrafficScenario, rsuPositions, world.ObstacleGeometry);
+simValues.world = world;
+positionManagement = ...
+    v2xsim.legacy.projectWorldToPositionManagement( ...
+        world, positionManagement);
+end
+
+function artifacts = collectArtifactPaths(runDirectory)
+entries = dir(fullfile(runDirectory, "**", "*"));
+entries = entries(~[entries.isdir]);
+if isempty(entries)
+    artifacts = strings(0, 1);
+    return
+end
+artifacts = string(fullfile( ...
+    {entries.folder}, {entries.name})).';
+artifacts = sort(artifacts);
+end
+
+function mustBeResolvedConfiguration(value)
+if ~isa(value, "v2xsim.config.ResolvedConfiguration")
+    error( ...
+        "v2xsim:runtime:ResolvedConfigurationRequired", ...
+        "runSimulation requires a resolved V7 configuration object. " + ...
+        "Configuration filenames, including legacy .cfg files, are not " + ...
+        "accepted.");
+end
+end
+
+function mustBeProgressFunctionOrEmpty(value)
+if isequal(value, [])
+    return
+end
+if ~(isa(value, "function_handle") && isscalar(value))
+    error( ...
+        "v2xsim:runtime:InvalidProgressFunction", ...
+        "ProgressFcn must be empty or a scalar function handle.");
+end
 end

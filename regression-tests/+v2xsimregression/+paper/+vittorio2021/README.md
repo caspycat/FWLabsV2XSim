@@ -38,21 +38,23 @@ assertSuccess(results);
 
 `runPublishedCampaigns` uses local process workers by default when Parallel
 Computing Toolbox is available. It reuses a caller-owned process pool or opens
-and closes a temporary one. Limit CPU use or select the backend explicitly:
+and closes a temporary pool containing every worker exposed by the
+`Processes` profile:
 
 ```matlab
 campaign = ...
     v2xsimregression.paper.vittorio2021.runPublishedCampaigns( ...
         string(pwd), string(tempname), ...
         Figures=[7, 9, 11], ...
-        ExecutionMode="parallel", MaxWorkers=4);
+        ExecutionMode="parallel");
 ```
 
 `ExecutionMode="serial"` never opens a pool. `"auto"` falls back to serial
 with a warning when parallel capability is unavailable, while an explicit
 `"parallel"` request fails. Completion order never changes result-table order.
 Thread pools are intentionally unsupported because the simulator changes
-process-wide MATLAB state.
+process-wide MATLAB state. A finite `MaxWorkers` value is an explicit resource
+cap rather than the routine default.
 
 The suite targets the current repository layout. To exercise another checkout
 of the current simulator, set its repository root before creating the suite:
@@ -73,6 +75,9 @@ The adapted campaigns express the paper's legacy scenario as an explicit
 4 m lane width, and speeds of 70 +/- 7 km/h. Radio, MAC, seed, and
 figure-specific settings remain those in the adapted
 `old_src/codeForPaper/Vittorio2021Performance` scripts.
+Figure 7 therefore explicitly retains the published campaign runner's
+-126 dBm sensing threshold rather than inheriting the schema's -110 dBm
+default.
 
 The modern resource-selection API retains the paper's two independent
 controls. `ratioSelectedAutonomousMode=0.2` sets the 20% minimum that must
@@ -88,7 +93,7 @@ single-ratio behavior unless they explicitly adjust the second knob.
 
 The result table exposes these choices separately as
 `ThresholdFloorFraction`, `L2SelectionFraction`, and
-`resourceAllocation.Autonomous.L2RankingEnabled`.
+`ResourceAllocation.SensingBased.L2RankingEnabled`.
 
 The files under `old_src/codeForPaper/Vittorio2021Performance` are retained as
 historical provenance. Their plotting readers use the old numbered output

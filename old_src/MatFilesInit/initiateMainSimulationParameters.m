@@ -51,6 +51,10 @@ switch upper(simParams.Technology)
         simParams.technology = constants.TECH_COEX_NO_INTERF; % LTE+11p, not interfering to each other
         simParams.mode5G = constants.MODE_LTE; % LTE
         simParams.stringCV2X = 'LTE';
+    case 'COEX-NO-INTERF-5G'
+        simParams.technology = constants.TECH_COEX_NO_INTERF;
+        simParams.mode5G = constants.MODE_5G;
+        simParams.stringCV2X = '5G';
     case 'COEX-STD-INTERF'
         simParams.technology = constants.TECH_COEX_STD_INTERF; % LTE+11p, interfering with standard protocols
         simParams.mode5G = constants.MODE_LTE; % LTE
@@ -64,7 +68,10 @@ switch upper(simParams.Technology)
         simParams.mode5G = constants.MODE_5G; % 5G
         simParams.stringCV2X = '5G';
     otherwise
-        error('"simParams.Technology" must be ["LTE-V2X", "80211p", "COEX-NO-INTERF", "COEX-STD-INTERF", ["NR-V2X","5G-V2X"], "COEX-STD-INTERF-5G]');
+        error(['"simParams.Technology" must be ["LTE-V2X", ', ...
+            '"80211p", "COEX-NO-INTERF", "COEX-NO-INTERF-5G", ', ...
+            '"COEX-STD-INTERF", ["NR-V2X","5G-V2X"], ', ...
+            '"COEX-STD-INTERF-5G"]']);
 end
 
 % In coexistence case, set the proportion of 802.11p and C-V2X

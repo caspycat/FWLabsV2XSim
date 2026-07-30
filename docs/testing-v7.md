@@ -20,7 +20,10 @@ addpath("tests")
 The runner discovers every test below `tests`, restores the caller's MATLAB
 path, working directory, global random stream, and warning configuration,
 writes the HTML coverage report to a unique temporary directory, and throws
-if any test is unsuccessful. To keep a report at a chosen location:
+if any test is unsuccessful. By default it runs the ordinary suite on all
+workers exposed by the local `Processes` profile. It preserves a caller-owned
+process pool; `ExecutionMode="serial"` is an explicit debugging override. To
+keep a report at a chosen location:
 
 ```matlab
 runCorrectnessSuite(CoverageDirectory="artifacts/coverage")
@@ -35,11 +38,57 @@ an explicit warning and falls back to statement coverage. Asking for a
 non-statement metric explicitly still fails if it is unavailable. Coverage is
 evidence of exercised code, not a substitute for behavioral assertions.
 
-Publication regressions are excluded by default. They can be included
-explicitly with `IncludeRegressionTests=true`, but that includes every
-discovered regression, including long-running campaigns. Shortened publication
-campaigns should continue to be selected and reported separately; they do not
-prove a full-duration publication conclusion.
+Regression tests are excluded from the ordinary-only default. Setting
+`IncludeRegressionTests=true` adds routine behavioral regressions and
+shortened conclusion-level publication campaigns. Registered full-duration
+methods tagged `PublicationCampaign` remain excluded unless
+`IncludePublicationCampaigns=true` is also supplied. A shortened result does
+not prove a full-duration publication conclusion. When included, regression
+test methods run serially on the client because their campaign runners own the
+parallel work-item boundary and reuse the profile-sized process pool. This
+avoids unsupported nested pools while preserving parallel campaign execution.
+
+Run the complete automated ordinary-plus-routine-regression gate from a fresh
+MATLAB session with:
+
+```matlab
+project = openProject("FWLabsV2XSim.prj");
+cluster = parcluster("Processes");
+fprintf("Processes profile exposes %d workers.\n", cluster.NumWorkers);
+addpath("tests")
+[results, reportDirectory] = runCorrectnessSuite( ...
+    IncludeRegressionTests=true, ...
+    ExecutionMode="parallel");
+```
+
+When no pool exists, the runner requests exactly `cluster.NumWorkers`. A
+caller-owned process pool is preserved, so close an intentionally smaller pool
+before starting the gate if the full configured capacity is required.
+
+This command includes the shortened Bazzi and Zhuofei conclusion campaigns,
+the fixed 10-second Vittorio conclusion campaigns, density and coexistence
+regressions, and campaign-runner contracts. It excludes Bazzi's 4 km,
+120-second publication profile.
+
+Registered full-duration publication tests are an explicit opt-in:
+
+```matlab
+[results, reportDirectory] = runCorrectnessSuite( ...
+    IncludeRegressionTests=true, ...
+    IncludePublicationCampaigns=true, ...
+    ExecutionMode="parallel");
+```
+
+`IncludePublicationCampaigns=true` requires
+`IncludeRegressionTests=true`. Full-duration or exhaustive registered test
+methods must carry the exact `PublicationCampaign` tag. The
+`ShortCampaign` tag is descriptive; default exclusion is controlled by
+`PublicationCampaign`.
+
+Even the publication opt-in does not expand the intentionally separate,
+exhaustive Zhuofei paper matrices containing thousands of 120-second
+simulations. Those matrices are direct runner workflows documented in their
+paper READMEs and are not registered test methods.
 
 ## Integration contracts
 
@@ -84,15 +133,40 @@ explicitly tagged regressions.
 The [Bazzi et al. 2020 wireless-blind-spot regression](../regression-tests/+v2xsimregression/+paper/+bazzi2020blindspots/README.md)
 combines a fast analytical two-vehicle oracle with a routine shortened
 highway campaign. It pools raw PRR and wireless-blind-spot counts across
-paired seeds and checks the paper's reliability-versus-blind-spot tradeoff.
-Its 4 km, 120-second publication profile is a separate explicit run and is
-not implied by the shortened result.
+paired seeds and checks bounded real-simulator count, density, and congested
+cap-ordering contracts. Its 4 km, 120-second publication profile is the
+separate conclusion-level run; it is not implied by the shortened result.
 
 ## Parallel execution
 
 Independent density points, seeds, and campaign configurations may be
 distributed across local **process** workers. Thread workers are not supported
-while the legacy simulator mutates process-wide state. Each work item must have
-an exclusive output directory and component-owned seed, and runners must
-restore the MATLAB path, current folder, warning state, explicitly declared
-environment variables, and global random stream even when a work item fails.
+while the legacy simulator mutates process-wide state. When a runner creates a
+pool, its size is `parcluster("Processes").NumWorkers`; the number of work
+items and the profile's preferred interactive pool size do not silently shrink
+that pool. A caller-owned process pool is an explicit caller choice and is
+preserved. `MaxWorkers` remains available only as an explicit finite cap.
+
+Each work item must have an exclusive output directory and component-owned
+seed, and runners must restore the MATLAB path, current folder, warning state,
+explicitly declared environment variables, and global random stream even when
+a work item fails.
+
+Long campaigns should pass `ProgressLogFile` to
+`v2xsimregression.execution.runWorkItems`. The scheduler writes an append-only
+JSON Lines journal from the client process, with queued, started, heartbeat,
+completed, and failed events. Each record carries a client receive sequence,
+UTC timestamp, work-item label/index, and a unique attempt identifier so a
+worker-abort retry is distinguishable from an invalid state transition.
+Workers with a fixed two-input signature receive a process-safe
+`reportProgress` callback; existing one-input, optional-input, and variadic
+workers retain their historical one-input invocation.
+
+Campaigns should persist their manifest before dispatch and print the absolute
+manifest and journal paths. Append-only journals provide best-effort crash
+diagnostics rather than a durable transaction log. Readers should ignore a
+torn final JSON line, and an abrupt operating-system failure may also lose
+several recent records. Complete records that survive remain independently
+parseable. Heartbeats provide diagnosis and partial progress evidence, but the
+current `parfor` backend does not enforce a per-item timeout or cancellation
+policy.

@@ -1,0 +1,62 @@
+# Small deterministic density-sweep configuration.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 16
+DurationSeconds = 0.5
+
+[Scenario]
+Type = "BidirectionalHighway"
+UpdateIntervalSeconds = 0.1
+
+[Scenario.BidirectionalHighway]
+RandomSeed = 106
+VehicleCount = 8
+NLanes = 2
+LaneWidth = 4
+RoadLength = 300
+CentralDividerWidth = 0
+MeanVehicleSpeed = 18
+VehicleSpeedStandardDeviation = 2
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 190
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Application.CongestionControl]
+Enabled = false
+
+[Radio]
+Type = "LteV2X"
+BandwidthMHz = 10
+TransmitPowerDbm = 23
+FixedPowerDensityEnabled = false
+ReceiverNoiseFigureDb = 6
+
+[Radio.LteV2X]
+Mcs = 7
+AdjacentPscchAndPsschEnabled = true
+
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 10
+PartialFrequencyOverlapEnabled = false
+
+[Awareness]
+RangesMeters = [150]
+
+[ResourceAllocation]
+Type = "SensingBased"
+RandomSeed = 206
+
+[ResourceAllocation.SensingBased]
+KeepResourceProbability = 0.4
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 25

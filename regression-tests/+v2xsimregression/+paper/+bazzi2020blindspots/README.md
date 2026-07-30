@@ -38,14 +38,26 @@ this does not add a reported CBR metric or load-adaptive traffic behavior.
 
 | Profile | Highway conditions (vehicles/km, km/h) | Schemes | Seeds | Duration |
 |---|---|---|---|---|
-| `shortened` | (100, 140), (400, 50) on 1 km | legacy \(p_k=0\), legacy \(p_k=0.8\), capped \(m=2,5\) | `10:14` | 30 s |
+| `shortened` | (100, 140), (400, 50) on 0.3 km | legacy \(p_k=0\), legacy \(p_k=0.8\), capped \(m=2,5\) | `10:12` | 12 s |
 | `publication` | (100, 140), (200, 100), (400, 50) on 4 km | legacy controls and capped \(m=2:5\) | `10:19` | 120 s |
 
-The shortened profile requires paired 95% percentile-bootstrap intervals to
-show the legacy PRR/WBS tradeoff and lower WBS-tail exposure under each cap.
-The five-interval cap must remain within 0.03 normalized PRR AUC of legacy
-retention. This is a routine scientific regression proxy, not proof that the
-full paper surfaces still hold.
+The shortened profile is bounded real-simulator evidence, not an inferential
+reproduction. It checks output/count integrity, the expected PRR reduction at
+the high-density extreme, and the congested ordering in which a two-interval
+cap exposes less WBS tail than a five-interval cap and the five-interval cap
+remains below legacy retention without materially changing PRR. Its 300 m road
+preserves both density extremes with 30 and 120 vehicles. It is explicitly a
+cost-bounding adaptation rather than publication geometry: positions wrap at
+the road ends, while radio distance uses ordinary coordinates rather than a
+periodic minimum-image distance, so the short road makes wrap and boundary
+effects more prominent. The 10-second WBS horizon supplies every output grid
+point required by the asserted 2-10 second metric, but the 12-second
+observation window leaves evidence near the 10-second endpoint strongly
+startup- and observation-window-limited. That evidence is sufficient for the
+bounded ordering gate, not a complete tail characterization. Paired
+bootstrap columns remain useful diagnostics, but the three-seed routine
+profile does not treat their percentiles as publication-strength confidence
+evidence.
 
 The publication profile additionally requires every capped scheme to retain
 at least 75% of the legacy-\(0.8\) PRR=0.9 range and shorten the \(10^{-4}\)
@@ -65,7 +77,7 @@ Raw counts are pooled across seeds before aggregate curves are derived:
 - `WbsTailProbabilityAuc2To10Seconds` is the unnormalized integral of WBS
   tail probability from 2-10 s at 100 m.
 - `WbsThresholdCrossingSeconds` is the first linearly interpolated
-  \(10^{-4}\) crossing over the full generated 15 or 20 s WBS curve.
+  \(10^{-4}\) crossing over the full generated 10 or 20 s WBS curve.
   `WbsThresholdCrossingStatus` is `crossed`, `left_censored`, or
   `right_censored`; censored values are observation-window bounds, not
   ordinary crossings.
@@ -97,11 +109,23 @@ assertSuccess(results);
 
 Every run writes:
 
+- `campaign-manifest.csv` before any simulation is dispatched, so planned
+  work remains recoverable after interruption;
+- `campaign-progress.jsonl`, an append-only journal of queued, started,
+  simulated-time heartbeat, completed, and failed events;
 - `campaign-seed-summary.csv`, one diagnostic row per work item;
 - `campaign-summary.csv`, one pooled row per scenario and scheme;
 - `campaign-comparisons.csv`, candidate-minus-reference paired means and
   95% percentile intervals;
 - raw simulator artifacts below each scenario/scheme/seed directory.
+
+The client process appends one JSON record at a time. Each parallel attempt
+has its own identifier because MATLAB may retry a `parfor` interval after a
+worker abort. The journal is best-effort diagnostic evidence, not a durable
+transaction log: readers should ignore a torn final JSON line, and an abrupt
+operating-system failure may also lose several recent records. Complete
+records that survive remain independently parseable. The runner prints the
+absolute manifest and journal paths before dispatch.
 
 ## Run
 
@@ -161,12 +185,19 @@ addpath("regression-tests");
 ```
 
 The publication profile contains 180 long simulations with up to 1600
-vehicles. Its scheduler defaults to four local process workers; an explicit
-finite `MaxWorkers` value overrides that conservative default. Parallel
-Computing Toolbox remains optional; `ExecutionMode="auto"` falls back to
-serial execution when it is unavailable. The fast Bazzi reducer suite drives
-the real campaign runner through a count-preserving mock simulator to verify
-serial/parallel result ordering, isolated output paths, CSV persistence, and
-caller-state restoration after success and failure. The shared
+vehicles. Its scheduler defaults to every worker exposed by the local
+`Processes` profile; an explicit finite `MaxWorkers` value applies a
+caller-owned resource cap. Parallel Computing Toolbox remains optional;
+`ExecutionMode="auto"` falls back to serial execution when it is unavailable.
+The fast Bazzi reducer suite drives the real campaign runner through a
+count-preserving mock simulator to verify serial/parallel result ordering,
+isolated output paths, CSV persistence, and caller-state restoration after
+success and failure. The shared
 `v2xsimregression.execution.runWorkItems` suite additionally verifies
 caller-owned pool retention and aggregated failure reporting.
+
+The wireless-blind-spot recorder accumulates all delay thresholds from one
+histogram per snapshot rather than rescanning the dense link matrix once per
+threshold. This preserves the strict/equality boundary semantics of the paper
+metric while removing the shortened campaign's dominant
+threshold-count-by-link cost.

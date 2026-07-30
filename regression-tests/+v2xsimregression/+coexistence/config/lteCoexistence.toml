@@ -1,0 +1,81 @@
+# Deterministic LTE-V2X / IEEE 802.11p coexistence comparison.
+SchemaVersion = 1
+
+[Simulation]
+DurationSeconds = 3
+
+[Scenario]
+Type = "BidirectionalHighway"
+
+[Scenario.BidirectionalHighway]
+VehicleCount = 48
+NLanes = 3
+LaneWidth = 4
+RoadLength = 1000
+CentralDividerWidth = 0
+MeanVehicleSpeed = 33.3333333333333
+VehicleSpeedStandardDeviation = 3.33333333333333
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 190
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Application.ChannelLoad]
+Enabled = true
+MeasurementWindowSeconds = 0.1
+UpdateStepsPerWindow = 100
+
+[Application.CongestionControl]
+Enabled = false
+
+[Radio]
+Type = "Coexistence"
+ReceiverNoiseFigureDb = 6
+FixedPowerDensityEnabled = false
+
+[Radio.Coexistence]
+SidelinkType = "LteV2X"
+InterferenceModel = "Independent"
+
+[Radio.LteV2X]
+Mcs = 7
+AdjacentPscchAndPsschEnabled = true
+
+[Radio.Ieee80211p]
+RelativeInterferenceLevelModelEnabled = true
+Mcs = 2
+
+[Radio.Sidelink.ResourcePool]
+PartialFrequencyOverlapEnabled = true
+
+[Channel.PathLoss]
+Model = "ThreeSlope"
+ReferenceLossAtOneMeterDb = 47.85
+Exponent1 = 2
+BreakpointDistance1Meters = 128
+Exponent2 = 2.8
+BreakpointDistance2Meters = 512
+Exponent3 = 3.3
+
+[Awareness]
+RangesMeters = [500]
+
+[ResourceAllocation]
+Type = "SensingBased"
+
+[ResourceAllocation.SensingBased]
+KeepResourceProbability = 0.5
+
+[Coexistence.VehiclePattern]
+SidelinkVehicleCount = 24
+ItsG5VehicleCount = 24
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 50

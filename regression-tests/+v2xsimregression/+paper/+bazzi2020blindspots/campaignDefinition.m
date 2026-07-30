@@ -1,7 +1,7 @@
 function definition = campaignDefinition(profile)
 %CAMPAIGNDEFINITION Return the fixed Bazzi et al. campaign design.
-%   The shortened profile is a routine conclusion-level regression. The
-%   publication profile expands the road, scenario set, duration, seeds,
+%   The shortened profile supplies bounded routine real-simulator evidence.
+%   The publication profile expands the road, scenario set, duration, seeds,
 %   and capped-retention sweep to cover the conditions behind Figures 3-4.
 
 arguments (Input)
@@ -13,14 +13,22 @@ if profile == "shortened"
     scenarioNames = ["light", "congested"];
     densitiesVehiclesPerKilometer = [100, 400];
     speedsKilometersPerHour = [140, 50];
-    roadLengthMeters = 1000;
-    simulationTimeSeconds = 30;
-    wirelessBlindSpotMaximumDelaySeconds = 15;
+    % Keep both paper density extremes while bounding routine-test cost.
+    % Dense pairwise radio evidence scales quadratically in vehicle count,
+    % so the short profile uses a 300 m periodic highway (30/120 vehicles)
+    % and a 12 s observation window. The output grid reaches the asserted
+    % 10 s endpoint, but evidence near it is startup- and
+    % observation-window-limited. Positions wrap while radio distance uses
+    % ordinary coordinates, so this short-road adaptation also magnifies
+    % wrap/boundary geometry effects.
+    roadLengthMeters = 300;
+    simulationTimeSeconds = 12;
+    wirelessBlindSpotMaximumDelaySeconds = 10;
     schemes = [ ...
         "legacy-p0", "legacy-p08", "capped-m2", "capped-m5"];
     keepProbabilities = [0, 0.8, 0.8, 0.8];
     maximumConsecutiveReservationIntervals = [Inf, Inf, 2, 5];
-    defaultRandomSeeds = 10:14;
+    defaultRandomSeeds = 10:12;
 else
     scenarioNames = ["light", "medium", "congested"];
     densitiesVehiclesPerKilometer = [100, 200, 400];

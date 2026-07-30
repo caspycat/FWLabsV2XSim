@@ -6,8 +6,8 @@ MATLAB scripts in numerical order:
 
 | Lesson | Script | Main idea |
 |---|---|---|
-| 1 | `v7_01_run_first_simulation.m` | Run NR-V2X from a dotted-name configuration and read `simulation_summary.json`. |
-| 2 | `v7_02_reproduce_traffic.m` | Keep traffic fixed with `scenarioOptions.RandomSeed` while changing radio and allocator seeds. |
+| 1 | `v7_01_run_first_simulation.m` | Load and resolve a namespaced TOML configuration, run NR-V2X, and read `simulation_summary.json`. |
+| 2 | `v7_02_reproduce_traffic.m` | Keep traffic fixed with a scenario-owned seed while changing radio and allocator seeds through nested patches. |
 | 3 | `v7_03_compare_named_allocators.m` | Select each cellular-sidelink resource allocator by name and inspect its metadata. |
 | 4 | `v7_04_apply_position_errors.m` | Compose Gaussian, false-route, and delay errors on an exit-ramp scenario. |
 | 5 | `v7_05_inspect_output_artifacts.m` | Enable hook-backed JSON and CSV outputs and read them in MATLAB. |
@@ -27,13 +27,19 @@ invocation.
 
 ## Configuration and output rules
 
-Every file under `config/` uses canonical dotted V7 parameter names. A script
-may add name-value arguments to override its configuration baseline; those
-arguments have higher precedence than the file.
+Every file under `config/` is TOML 1.0 and uses the exact-case V7 namespace.
+MATLAB code loads a reusable template, supplies an optional sparse nested
+struct through `v2xsim.config.patch`, and resolves one immutable
+`v2xsim.config.ResolvedConfiguration`. Dotted name-value overrides and legacy
+`.cfg` files are not part of the V7 API.
 
-Every simulator invocation receives a new temporary output directory.
-`v2xsim.runSimulation` never clears, resumes, or appends to an existing nonempty run
-directory. Multi-run examples therefore create one child directory per case.
+Run identity is deliberately outside the scientific configuration:
+`OutputDirectory` and `RunLabel` are typed options of
+`v2xsim.runSimulation`. Every simulator invocation receives a new exclusive
+output directory. The simulator never clears, resumes, or appends to an
+existing nonempty run directory. Multi-run examples therefore create one
+child directory per case.
+
 The files are retained after the script finishes so they can be inspected.
 
 The examples use deliberately small simulations. They demonstrate APIs and
@@ -47,7 +53,7 @@ toolbox requirement beyond the simulator's documented dependencies.
 
 ## Further reading
 
-- [V7 simulator parameters](../../docs/simulator-parameters-v7.md)
+- [V7 TOML configuration](../../docs/toml-configuration-v7.md)
 - [BR resource allocation](../../docs/br-resource-allocation.md)
 - [Simulation outputs](../../docs/simulation-output-v7.md)
 - [Correctness and integration testing](../../docs/testing-v7.md)
