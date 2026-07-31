@@ -1,7 +1,7 @@
 # Simulation output
 
 Lessons 1, 4, 5, and 6 in the
-[progressive V7 examples](../examples/v7/README.md) demonstrate completion
+[progressive V7 examples](../examples/README.md) demonstrate completion
 summaries, position-error traces, optional artifacts, and isolated campaign
 directories.
 

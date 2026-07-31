@@ -12,9 +12,10 @@ function result = runSimulation(configuration, options)
 %   observer that receives structured initialization, simulated-time, and
 %   finalization events without changing scientific state.
 %
-%   The FWLabsV2XSim MATLAB Project must be open before calling this
-%   function. Project metadata owns all source-path configuration; this
-%   entrypoint never mutates the MATLAB path.
+%   The FWLabsV2XSim MATLAB Project must be active before calling this
+%   function, either because it is open directly or because a research
+%   project references it. Project metadata owns all source-path
+%   configuration; this entrypoint never mutates the MATLAB path.
 
 % ==============
 % Copyright (C) Alessandro Bazzi, University of Bologna, and Alberto Zanella, CNR

@@ -5,7 +5,7 @@ classdef ConfigurationSystemTest < matlab.unittest.TestCase
         function loadsAndResolvesAllMigratedFixtures(testCase)
             repositoryRoot = testCase.repositoryRoot();
             searchRoots = [ ...
-                fullfile(repositoryRoot, "examples", "v7"), ...
+                fullfile(repositoryRoot, "examples"), ...
                 fullfile(repositoryRoot, "regression-tests"), ...
                 fullfile(repositoryRoot, "tests", ...
                     "+v2xsimtest", "+fixtures")];
@@ -27,7 +27,9 @@ classdef ConfigurationSystemTest < matlab.unittest.TestCase
                 end
             end
 
-            testCase.verifyNumElements(files, 26);
+            % Lesson 17 owns a copy of the output-artifact input so every
+            % tutorial directory remains self-contained.
+            testCase.verifyNumElements(files, 27);
             for file = reshape(files, 1, [])
                 configuration = v2xsim.config.load(file).resolve();
                 testCase.verifyEqual(configuration.Data.SchemaVersion, 1);

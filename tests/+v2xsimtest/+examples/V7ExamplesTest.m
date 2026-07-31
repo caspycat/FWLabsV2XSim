@@ -10,7 +10,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
             projectRoot = fileparts(fileparts(fileparts(fileparts( ...
                 mfilename("fullpath")))));
             testCase.ExampleDirectory = fullfile( ...
-                projectRoot,"examples","v7");
+                projectRoot,"examples");
         end
     end
 
@@ -23,6 +23,10 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
             originalWarningState = warning;
             originalFigureVisibility = get( ...
                 groot,"DefaultFigureVisible");
+
+            temporaryFolder = testCase.applyFixture( ...
+                matlab.unittest.fixtures.TemporaryFolderFixture);
+            cd(temporaryFolder.Folder);
             testCase.addTeardown(@() restoreProcessState( ...
                 originalPath,originalDirectory, ...
                 originalStream,originalStreamState, ...
@@ -35,11 +39,55 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
     end
 
     methods (Test)
+        function tutorialsAreDirectAndSelfContained(testCase)
+            entries = dir(fullfile( ...
+                testCase.ExampleDirectory,"*","*.m"));
+            testCase.verifyNumElements(entries,17);
+            tutorialFiles = string(fullfile( ...
+                {entries.folder},{entries.name})).';
+
+            for tutorialFile = tutorialFiles.'
+                tutorialText = string(fileread(tutorialFile));
+                testCase.verifyTrue(contains( ...
+                    tutorialText,"v2xsim.runSimulation("), ...
+                    "Tutorial does not call the public entrypoint: " + ...
+                        tutorialFile);
+                testCase.verifyFalse(contains( ...
+                    tutorialText,"runV7ExampleSimulation"), ...
+                    "Tutorial still uses the removed execution helper: " + ...
+                        tutorialFile);
+            end
+
+            nestedMatlabFiles = dir(fullfile( ...
+                testCase.ExampleDirectory,"**","*.m"));
+            nestedMatlabFiles = string(fullfile( ...
+                {nestedMatlabFiles.folder},{nestedMatlabFiles.name})).';
+            testCase.verifyEqual(sort(nestedMatlabFiles),sort(tutorialFiles), ...
+                "Each tutorial folder must contain only its tutorial .m file.");
+
+            [requiredFiles,~] = ...
+                matlab.codetools.requiredFilesAndProducts( ...
+                    cellstr(tutorialFiles));
+            requiredFiles = string(requiredFiles(:));
+            examplePrefix = testCase.ExampleDirectory + filesep;
+            exampleDependencies = requiredFiles( ...
+                startsWith(requiredFiles,examplePrefix) & ...
+                endsWith(requiredFiles,".m"));
+            testCase.verifyEqual( ...
+                sort(exampleDependencies),sort(tutorialFiles));
+            testCase.verifyEmpty(which("run_first_simulation"));
+        end
+
         function testFirstSimulationPublishesSummary(testCase)
             [results,outputDirectory] = testCase.executeExample( ...
-                "v7_01_run_first_simulation.m");
+                fullfile("01_run_first_simulation","run_first_simulation.m"));
 
             testCase.verifyEqual(results.Summary.SchemaVersion,2);
+            testCase.verifyClass( ...
+                results.SimulationResult, ...
+                "v2xsim.runtime.SimulationResult");
+            testCase.verifyEqual( ...
+                results.SimulationResult.RunDirectory,outputDirectory);
             testCase.verifyEqual( ...
                 string(results.Summary.Configuration.RadioAccessMode), ...
                 "NR-V2X");
@@ -52,7 +100,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testTrafficRandomnessIsIndependent(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_02_reproduce_traffic.m");
+                fullfile("02_reproduce_traffic","reproduce_traffic.m"));
 
             testCase.verifyTrue(results.TrajectoriesMatch);
             testCase.verifyEqual( ...
@@ -65,7 +113,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testEveryNamedAllocatorRuns(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_03_compare_named_allocators.m");
+                fullfile("03_compare_named_allocators","compare_named_allocators.m"));
 
             expectedTypes = [ ...
                 "ReuseDistance"; ...
@@ -86,7 +134,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testPositionErrorsProduceOrderedTrace(testCase)
             [results,outputDirectory] = testCase.executeExample( ...
-                "v7_04_apply_position_errors.m");
+                fullfile("04_apply_position_errors","apply_position_errors.m"));
 
             testCase.verifyEqual(results.Modules.ModuleIndex,[1;2;3;4]);
             testCase.verifyGreaterThan( ...
@@ -104,7 +152,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testOptionalOutputsAreReadable(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_05_inspect_output_artifacts.m");
+                fullfile("05_inspect_output_artifacts","inspect_output_artifacts.m"));
 
             expectedArtifacts = [ ...
                 "simulation_summary.json"; ...
@@ -122,7 +170,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testSweepUsesOneDirectoryPerCase(testCase)
             [results,outputDirectory] = testCase.executeExample( ...
-                "v7_06_run_density_sweep.m");
+                fullfile("06_run_density_sweep","run_density_sweep.m"));
 
             testCase.verifyEqual( ...
                 results.Sweep.VehicleCount,[4;8;12]);
@@ -138,7 +186,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testNrMode1QuickstartIsCentralized(testCase)
             [results,outputDirectory] = testCase.executeExample( ...
-                "v7_07_run_nr_mode1.m");
+                fullfile("07_run_nr_mode1","run_nr_mode1.m"));
 
             testCase.verifyEqual( ...
                 results.Overview.RadioAccessMode,"NR-V2X");
@@ -151,7 +199,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testEtsiCampaignRunsAllTrafficModels(testCase)
             [results,outputDirectory] = testCase.executeExample( ...
-                "v7_08_run_nr_mode1_etsi_campaign.m");
+                fullfile("08_run_nr_mode1_etsi_campaign","run_nr_mode1_etsi_campaign.m"));
 
             expectedModels = [ ...
                 "HighSpeedLowDensity"; ...
@@ -172,7 +220,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testTrafficGalleryCoversEveryScenario(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_09_explore_traffic_scenarios.m");
+                fullfile("09_explore_traffic_scenarios","explore_traffic_scenarios.m"));
 
             expectedScenarios = [ ...
                 "BrownianMotion"; ...
@@ -188,7 +236,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testNrMode2AuthorsAllOptionsAndReportsGrid(testCase)
             [results,outputDirectory] = testCase.executeExample( ...
-                "v7_10_run_nr_mode2.m");
+                fullfile("10_run_nr_mode2","run_nr_mode2.m"));
 
             testCase.verifyEqual( ...
                 results.Overview.RadioAccessMode,"NR-V2X");
@@ -208,7 +256,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testLteModeExampleRunsMode3AndMode4(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_11_compare_lte_modes.m");
+                fullfile("11_compare_lte_modes","compare_lte_modes.m"));
 
             testCase.verifyEqual(results.Modes.Mode,["Mode 3";"Mode 4"]);
             testCase.verifyEqual( ...
@@ -220,7 +268,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testIeeeExampleCoversPhyAndRepetition(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_12_compare_ieee80211p.m");
+                fullfile("12_compare_ieee80211p","compare_ieee80211p.m"));
 
             testCase.verifyEqual(height(results.Cases),3);
             testCase.verifyTrue(any( ...
@@ -231,7 +279,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testCoexistenceExampleRunsEveryMethod(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_13_compare_coexistence_methods.m");
+                fullfile("13_compare_coexistence_methods","compare_coexistence_methods.m"));
 
             testCase.verifyEqual( ...
                 results.Methods.Method, ...
@@ -240,7 +288,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testChannelExampleCoversThresholdAndCurves(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_14_compare_channel_models.m");
+                fullfile("14_compare_channel_models","compare_channel_models.m"));
 
             testCase.verifyTrue(any(results.Cases.PacketError == "Curves"));
             testCase.verifyTrue(any(results.Cases.Rayleigh));
@@ -249,7 +297,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testApplicationExampleCoversEtsiCamAndDcc(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_15_compare_application_traffic.m");
+                fullfile("15_compare_application_traffic","compare_application_traffic.m"));
 
             testCase.verifyEqual( ...
                 results.Cases.GenerationMode,["Periodic";"EtsiCam"]);
@@ -259,7 +307,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testRoadsideUnitProducesDirectedFates(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_16_run_roadside_unit.m");
+                fullfile("16_run_roadside_unit","run_roadside_unit.m"));
 
             testCase.verifyNotEmpty(results.RoadsideUnitFates);
             testCase.verifyTrue(all( ...
@@ -269,7 +317,7 @@ classdef V7ExamplesTest < matlab.unittest.TestCase
 
         function testAnalysisExampleReducesTerminalFates(testCase)
             [results,~] = testCase.executeExample( ...
-                "v7_17_reduce_packet_fates.m");
+                fullfile("17_reduce_packet_fates","reduce_packet_fates.m"));
 
             testCase.verifyNotEmpty(results.TerminalFates);
             testCase.verifyNotEmpty(results.Curve);

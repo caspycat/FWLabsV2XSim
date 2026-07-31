@@ -1,7 +1,7 @@
 # BR resource-allocation architecture
 
 For runnable comparisons of every named allocator, see lesson 3 in the
-[progressive V7 examples](../examples/v7/README.md).
+[progressive V7 examples](../examples/README.md).
 
 FWLabsV2XSim models cellular-sidelink beacon-resource (BR) allocation through a
 single allocator lifecycle instead of selecting algorithms throughout the

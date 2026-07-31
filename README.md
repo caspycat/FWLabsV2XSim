@@ -39,9 +39,24 @@ Version 7 uses a strict, namespaced TOML 1.0 configuration schema. See the
 namespace hierarchy, defaults, tagged variants, and validation rules. Legacy
 `.cfg` files and V6 parameter aliases are intentionally unsupported.
 
-Open `FWLabsV2XSim.prj` before using V7. The MATLAB Project owns source-path
-configuration, and simulations are launched through the namespaced,
-path-preserving entrypoint:
+For research work, create a separate MATLAB Project and add FWLabsV2XSim as a
+recursively initialized Git submodule. Add the submodule folder as a
+referenced MATLAB Project so its simulator code and dependencies are placed
+on the MATLAB path without exposing the examples as callable functions.
+For simulator development, open `FWLabsV2XSim.prj` directly instead.
+
+For example, after placing the submodule at
+`dependencies/FWLabsV2XSim`, configure the project reference once:
+
+```matlab
+researchProject = currentProject;
+simulatorRoot = fullfile( ...
+    researchProject.RootFolder,"dependencies","FWLabsV2XSim");
+addReference(researchProject,simulatorRoot,"relative");
+```
+
+With either project environment active, simulations are launched through the
+namespaced, path-preserving entrypoint:
 
 ```matlab
 template = v2xsim.config.load("experiment.toml");
@@ -54,7 +69,7 @@ result = v2xsim.runSimulation( ...
     RunLabel="seed-1");
 ```
 
-The [progressive V7 examples](examples/v7/README.md) provide short runnable
+The [progressive V7 examples](examples/README.md) provide short runnable
 scripts and canonical configuration files for a first simulation,
 component-owned random streams, named resource allocators, positioning-error
 chains, hook-backed outputs, isolated multi-run sweeps, centralized NR Mode 1
