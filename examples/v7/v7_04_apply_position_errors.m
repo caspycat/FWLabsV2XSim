@@ -1,6 +1,6 @@
-%% 04 - Apply an ordered positioning-error chain
-% The example combines Gaussian displacement, false-exit route perception,
-% and observation delay on the lane-aware exit-ramp scenario.
+%% 04 - Apply and analyse an ordered positioning-error chain
+% The example combines Gaussian displacement, false-exit and false-merge
+% route perception, and observation delay on the exit-ramp scenario.
 
 exampleScriptDirectory = fileparts(mfilename("fullpath"));
 [exampleResults,exampleOutputDirectory] = runExample( ...
@@ -33,6 +33,8 @@ for fileIndex = 1:numel(traceFiles)
         trace = [trace;rows]; %#ok<AGROW>
     end
 end
+trace = sortrows( ...
+    trace,["SimulationTimeSeconds","VehicleId","ModuleIndex"]);
 
 moduleIndices = unique(trace.ModuleIndex);
 moduleIndices(moduleIndices == 0) = [];
@@ -56,8 +58,14 @@ moduleTable = table( ...
 
 configuredModules = summary.Configuration.Positioning.ErrorChain.Modules;
 configuredModuleCount = numel(configuredModules);
-assert(configuredModuleCount == 3, ...
-    "The summary did not retain the three configured modules.");
+assert(configuredModuleCount == 4, ...
+    "The summary did not retain the four configured modules.");
+
+routeActivity = summarizeRouteActivity(trace);
+episodeEntries = trace(trace.ActiveSegmentEntered ~= 0, ...
+    ["SimulationTimeSeconds","VehicleId","TrueRoute", ...
+     "ModuleIndex","StatusEffectType","EpisodeId", ...
+     "LeftCensoredAtStart"]);
 
 kinematics = readtable( ...
     fullfile(outputDirectory,"vehicle_kinematics.csv"), ...
@@ -96,13 +104,76 @@ ylabel("Y (m)")
 title("True and apparent trajectory for vehicle " + vehicleId)
 legend(Location="best")
 
+figure(Name="V7 position-error modules");
+layout = tiledlayout(2,1,TileSpacing="compact");
+title(layout,"Incremental module errors and active episodes")
+nexttile
+hold on
+for moduleRow = 1:numel(moduleIndices)
+    mask = trace.ModuleIndex == moduleIndices(moduleRow);
+    plot( ...
+        trace.SimulationTimeSeconds(mask), ...
+        trace.DisplacementMagnitudeMeters(mask),".", ...
+        DisplayName=moduleType(moduleRow));
+end
+hold off
+grid on
+xlabel("Simulation time (s)")
+ylabel("Incremental displacement (m)")
+legend(Location="best")
+
+nexttile
+activeRows = trace(trace.IsActive ~= 0,:);
+if isempty(activeRows)
+    text(0.5,0.5,"No active status-effect rows", ...
+        HorizontalAlignment="center");
+    axis off
+else
+    scatter( ...
+        activeRows.SimulationTimeSeconds, ...
+        categorical(activeRows.VehicleId),18, ...
+        activeRows.ModuleIndex,"filled");
+    grid on
+    xlabel("Simulation time (s)")
+    ylabel("Vehicle ID")
+    colorbar
+end
+
 elapsedSeconds = toc(timer);
 warnIfSlowV7Example(elapsedSeconds);
 results = struct( ...
     Summary=summary, ...
     Modules=moduleTable, ...
+    RouteActivity=routeActivity, ...
+    EpisodeEntries=episodeEntries, ...
     Trace=trace, ...
     Trajectory=trajectory, ...
     SimulationElapsedSeconds=simulationElapsedSeconds, ...
     ElapsedSeconds=elapsedSeconds);
+end
+
+function result = summarizeRouteActivity(trace)
+effectTypes = unique(trace.StatusEffectType);
+routes = unique(trace.TrueRoute);
+effectType = strings(0,1);
+trueRoute = strings(0,1);
+traceRowCount = zeros(0,1);
+activeRowCount = zeros(0,1);
+for effectIndex = 1:numel(effectTypes)
+    for routeIndex = 1:numel(routes)
+        mask = trace.StatusEffectType == effectTypes(effectIndex) & ...
+            trace.TrueRoute == routes(routeIndex);
+        if ~any(mask)
+            continue
+        end
+        effectType(end + 1,1) = effectTypes(effectIndex); %#ok<AGROW>
+        trueRoute(end + 1,1) = routes(routeIndex); %#ok<AGROW>
+        traceRowCount(end + 1,1) = sum(mask); %#ok<AGROW>
+        activeRowCount(end + 1,1) = sum(trace.IsActive(mask)); %#ok<AGROW>
+    end
+end
+result = table( ...
+    effectType,trueRoute,traceRowCount,activeRowCount, ...
+    VariableNames=[ ...
+        "StatusEffectType","TrueRoute","TraceRowCount","ActiveRowCount"]);
 end

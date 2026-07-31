@@ -206,11 +206,21 @@ if simParams.technology ~= constants.TECH_ONLY_CV2X % not only C-V2X (lte or 5g)
             phyParams.tPck11p = packetDuration11p(appParams.beaconSizeBytes,phyParams.MCS_11p,-1,-1,phyParams.pWithLTEPHY);
         else
             % Find minimum SINR when using 11p with LTE PHY
+            % The surrogate deliberately uses the LTE 1 ms transmission
+            % interval even in an IEEE-only run, where the cellular branch
+            % below does not initialize phyParams.TTI. findRBsBeaconSINRmin
+            % also requires the payload size in bits.
+            lteSurrogateTtiSeconds = 1e-3;
+            packetSizeBits = appParams.beaconSizeBytes * 8;
             if phyParams.sinrThreshold11p_LOS == -1000
-                [~,phyParams.sinrThreshold11p_LOS_dB,phyParams.NbitsHz] = findRBsBeaconSINRmin(phyParams.MCS_pWithLTEphy,appParams.beaconSizeBytes,phyParams.TTI, phyParams.BwMHz);
+                [~,phyParams.sinrThreshold11p_LOS_dB,phyParams.NbitsHz] = findRBsBeaconSINRmin( ...
+                    phyParams.MCS_pWithLTEphy,packetSizeBits, ...
+                    lteSurrogateTtiSeconds,phyParams.BwMHz);
                 fprintf("SINR threshold for error assessment [dB]:\t[sinrThreshold11p_LOS] = %f (automatic setting)\n", phyParams.sinrThreshold11p_LOS_dB);
             else
-                [~,~,phyParams.NbitsHz] = findRBsBeaconSINRmin(phyParams.MCS_pWithLTEphy,appParams.beaconSizeBytes,phyParams.TTI, phyParams.BwMHz);
+                [~,~,phyParams.NbitsHz] = findRBsBeaconSINRmin( ...
+                    phyParams.MCS_pWithLTEphy,packetSizeBits, ...
+                    lteSurrogateTtiSeconds,phyParams.BwMHz);
             end
             %phyParams.gammaMin11p = 10^(phyParams.gammaMin11p_dB/10);
             

@@ -161,10 +161,19 @@ end
 % Check how many BRs to exploit in the frequency domain
 if phyParams.NumBeaconsFrequency~=-1
     if phyParams.NumBeaconsFrequency > appParams.NbeaconsF
-        fprintf('Number of beacons in frequency domain in input is larger than the maximum one: set to %.0f\n\n', NbeaconsF);
+        fprintf( ...
+            ['Number of beacons in frequency domain in input is larger ' ...
+            'than the maximum one: set to %.0f\n\n'], ...
+            appParams.NbeaconsF);
     else
         appParams.NbeaconsF = phyParams.NumBeaconsFrequency;
-        phyParams.IBEmatrix = phyParams.IBEmatrix(1:appParams.NbeaconsF,1:appParams.NbeaconsF);
+        % IBEcalculation publishes separate data/control coupling matrices.
+        % Keep both aligned with the explicitly capped frequency grid.
+        frequencyRows = 1:appParams.NbeaconsF;
+        phyParams.IBEmatrixData = ...
+            phyParams.IBEmatrixData(frequencyRows,frequencyRows);
+        phyParams.IBEmatrixControl = ...
+            phyParams.IBEmatrixControl(frequencyRows,frequencyRows);
     end
 end
 

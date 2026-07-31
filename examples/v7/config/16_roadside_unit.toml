@@ -1,0 +1,58 @@
+# Fixed IEEE 802.11p DENM roadside-unit example.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 36
+DurationSeconds = 0.3
+
+[Scenario]
+Type = "BidirectionalHighway"
+UpdateIntervalSeconds = 0.1
+
+[Scenario.BidirectionalHighway]
+RandomSeed = 136
+VehicleCount = 4
+NLanes = 1
+LaneWidth = 4
+RoadLength = 300
+CentralDividerWidth = 0
+MeanVehicleSpeed = 15
+VehicleSpeedStandardDeviation = 0
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 190
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Radio]
+Type = "Ieee80211p"
+BandwidthMHz = 10
+FixedPowerDensityEnabled = false
+ReceiverNoiseFigureDb = 6
+
+[Radio.Ieee80211p]
+PhysicalLayer = "Native"
+Mcs = 2
+
+[Awareness]
+RangesMeters = [100, 300]
+
+[[Infrastructure.RoadsideUnits]]
+Id = "rsu-west"
+Technology = "Ieee80211p"
+PacketType = "Denm"
+PositionMeters = [150, 4]
+
+[Outputs.PacketFateTrace]
+Enabled = true
+FlushRowCount = 500
+FileFormat = "csv"
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 25

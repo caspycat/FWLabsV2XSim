@@ -1,24 +1,19 @@
-# V7 first-run NR-V2X Mode 2 configuration in the native TOML schema.
+# Short NR-V2X Mode 1 campaign over the 3GPP freeway traffic presets.
 SchemaVersion = 1
 
 [Simulation]
-RandomSeed = 11
-DurationSeconds = 0.5
+RandomSeed = 18
+DurationSeconds = 0.3
 
 [Scenario]
-Type = "BidirectionalHighway"
+Type = "EtsiHighway"
 UpdateIntervalSeconds = 0.1
 
-[Scenario.BidirectionalHighway]
-RandomSeed = 101
-VehicleCount = 8
-NLanes = 2
-LaneWidth = 4
-RoadLength = 400
-CentralDividerWidth = 0
-MeanVehicleSpeed = 20
-VehicleSpeedStandardDeviation = 2
-RerollSpeedOnWrapAround = false
+[Scenario.EtsiHighway]
+RandomSeed = 108
+TrafficModel = "HighSpeedLowDensity"
+Placement = "Uniform"
+MinimumRoadLength = 2000
 
 [Application]
 PacketSizeBytes = 190
@@ -51,14 +46,14 @@ SubchannelSizeResourceBlocks = 10
 PartialFrequencyOverlapEnabled = false
 
 [Awareness]
-RangesMeters = [200]
+RangesMeters = [100, 300]
 
 [ResourceAllocation]
-Type = "SensingBased"
-RandomSeed = 201
+Type = "MaximumReuseDistance"
+RandomSeed = 208
 
-[ResourceAllocation.SensingBased]
-KeepResourceProbability = 0.4
+[ResourceAllocation.MaximumReuseDistance]
+ReassignmentIntervalSeconds = 0.1
 
 [Outputs.PacketReceptionRatio]
 Enabled = true

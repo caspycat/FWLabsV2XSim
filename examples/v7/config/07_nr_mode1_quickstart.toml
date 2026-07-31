@@ -1,49 +1,24 @@
-# Exit-ramp position-error-chain configuration.
+# Minimal NR-V2X centralized-allocation (Mode 1) configuration.
 SchemaVersion = 1
 
 [Simulation]
-RandomSeed = 14
-DurationSeconds = 1.5
+RandomSeed = 17
+DurationSeconds = 0.8
 
 [Scenario]
-Type = "ExitRampHighway"
+Type = "BidirectionalHighway"
 UpdateIntervalSeconds = 0.1
 
-[Scenario.ExitRampHighway]
-RandomSeed = 104
-VehicleCount = 16
+[Scenario.BidirectionalHighway]
+RandomSeed = 107
+VehicleCount = 12
 NLanes = 2
 LaneWidth = 4
-RoadLength = 240
+RoadLength = 500
 CentralDividerWidth = 0
 MeanVehicleSpeed = 20
 VehicleSpeedStandardDeviation = 2
 RerollSpeedOnWrapAround = false
-ExitProbability = 0.5
-MergeDistance = 40
-
-[[Positioning.Errors]]
-Type = "Gaussian"
-StandardDeviationMeters = 3
-DisplacementRandomSeed = 304
-AffectedVehicleProbability = 1
-SelectionRandomSeed = 404
-
-[[Positioning.Errors]]
-Type = "FalseExit"
-AffectedVehicleProbability = 1
-DisplacementScale = 1
-SelectionRandomSeed = 504
-
-[[Positioning.Errors]]
-Type = "FalseMerge"
-AffectedVehicleProbability = 1
-DisplacementScale = 1
-SelectionRandomSeed = 604
-
-[[Positioning.Errors]]
-Type = "Delay"
-DelaySeconds = 0.1
 
 [Application]
 PacketSizeBytes = 190
@@ -76,11 +51,11 @@ SubchannelSizeResourceBlocks = 10
 PartialFrequencyOverlapEnabled = false
 
 [Awareness]
-RangesMeters = [150]
+RangesMeters = [100, 200]
 
 [ResourceAllocation]
 Type = "MaximumReuseDistance"
-RandomSeed = 204
+RandomSeed = 207
 
 [ResourceAllocation.MaximumReuseDistance]
 ReassignmentIntervalSeconds = 0.1
@@ -88,6 +63,12 @@ ReassignmentIntervalSeconds = 0.1
 [Outputs.VehicleKinematics]
 Enabled = true
 
-[Outputs.PositionErrorTrace]
+[Outputs.PacketReceptionRatio]
 Enabled = true
+DistanceBinWidthMeters = 25
+
+[Outputs.ControllerDiagnostics]
+Enabled = true
+TopK = 3
+RankDisplacementEnabled = false
 FlushRowCount = 500

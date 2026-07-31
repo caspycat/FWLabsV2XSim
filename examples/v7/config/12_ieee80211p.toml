@@ -1,0 +1,73 @@
+# IEEE 802.11p native/surrogate and repetition baseline.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 32
+DurationSeconds = 0.3
+
+[Scenario]
+Type = "BidirectionalHighway"
+UpdateIntervalSeconds = 0.1
+
+[Scenario.BidirectionalHighway]
+RandomSeed = 132
+VehicleCount = 8
+NLanes = 2
+LaneWidth = 4
+RoadLength = 400
+CentralDividerWidth = 0
+MeanVehicleSpeed = 20
+VehicleSpeedStandardDeviation = 1
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 190
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+Mode = "Periodic"
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Application.ChannelLoad]
+Enabled = true
+MeasurementWindowSeconds = 0.1
+UpdateStepsPerWindow = 100
+
+[Radio]
+Type = "Ieee80211p"
+BandwidthMHz = 10
+TransmitPowerDbm = 23
+FixedPowerDensityEnabled = false
+ReceiverNoiseFigureDb = 6
+
+[Radio.Ieee80211p]
+PhysicalLayer = "Native"
+PreambleSensitivityDbm = -100
+Mcs = 2
+LteSurrogateMcs = 3
+RelativeInterferenceLevelModelEnabled = false
+ContentionWindow = 15
+AifsSlotCount = 6
+CcaThresholdWithoutDecodedPreambleDbm = -65
+CcaThresholdWithDecodedPreambleDbm = -85
+
+[Radio.Ieee80211p.Repetition]
+Mode = "Static"
+MaximumTransmissionCount = 1
+BackoffMicroseconds = 0
+CbrThresholds = [0.03, 0.05, 0.09]
+
+[Awareness]
+RangesMeters = [100, 200]
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 25
+
+[Outputs.PacketDelay]
+Enabled = true
+
+[Outputs.ChannelBusyRatio]
+Enabled = true

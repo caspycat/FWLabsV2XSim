@@ -1,0 +1,102 @@
+# Short IEEE 802.11p / NR-V2X cochannel-method gallery.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 33
+DurationSeconds = 0.3
+
+[Scenario]
+Type = "BidirectionalHighway"
+UpdateIntervalSeconds = 0.1
+
+[Scenario.BidirectionalHighway]
+RandomSeed = 133
+VehicleCount = 12
+NLanes = 3
+LaneWidth = 4
+RoadLength = 600
+CentralDividerWidth = 0
+MeanVehicleSpeed = 20
+VehicleSpeedStandardDeviation = 1
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 190
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+Mode = "Periodic"
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Application.ChannelLoad]
+Enabled = true
+MeasurementWindowSeconds = 0.1
+UpdateStepsPerWindow = 100
+
+[Application.CongestionControl]
+Enabled = false
+
+[Radio]
+Type = "Coexistence"
+BandwidthMHz = 10
+TransmitPowerDbm = 23
+FixedPowerDensityEnabled = false
+ReceiverNoiseFigureDb = 6
+
+[Radio.Coexistence]
+SidelinkType = "NrV2X"
+InterferenceModel = "Cochannel"
+
+[Radio.NrV2X]
+SubcarrierSpacingKilohertz = 30
+DmrsResourceElementCountPerSlot = 18
+Mcs = 8
+SciSymbolCount = 3
+SciResourceBlockCount = 12
+
+[Radio.Ieee80211p]
+PhysicalLayer = "Native"
+Mcs = 2
+RelativeInterferenceLevelModelEnabled = true
+
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 12
+PartialFrequencyOverlapEnabled = true
+
+[Awareness]
+RangesMeters = [100, 300]
+
+[ResourceAllocation]
+Type = "SensingBased"
+RandomSeed = 233
+
+[ResourceAllocation.SensingBased]
+KeepResourceProbability = 0.5
+
+[Coexistence]
+Method = "Standard"
+
+[Coexistence.VehiclePattern]
+SidelinkVehicleCount = 6
+ItsG5VehicleCount = 6
+
+[Coexistence.Superframe]
+DurationSeconds = 0.01
+SlotManagement = "Static"
+SidelinkPortionEndSeconds = 0.006
+
+[Coexistence.ChannelLoad]
+SidelinkVariant = 3
+TotalVariant = 1
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 25
+
+[Outputs.ChannelBusyRatio]
+Enabled = true
+
+[Outputs.CoexistenceTechnologyShare]
+Enabled = true

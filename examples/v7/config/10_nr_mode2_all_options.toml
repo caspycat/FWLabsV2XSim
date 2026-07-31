@@ -1,0 +1,109 @@
+# NR-V2X Mode 2 with every public SensingBased option authored.
+# This is a configuration/reference example, not an optimized parameter set.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 19
+DurationSeconds = 0.4
+
+[Scenario]
+Type = "BidirectionalHighway"
+UpdateIntervalSeconds = 0.1
+
+[Scenario.BidirectionalHighway]
+RandomSeed = 109
+VehicleCount = 12
+NLanes = 2
+LaneWidth = 4
+RoadLength = 500
+CentralDividerWidth = 0
+MeanVehicleSpeed = 20
+VehicleSpeedStandardDeviation = 2
+RerollSpeedOnWrapAround = false
+
+[Application]
+PacketSizeBytes = 190
+ResourceReservationIntervalSeconds = 0.1
+
+[Application.PacketGeneration]
+Mode = "Periodic"
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+
+[Application.ChannelLoad]
+Enabled = true
+MeasurementWindowSeconds = 0.1
+UpdateStepsPerWindow = 100
+
+[Application.CongestionControl]
+Enabled = false
+ChannelOccupancyLimitScale = 1
+
+[Radio]
+Type = "NrV2X"
+BandwidthMHz = 10
+TransmitPowerDbm = 23
+FixedPowerDensityEnabled = false
+TransmitAntennaGainDb = 3
+ReceiveAntennaGainDb = 3
+ReceiverNoiseFigureDb = 6
+
+[Radio.NrV2X]
+SubcarrierSpacingKilohertz = 15
+DmrsResourceElementCountPerSlot = 24
+Mcs = 7
+SciSymbolCount = 3
+SciResourceBlockCount = 10
+
+[Radio.Sidelink]
+DuplexMode = "Half"
+InBandEmissionEnabled = true
+MaximumTransmissionCount = 2
+SciDecodeSinrThresholdDb = 0
+
+[Radio.Sidelink.ResourcePool]
+V2vSharePercent = 100
+SubchannelSizeResourceBlocks = 10
+MaximumFrequencyDomainResources = 3
+PartialFrequencyOverlapEnabled = true
+
+[Awareness]
+RangesMeters = [100, 200]
+
+[ResourceAllocation]
+Type = "SensingBased"
+RandomSeed = 209
+
+[ResourceAllocation.SensingBased]
+ReevaluationEnabled = true
+ReevaluateAfterSkippedTransmissionEnabled = true
+ReselectEveryPacketEnabled = false
+KeepResourceProbability = 0.8
+MaximumConsecutiveReservationIntervals = 4
+MinimumCandidateFraction = 0.2
+L2CandidateFraction = 0.2
+L2RankingEnabled = false
+AverageSensingEnabled = false
+SensingWindowSeconds = 1
+ReselectionCounterMinimum = 5
+ReselectionCounterMaximum = 15
+SensingThresholdDbm = -110
+SelectionWindowStartMilliseconds = 1
+SelectionWindowEndMilliseconds = 100
+
+[Outputs.VehicleKinematics]
+Enabled = true
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 25
+
+[Outputs.PacketDelay]
+Enabled = true
+
+[Outputs.UpdateDelay]
+Enabled = true
+
+[Outputs.ChannelBusyRatio]
+Enabled = true

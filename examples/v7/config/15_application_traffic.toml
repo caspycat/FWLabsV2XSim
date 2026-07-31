@@ -1,23 +1,23 @@
-# V7 first-run NR-V2X Mode 2 configuration in the native TOML schema.
+# Periodic/ETSI-CAM and congestion-control comparison baseline.
 SchemaVersion = 1
 
 [Simulation]
-RandomSeed = 11
-DurationSeconds = 0.5
+RandomSeed = 35
+DurationSeconds = 0.4
 
 [Scenario]
 Type = "BidirectionalHighway"
 UpdateIntervalSeconds = 0.1
 
 [Scenario.BidirectionalHighway]
-RandomSeed = 101
+RandomSeed = 135
 VehicleCount = 8
 NLanes = 2
 LaneWidth = 4
 RoadLength = 400
 CentralDividerWidth = 0
 MeanVehicleSpeed = 20
-VehicleSpeedStandardDeviation = 2
+VehicleSpeedStandardDeviation = 1
 RerollSpeedOnWrapAround = false
 
 [Application]
@@ -25,41 +25,49 @@ PacketSizeBytes = 190
 ResourceReservationIntervalSeconds = 0.1
 
 [Application.PacketGeneration]
+Mode = "Periodic"
 IntervalSeconds = 0.1
 IntervalVariationSeconds = 0
 RandomComponentMeanSeconds = 0
 
+[Application.ChannelLoad]
+Enabled = true
+MeasurementWindowSeconds = 0.1
+UpdateStepsPerWindow = 100
+
 [Application.CongestionControl]
 Enabled = false
+ChannelOccupancyLimitScale = 1
 
 [Radio]
 Type = "NrV2X"
 BandwidthMHz = 10
-TransmitPowerDbm = 23
 FixedPowerDensityEnabled = false
-TransmitAntennaGainDb = 3
-ReceiveAntennaGainDb = 3
 ReceiverNoiseFigureDb = 6
 
 [Radio.NrV2X]
 SubcarrierSpacingKilohertz = 15
 DmrsResourceElementCountPerSlot = 24
 Mcs = 7
+SciSymbolCount = 3
+SciResourceBlockCount = 10
 
 [Radio.Sidelink.ResourcePool]
 SubchannelSizeResourceBlocks = 10
-PartialFrequencyOverlapEnabled = false
-
-[Awareness]
-RangesMeters = [200]
 
 [ResourceAllocation]
 Type = "SensingBased"
-RandomSeed = 201
-
-[ResourceAllocation.SensingBased]
-KeepResourceProbability = 0.4
+RandomSeed = 235
 
 [Outputs.PacketReceptionRatio]
 Enabled = true
 DistanceBinWidthMeters = 25
+
+[Outputs.UpdateDelay]
+Enabled = true
+
+[Outputs.DataAge]
+Enabled = true
+
+[Outputs.ChannelBusyRatio]
+Enabled = true

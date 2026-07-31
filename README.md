@@ -57,7 +57,11 @@ result = v2xsim.runSimulation( ...
 The [progressive V7 examples](examples/v7/README.md) provide short runnable
 scripts and canonical configuration files for a first simulation,
 component-owned random streams, named resource allocators, positioning-error
-chains, hook-backed outputs, and isolated multi-run sweeps.
+chains, hook-backed outputs, isolated multi-run sweeps, centralized NR Mode 1
+allocation, the three 3GPP freeway traffic presets, and all four public
+mobility scenarios, plus NR Mode 2 and its derived beacon-resource grid. The
+[V7 researcher wiki](https://github.com/caspycat/FWLabsV2XSim/wiki)
+provides the task-oriented tutorials and data-analysis reference.
 
 V7 also exposes cellular-sidelink beacon-resource selection through named,
 slice-scoped allocator contracts. See the

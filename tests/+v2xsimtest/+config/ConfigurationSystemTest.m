@@ -27,7 +27,7 @@ classdef ConfigurationSystemTest < matlab.unittest.TestCase
                 end
             end
 
-            testCase.verifyNumElements(files, 16);
+            testCase.verifyNumElements(files, 26);
             for file = reshape(files, 1, [])
                 configuration = v2xsim.config.load(file).resolve();
                 testCase.verifyEqual(configuration.Data.SchemaVersion, 1);

@@ -1,4 +1,4 @@
-%% 01 - Run a first V7 simulation
+%% 01 - Run a first V7 simulation with NR-V2X Mode 2
 % A configuration file supplies the experiment baseline. The script supplies
 % a fresh output directory because every V7 run exclusively owns its output.
 

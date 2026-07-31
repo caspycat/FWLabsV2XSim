@@ -195,10 +195,11 @@ roadsideUnits = plan.Infrastructure.RoadsideUnits;
             values.PreambleSensitivityDbm);
         append("ieee80211p.LtePhysicalLayerEnabled", ...
             values.PhysicalLayer == "LteSurrogate");
-        append("ieee80211p.Mcs", values.Mcs);
         if values.PhysicalLayer == "LteSurrogate"
             append("ieee80211p.LtePhysicalLayerMcs", ...
                 values.LteSurrogateMcs);
+        else
+            append("ieee80211p.Mcs", values.Mcs);
         end
         append("ieee80211p.RelativeInterferenceLevelModelEnabled", ...
             values.RelativeInterferenceLevelModelEnabled);
