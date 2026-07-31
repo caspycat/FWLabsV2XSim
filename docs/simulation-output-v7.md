@@ -257,6 +257,17 @@ PRR 1)`, integrates the retained bins through the configured maximum
 distance, and divides by that maximum distance. Empty distance bins remain
 missing and make the AUC incomplete; they are not silently dropped.
 
+For a publication-style PRR range, first pool terminal counts across
+replications with `v2xsim.analysis.poolPacketReceptionCounts`, then call
+`v2xsim.analysis.prrThresholdRange`. Its default threshold is 0.9, matching
+the archived PRR-range papers; `Threshold=0.95` requests the corresponding
+95-percent range. The helper adds the explicit synthetic `(0 m, 1)` anchor
+and returns the first linearly interpolated downward crossing plus an
+explicit `Crossed`, `LeftCensored`, or `RightCensored` status. It does not
+average per-run ratios, which would give short and long runs equal weight.
+If any configured distance bin is empty, it returns `NaN` with
+`IncompleteDistanceGrid` rather than inferring a range from sparse data.
+
 The Ramp error-structure reducer reads packet-fate chunks incrementally and
 writes `per_vehicle_prr.csv`.
 It contains transmitter and receiver perspectives for each stable vehicle

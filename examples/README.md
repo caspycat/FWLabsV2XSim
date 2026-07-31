@@ -83,6 +83,14 @@ existing nonempty run directory. Multi-run examples therefore create one
 child directory per case.
 
 The files are retained after the script finishes so they can be inspected.
+The distance-binned delivery-PRR figures repeat each experiment five times
+with distinct seeds and pool the packet-fate counts before calculating the
+curve. They show
+the explicit synthetic `(0 m, 1)` anchor, and mark the paper-standard first
+downward 90%-PRR crossing. A right-censored label means the curve remains
+above 90% through its last measured bin; it is not evidence of a longer
+range. An incomplete-distance-grid label means the short tutorial run did not
+observe every configured bin, so no PRR range is reported.
 
 The examples use deliberately small simulations. They demonstrate APIs and
 data flow, not statistically supported trends or publication conclusions.
