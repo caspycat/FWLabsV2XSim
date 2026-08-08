@@ -15,6 +15,11 @@ end
 activeIds = stationManagement.activeIDsCV2X(:);
 ueIds = simValues.world.UeIds(activeIds);
 allocator = allocator.synchronizeUes(ueIds);
+pressureOptions = simParams.compiledPlan.Radio.Sidelink.ResourcePool. ...
+    ResourcePressure;
+simParams.resourcePressure = v2xsim.resource.ResourcePressure( ...
+    allocator.Grid,pressureOptions.TimeAvailabilityPercent, ...
+    pressureOptions.FrequencyAvailabilityPercent);
 
 sensingWindowSeconds = ...
     simParams.compiledPlan.Application.ChannelLoad. ...
@@ -68,5 +73,6 @@ if isfield(simParams,"TsensingPeriod")
         simParams.averageSensingActive;
 end
 metadata.Context = contextMetadata;
+metadata.ResourcePressure = simParams.resourcePressure.metadata();
 simParams.resourceAllocationMetadata = metadata;
 end

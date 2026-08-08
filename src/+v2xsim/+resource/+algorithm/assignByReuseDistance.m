@@ -1,6 +1,6 @@
 function [resourceIds,decisionRows] = assignByReuseDistance( ...
         resourceIds,scheduledRows,distanceMeters,resourceCount, ...
-        reuseDistanceMeters,randomStream)
+        reuseDistanceMeters,randomStream,eligibilityMask)
 %ASSIGNBYREUSEDISTANCE Allocate without nearby same-resource reuse.
 
 arguments (Input)
@@ -11,11 +11,14 @@ arguments (Input)
     reuseDistanceMeters (1,1) double ...
         {mustBeReal,mustBeFinite,mustBeNonnegative}
     randomStream (1,1) RandStream
+    eligibilityMask (:,:) logical = false(0,0)
 end
 
 ueCount = numel(resourceIds);
 validateSquareMatrix(distanceMeters,ueCount,"distanceMeters");
 validateRowsAndResources(scheduledRows,resourceIds,resourceCount);
+eligibilityMask = normalizedEligibilityMask( ...
+    eligibilityMask,ueCount,resourceCount);
 
 decisionRows = unique([find(isnan(resourceIds)); scheduledRows],"stable");
 resourceIds(scheduledRows) = NaN;
@@ -26,7 +29,9 @@ end
 decisionOrder = decisionRows( ...
     randperm(randomStream,numel(decisionRows)));
 for row = reshape(decisionOrder,1,[])
-    candidateResources = randperm(randomStream,resourceCount);
+    candidateResources = find(eligibilityMask(row,:));
+    candidateResources = candidateResources( ...
+        randperm(randomStream,numel(candidateResources)));
     for resourceId = candidateResources
         usersOfResource = resourceIds == resourceId;
         if all(distanceMeters(row,usersOfResource) >= reuseDistanceMeters)
@@ -34,6 +39,17 @@ for row = reshape(decisionOrder,1,[])
             break
         end
     end
+end
+
+function mask = normalizedEligibilityMask(mask,ueCount,resourceCount)
+if isempty(mask)
+    mask = true(ueCount,resourceCount);
+elseif ~isequal(size(mask),[ueCount resourceCount]) || ...
+        any(~any(mask,2))
+    error( ...
+        "v2xsim:resource:InvalidAllocationInput", ...
+        "eligibilityMask must provide at least one resource per UE.");
+end
 end
 end
 

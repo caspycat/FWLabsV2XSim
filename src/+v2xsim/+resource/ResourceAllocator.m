@@ -150,7 +150,7 @@ classdef (Abstract, HandleCompatible) ResourceAllocator
             randomStream = obj.materializeRandomStream();
             [obj, result] = obj.doInitialize(context, randomStream);
             obj.RandomState = randomStream.State;
-            obj.validateResult(result);
+            obj.validateResult(result,context);
             obj.Assignments = result.Assignments;
             obj.IsInitialized = true;
         end
@@ -173,7 +173,7 @@ classdef (Abstract, HandleCompatible) ResourceAllocator
             randomStream = obj.materializeRandomStream();
             [obj, result] = obj.doStep(context, randomStream);
             obj.RandomState = randomStream.State;
-            obj.validateResult(result);
+            obj.validateResult(result,context);
             obj.Assignments = result.Assignments;
         end
     end
@@ -224,7 +224,7 @@ classdef (Abstract, HandleCompatible) ResourceAllocator
             end
         end
 
-        function validateResult(obj, result)
+        function validateResult(obj, result, context)
             if ~isa(result, "v2xsim.resource.ResourceAllocationResult") || ...
                     ~isscalar(result)
                 error( ...
@@ -267,6 +267,10 @@ classdef (Abstract, HandleCompatible) ResourceAllocator
                     "v2xsim:resource:ResourceIdOutOfRange", ...
                     "A reserved resource identifier exceeds the grid.");
             end
+            changedUeIds = validateEligibleAssignments( ...
+                obj.Assignments,result.Assignments,context);
+            validateEligibleReservations( ...
+                result.Reservations,changedUeIds,context);
         end
 
         function randomStream = materializeRandomStream(obj)
@@ -294,4 +298,56 @@ classdef (Abstract, HandleCompatible) ResourceAllocator
 
         [obj, result] = doStep(obj, context, randomStream)
     end
+end
+
+function changedUeIds = validateEligibleAssignments( ...
+        previousAssignments,assignments,context)
+[found,contextRows] = ismember(assignments.UeId,context.UeIds);
+if ~all(found)
+    error( ...
+        "v2xsim:resource:AllocationResultUeSetMismatch", ...
+        "Allocator assignments must align with the allocation context.");
+end
+
+previousRows = ismember(assignments.UeId,previousAssignments.UeId);
+previousResourceIds = nan(size(assignments.ResourceIds));
+[~,previousIndexes] = ismember( ...
+    assignments.UeId(previousRows),previousAssignments.UeId);
+previousResourceIds(previousRows,:) = ...
+    previousAssignments.ResourceIds(previousIndexes,:);
+changedValues = assignments.ResourceIds ~= previousResourceIds;
+changedValues = changedValues | ( ...
+    isnan(assignments.ResourceIds) ~= isnan(previousResourceIds));
+changedUeIds = assignments.UeId(any(changedValues,2));
+
+for row = 1:height(assignments)
+    changedResources = assignments.ResourceIds(row,changedValues(row,:));
+    resourceIds = changedResources(~isnan(changedResources));
+    if any(~context.EligibilityMask(contextRows(row),resourceIds))
+        error( ...
+            "v2xsim:resource:IneligibleResourceAssignment", ...
+            "Allocator assignments must use resources eligible for each UE.");
+    end
+end
+end
+
+function validateEligibleReservations(reservations,changedUeIds,context)
+[found,contextRows] = ismember(reservations.UeId,context.UeIds);
+if ~all(found)
+    error( ...
+        "v2xsim:resource:AllocationResultUeSetMismatch", ...
+        "Allocator reservations must align with the allocation context.");
+end
+
+for row = 1:height(reservations)
+    if ~ismember(reservations.UeId(row),changedUeIds)
+        continue
+    end
+    if ~context.EligibilityMask( ...
+            contextRows(row),reservations.ResourceId(row))
+        error( ...
+            "v2xsim:resource:IneligibleResourceReservation", ...
+            "Allocator reservations must use resources eligible for each UE.");
+    end
+end
 end

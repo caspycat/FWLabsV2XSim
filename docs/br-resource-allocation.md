@@ -115,6 +115,28 @@ grid now keeps resource topology separate from global simulator state and
 provides the boundary needed for future NR slices with independent numerology.
 It does not yet enable multiple simultaneous slices or per-slice numerology.
 
+## Resource pressure
+
+`Radio.Sidelink.ResourcePool.ResourcePressure` artificially limits the BRs
+that an allocator may select while leaving radio bandwidth, numerology,
+power, packet sizing, PHY matrices, and the underlying grid unchanged. It is
+intended for controlled capacity-pressure experiments, not for modelling a
+physical resource pool.
+
+```toml
+[Radio.Sidelink.ResourcePool.ResourcePressure]
+TimeAvailabilityPercent = 50
+FrequencyAvailabilityPercent = 50
+```
+
+Both percentages are integers from 1 to 100 and default to 100. The selected
+time slots and frequency resources are static, evenly distributed, and
+combined as a Cartesian product. The resulting mask is slice-local and is
+intersected with selection-window and coexistence eligibility for every
+allocator. `MaximumFrequencyDomainResources` remains a separate legacy grid
+cap; if both controls are present, pressure applies after that grid is
+resolved.
+
 ## Coexistence boundary
 
 Coexistence remains an integration concern around the cellular-sidelink

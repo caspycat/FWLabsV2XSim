@@ -1,6 +1,6 @@
 function [resourceIds,decisionRows] = assignByMinimumReceivedPower( ...
         resourceIds,scheduledRows,receivedPowerWatts,shadowingDb, ...
-        removeKnownShadowing,gridSize,randomStream)
+        removeKnownShadowing,gridSize,randomStream,eligibilityMask)
 %ASSIGNBYMINIMUMRECEIVEDPOWER Reuse the least strongly received resource.
 
 arguments (Input)
@@ -11,6 +11,7 @@ arguments (Input)
     removeKnownShadowing (1,1) logical
     gridSize (1,2) double {mustBeInteger,mustBePositive}
     randomStream (1,1) RandStream
+    eligibilityMask (:,:) logical = false(0,0)
 end
 
 ueCount = numel(resourceIds);
@@ -24,6 +25,8 @@ if ~isequal(size(receivedPowerWatts),[ueCount ueCount]) || ...
 end
 resourceCount = prod(gridSize);
 validateRowsAndResources(scheduledRows,resourceIds,resourceCount);
+eligibilityMask = normalizedEligibilityMask( ...
+    eligibilityMask,ueCount,resourceCount);
 
 estimatedPower = receivedPowerWatts;
 if removeKnownShadowing
@@ -38,52 +41,83 @@ for row = reshape(decisionOrder,1,[])
     [~,neighborOrder] = sort(estimatedPower(row,:),"descend");
     neighborOrder(neighborOrder == row) = [];
     resourceIds(row) = selectResource( ...
-        resourceIds(neighborOrder),gridSize,randomStream);
+        resourceIds(neighborOrder),gridSize,randomStream, ...
+        eligibilityMask(row,:));
 end
 end
 
-function resourceId = selectResource(orderedResources,gridSize,stream)
+function resourceId = selectResource( ...
+        orderedResources,gridSize,stream,eligibleResourceMask)
 timeCount = gridSize(1);
 frequencyCount = gridSize(2);
 orderedResources = orderedResources(~isnan(orderedResources));
 orderedTimes = ceil(orderedResources / frequencyCount);
 orderedFrequencies = mod(orderedResources - 1,frequencyCount) + 1;
 
-seenTimes = false(timeCount,1);
+eligibleResourceIds = find(eligibleResourceMask);
+eligibleTimes = unique(ceil(eligibleResourceIds / frequencyCount));
+
+seenTimes = true(timeCount,1);
+seenTimes(eligibleTimes) = false;
 selectedTime = NaN;
-allTimesSeen = false;
 for index = 1:numel(orderedTimes)
     selectedTime = orderedTimes(index);
+    if ~ismember(selectedTime,eligibleTimes)
+        continue
+    end
     seenTimes(selectedTime) = true;
-    if all(seenTimes)
-        allTimesSeen = true;
+    if all(seenTimes(eligibleTimes))
         break
     end
 end
 
-if ~allTimesSeen
-    freeTimes = find(~seenTimes);
+if ~all(seenTimes(eligibleTimes))
+    freeTimes = eligibleTimes(~seenTimes(eligibleTimes));
     selectedTime = freeTimes(randi(stream,numel(freeTimes)));
-    selectedFrequency = randi(stream,frequencyCount);
+    eligibleFrequencies = eligibleResourceIds( ...
+        ceil(eligibleResourceIds / frequencyCount) == selectedTime);
+    selectedFrequency = mod( ...
+        eligibleFrequencies(randi(stream,numel(eligibleFrequencies))) - 1, ...
+        frequencyCount) + 1;
 else
     sameTimeIndexes = find(orderedTimes == selectedTime);
-    seenFrequencies = false(frequencyCount,1);
+    eligibleFrequencies = mod( ...
+        eligibleResourceIds( ...
+        ceil(eligibleResourceIds / frequencyCount) == selectedTime) - 1, ...
+        frequencyCount) + 1;
+    seenFrequencies = true(frequencyCount,1);
+    seenFrequencies(eligibleFrequencies) = false;
     selectedFrequency = NaN;
     for index = reshape(sameTimeIndexes,1,[])
         selectedFrequency = orderedFrequencies(index);
+        if ~ismember(selectedFrequency,eligibleFrequencies)
+            continue
+        end
         seenFrequencies(selectedFrequency) = true;
-        if all(seenFrequencies)
+        if all(seenFrequencies(eligibleFrequencies))
             break
         end
     end
-    if ~all(seenFrequencies)
-        freeFrequencies = find(~seenFrequencies);
+    if ~all(seenFrequencies(eligibleFrequencies))
+        freeFrequencies = eligibleFrequencies( ...
+            ~seenFrequencies(eligibleFrequencies));
         selectedFrequency = freeFrequencies( ...
             randi(stream,numel(freeFrequencies)));
     end
 end
 
 resourceId = (selectedTime - 1) * frequencyCount + selectedFrequency;
+end
+
+function mask = normalizedEligibilityMask(mask,ueCount,resourceCount)
+if isempty(mask)
+    mask = true(ueCount,resourceCount);
+elseif ~isequal(size(mask),[ueCount resourceCount]) || ...
+        any(~any(mask,2))
+    error( ...
+        "v2xsim:resource:InvalidAllocationInput", ...
+        "eligibilityMask must provide at least one resource per UE.");
+end
 end
 
 function validateRowsAndResources(rows,resourceIds,resourceCount)

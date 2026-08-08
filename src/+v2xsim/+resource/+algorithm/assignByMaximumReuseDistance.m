@@ -15,6 +15,7 @@ arguments (Input)
     randomStream (1,1) RandStream
     options.UeIds string = strings(0,1)
     options.RandomPlan (1,1) struct = struct()
+    options.EligibilityMask (:,:) logical = false(0,0)
 end
 
 ueCount = numel(resourceIds);
@@ -26,6 +27,8 @@ if ~isequal(size(distanceMeters),[ueCount ueCount]) || ...
 end
 resourceCount = prod(gridSize);
 validateRowsAndResources(scheduledRows,resourceIds,resourceCount);
+eligibilityMask = normalizedEligibilityMask( ...
+    options.EligibilityMask,ueCount,resourceCount);
 ueIds = normalizeUeIds(options.UeIds,ueCount);
 randomPlan = acceptRandomPlan( ...
     options.RandomPlan,ueCount,gridSize,randomStream);
@@ -46,11 +49,11 @@ for orderIndex = 1:numel(decisionOrder)
     if traceRequested
         [selectedResourceId,selection] = selectResource( ...
             row,resourceIds,distanceMeters,gridSize, ...
-            randomPlan,ueIds);
+            randomPlan,ueIds,eligibilityMask(row,:));
     else
         selectedResourceId = selectResource( ...
             row,resourceIds,distanceMeters,gridSize, ...
-            randomPlan,ueIds);
+            randomPlan,ueIds,eligibilityMask(row,:));
     end
     resourceIds(row) = selectedResourceId;
     if traceRequested
@@ -118,7 +121,8 @@ decisionOrder = ordering.RowIndex;
 end
 
 function [resourceId,selection] = selectResource( ...
-        row,resourceIds,distanceMeters,gridSize,plan,ueIds)
+        row,resourceIds,distanceMeters,gridSize,plan,ueIds, ...
+        eligibleResourceMask)
 timeCount = gridSize(1);
 frequencyCount = gridSize(2);
 assignedRows = find(~isnan(resourceIds));
@@ -127,7 +131,9 @@ assignedFrequencies = ...
     mod(resourceIds(assignedRows) - 1,frequencyCount) + 1;
 
 timeScores = inf(1,timeCount);
-for timeSlot = 1:timeCount
+eligibleResourceIds = find(eligibleResourceMask);
+eligibleTimeSlots = unique(ceil(eligibleResourceIds / frequencyCount));
+for timeSlot = reshape(eligibleTimeSlots,1,[])
     rowsAtTime = assignedRows(assignedTimes == timeSlot);
     if ~isempty(rowsAtTime)
         timeScores(timeSlot) = ...
@@ -137,14 +143,22 @@ end
 detailsRequested = nargout >= 2;
 if detailsRequested
     [timeSlot,timeMargin] = chooseMaximum( ...
-        timeScores,plan.TimePriority(row,:));
+        timeScores(eligibleTimeSlots), ...
+        plan.TimePriority(row,eligibleTimeSlots));
+    timeSlot = eligibleTimeSlots(timeSlot);
 else
-    timeSlot = chooseMaximum( ...
-        timeScores,plan.TimePriority(row,:));
+    localTimeIndex = chooseMaximum( ...
+        timeScores(eligibleTimeSlots), ...
+        plan.TimePriority(row,eligibleTimeSlots));
+    timeSlot = eligibleTimeSlots(localTimeIndex);
 end
 
 frequencyScores = inf(1,frequencyCount);
-for frequency = 1:frequencyCount
+eligibleFrequencies = mod( ...
+    eligibleResourceIds( ...
+    ceil(eligibleResourceIds / frequencyCount) == timeSlot) - 1, ...
+    frequencyCount) + 1;
+for frequency = reshape(eligibleFrequencies,1,[])
     rowsAtResource = assignedRows( ...
         assignedTimes == timeSlot & ...
         assignedFrequencies == frequency);
@@ -155,10 +169,14 @@ for frequency = 1:frequencyCount
 end
 if detailsRequested
     [frequency,frequencyMargin] = chooseMaximum( ...
-        frequencyScores,plan.FrequencyPriority(row,:));
+        frequencyScores(eligibleFrequencies), ...
+        plan.FrequencyPriority(row,eligibleFrequencies));
+    frequency = eligibleFrequencies(frequency);
 else
-    frequency = chooseMaximum( ...
-        frequencyScores,plan.FrequencyPriority(row,:));
+    localFrequencyIndex = chooseMaximum( ...
+        frequencyScores(eligibleFrequencies), ...
+        plan.FrequencyPriority(row,eligibleFrequencies));
+    frequency = eligibleFrequencies(localFrequencyIndex);
 end
 resourceId = (timeSlot - 1) * frequencyCount + frequency;
 if ~detailsRequested
@@ -186,6 +204,17 @@ selection = struct( ...
     "TimeMarginMeters",timeMargin, ...
     "FrequencyMarginMeters",frequencyMargin, ...
     "WitnessUeId",witnessUeId);
+end
+
+function mask = normalizedEligibilityMask(mask,ueCount,resourceCount)
+if isempty(mask)
+    mask = true(ueCount,resourceCount);
+elseif ~isequal(size(mask),[ueCount resourceCount]) || ...
+        any(~any(mask,2))
+    error( ...
+        "v2xsim:resource:InvalidAllocationInput", ...
+        "EligibilityMask must provide at least one resource per UE.");
+end
 end
 
 function [selectedIndex,margin] = chooseMaximum(scores,priorities)

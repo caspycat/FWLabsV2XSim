@@ -124,6 +124,12 @@ holds geometry, motion, traffic, channel, and allocation settings fixed and
 requires the paired 95% confidence interval for low-load minus high-load raw
 PRR-AUC to be positive for LTE-V2X, NR-V2X, and IEEE 802.11p.
 
+The [resource-pressure regression](../regression-tests/+v2xsimregression/+resourcepressure/README.md)
+holds the NR-V2X PHY and workload fixed while reducing only the static
+selectable-BR masks from 100% to 25% on both axes. It requires the paired 95%
+confidence interval for unpressured-minus-pressured raw PRR-AUC to be positive
+for every supported Mode 1 and Mode 2 allocator.
+
 The focused [coexistence regression](../regression-tests/+v2xsimregression/+coexistence/README.md)
 uses paired seeds and pooled raw packet fates to distinguish orthogonal
 LTE-V2X/IEEE 802.11p operation from otherwise identical shared-channel
