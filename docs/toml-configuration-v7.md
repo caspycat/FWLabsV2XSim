@@ -211,7 +211,8 @@ Positioning errors are applied in authored order:
 ```toml
 [[Positioning.Errors]]
 Type = "Gaussian"
-StandardDeviationMeters = 3
+MeanMagnitudeMeters = 3
+StandardDeviationMeters = 1
 DisplacementRandomSeed = 304
 AffectedVehicleProbability = 1
 SelectionRandomSeed = 404
@@ -235,6 +236,12 @@ exactly once.
 
 `Gaussian.ActiveRoutes` is either `["All"]` or a nonempty, duplicate-free
 array drawn from `"Ramp"`, `"Merge"`, and `"Adjacent"`.
+`MeanMagnitudeMeters` and `StandardDeviationMeters` parameterize one scalar
+Gaussian radial displacement. Its direction is sampled independently and
+uniformly on `[0, 2*pi)`, so the model has no preferred Cartesian or
+road-aligned direction. Negative radial draws reverse the sampled direction;
+the nonnegative displacement recorded in diagnostics is therefore folded
+normal.
 
 Roadside units use the same TOML construct:
 

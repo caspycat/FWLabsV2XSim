@@ -108,16 +108,20 @@ is
 
 For normalized magnitude \(m\), the target mean is
 \(m\bar e_{\mathrm{route}}\). False-route displacement is multiplied by
-\(m\). The Gaussian X and Y components use
+\(m\). The Gaussian comparator uses an isotropic radial draw with
 
 \[
-\sigma = m\bar e_{\mathrm{route}}\sqrt{\frac{2}{\pi}},
+\mu_r = m\bar e_{\mathrm{route}}, \qquad
+\sigma_r = \mu_r\sqrt{\frac{4-\pi}{\pi}},
 \]
 
-so their Rayleigh-distributed radial error has the same target mean.
-Calibration matches the mean, not the RMS, 95th percentile, temporal
-correlation, direction, or tail shape; those differences are part of error
-structure and are recorded rather than normalized away.
+and an independent uniform direction. The radial standard deviation preserves
+the coefficient of variation of the former Cartesian-Gaussian comparator.
+Negative radial draws reverse direction, so the realized nonnegative magnitude
+is folded normal and is checked directly against the target. Calibration
+targets the mean, not the RMS, 95th percentile, temporal correlation,
+direction, or tail shape; those differences are part of error structure and
+are recorded rather than normalized away.
 
 The campaign uses one-attempt C-V2X packets, a fixed reservation and
 reassignment interval, and maximum reuse distance. This makes a terminal

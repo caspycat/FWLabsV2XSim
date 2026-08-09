@@ -24,7 +24,8 @@ MergeDistance = 40
 
 [[Positioning.Errors]]
 Type = "Gaussian"
-StandardDeviationMeters = 3
+MeanMagnitudeMeters = 3
+StandardDeviationMeters = 1
 DisplacementRandomSeed = 304
 AffectedVehicleProbability = 1
 SelectionRandomSeed = 404
