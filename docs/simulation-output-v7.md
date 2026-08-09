@@ -243,22 +243,28 @@ aggregate activity with `any(IsActive)` per vehicle and time.
 
 ## Directed packet-fate trace and PRR
 
-`packet_fates_<chunk>.parquet` contains one terminal directed
-transmitter-packet-receiver fate. Stable UE IDs and per-transmitter packet
-sequences survive row reordering and vehicle-slot reuse. The trace also
-contains generation/fate time, attempt number, channel, packet type, true
-distance, resource coordinates, and allocation epoch.
+`packet_fates_<chunk>.parquet` contains terminal directed
+transmitter-packet-receiver PRR observations. Stable UE IDs and
+per-transmitter packet sequences survive row reordering and vehicle-slot
+reuse. The trace also contains generation/fate time, attempt number, channel,
+packet type, true distance, resource coordinates, and allocation epoch.
 
-Allocator-side `blocked` observations are held until the packet advances or
-the run ends. A later radio `correct` or `error` outcome for the same directed
-packet supersedes the provisional block. Thus each directed packet
-opportunity contributes exactly one terminal fate:
+Allocator-side `blocked` observations are immutable terminal events and are
+written immediately for the same PRR-eligible receiver set counted by the
+global recorder. For a blocked row, `TrueDistanceMeters` is the true-distance
+snapshot at the allocation/block event. For a radio `correct` or `error` row,
+it is the true distance at the radio-fate event. Radio-attempt reconciliation
+does not replace, delay, or re-emit blocked rows:
 
 ```text
 delivery PRR = correct / (correct + error + blocked)
 radio PRR = correct / (correct + error)
 blocking rate = blocked / (correct + error + blocked)
 ```
+
+Packet-fate traces produced before this blocked-event correction can be
+missing blocked rows. Regenerate those traces before using them for exact
+reconciliation with global PRR counts.
 
 The fixed-grid normalized PRR-AUC inserts the explicit anchor `(distance 0,
 PRR 1)`, integrates the retained bins through the configured maximum

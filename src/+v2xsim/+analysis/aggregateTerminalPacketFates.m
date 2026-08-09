@@ -1,11 +1,12 @@
 function terminalFates = aggregateTerminalPacketFates(observations)
 %AGGREGATETERMINALPACKETFATES Reconcile directed HARQ observations.
 %   TERMINALFATES = AGGREGATETERMINALPACKETFATES(OBSERVATIONS) returns at
-%   most one terminal row for each technology/transmitter/packet/receiver
-%   identity. Provisional "none" observations are discarded. Repeated
-%   identical terminal reports are idempotent. A radio correct/error fate
-%   supersedes an earlier allocator-blocked observation for the same
-%   packet. Conflicting correct and error outcomes are rejected.
+%   most one radio terminal row for each
+%   technology/transmitter/packet/receiver identity. Provisional "none"
+%   observations are discarded, repeated radio terminal reports are
+%   idempotent, and conflicting correct and error outcomes are rejected.
+%   Every allocator-blocked observation is already a terminal PRR event and
+%   is therefore retained independently of later radio observations.
 
 arguments (Input)
     observations table
@@ -38,14 +39,21 @@ terminalFates = sortrows( ...
     terminalFates, ...
     ["FateTimeSeconds","Technology","TransmitterUeId", ...
     "PacketSequence","ReceiverUeId","AttemptNumber"]);
+isBlocked = terminalFates.Outcome == "blocked";
+radioRows = find(~isBlocked);
+if isempty(radioRows)
+    return
+end
+
 identityNames = [ ...
     "Technology","TransmitterUeId", ...
     "PacketSequence","ReceiverUeId"];
 groupIndices = findgroups( ...
-    terminalFates(:,identityNames));
+    terminalFates(radioRows,identityNames));
 groupCount = max(groupIndices);
-isCorrect = terminalFates.Outcome == "correct";
-isError = terminalFates.Outcome == "error";
+radioOutcomes = terminalFates.Outcome(radioRows);
+isCorrect = radioOutcomes == "correct";
+isError = radioOutcomes == "error";
 hasCorrect = accumarray( ...
     groupIndices,isCorrect,[groupCount,1],@any);
 hasError = accumarray( ...
@@ -53,7 +61,8 @@ hasError = accumarray( ...
 conflictingGroups = find(hasCorrect & hasError);
 if ~isempty(conflictingGroups)
     firstGroup = conflictingGroups(1);
-    firstRow = find(groupIndices == firstGroup,1);
+    firstRadioRow = find(groupIndices == firstGroup,1);
+    firstRow = radioRows(firstRadioRow);
     error( ...
         "v2xsim:analysis:ConflictingTerminalPacketFates", ...
         "Directed packet %s/%s/%u/%s has conflicting terminal " + ...
@@ -64,16 +73,17 @@ if ~isempty(conflictingGroups)
         terminalFates.ReceiverUeId(firstRow));
 end
 
-rowIndices = (1:height(terminalFates)).';
-isNotRadio = ~(isCorrect | isError);
+radioRowIndices = (1:numel(radioRows)).';
 selectionOrder = sortrows( ...
-    table(groupIndices,isNotRadio,rowIndices), ...
-    ["groupIndices","isNotRadio","rowIndices"]);
+    table(groupIndices,radioRowIndices), ...
+    ["groupIndices","radioRowIndices"]);
 isFirstGroupRow = [ ...
     true;diff(selectionOrder.groupIndices) ~= 0];
-retainedRows = sort( ...
-    selectionOrder.rowIndices(isFirstGroupRow));
-terminalFates = terminalFates(retainedRows,:);
+retainedRadioRows = radioRows( ...
+    selectionOrder.radioRowIndices(isFirstGroupRow));
+retain = isBlocked;
+retain(retainedRadioRows) = true;
+terminalFates = terminalFates(retain,:);
 end
 
 function validateObservations(observations)

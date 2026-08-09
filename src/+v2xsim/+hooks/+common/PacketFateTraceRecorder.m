@@ -2,11 +2,10 @@ classdef PacketFateTraceRecorder < v2xsim.hook.Hook
     %PACKETFATETRACERECORDER Stream terminal directed packet outcomes.
     %   The recorder assigns a monotonic packet sequence independently for
     %   every technology/transmitter UE identity. Allocator-blocked
-    %   observations are held until packet advance or cleanup because an
-    %   existing reservation can still produce a radio fate; a subsequent
-    %   correct/error outcome supersedes that blocked observation. The
-    %   resulting one-row-per-directed-packet fates are written in bounded
-    %   chunks.
+    %   observations are immutable terminal PRR events and are written with
+    %   their block-time true-distance snapshot. Correct/error observations
+    %   retain directed-packet reconciliation across repeated radio reports.
+    %   Terminal fates are written in bounded chunks.
 
     properties (Constant, Access = protected)
         DependencyTypes = ...
@@ -92,9 +91,6 @@ classdef PacketFateTraceRecorder < v2xsim.hook.Hook
         end
 
         function obj = cleanup(obj)
-            blocked = obj.ActiveTerminalFates( ...
-                obj.ActiveTerminalFates.Outcome == "blocked",:);
-            obj.BufferedFates = [obj.BufferedFates;blocked];
             obj.ActiveTerminalFates( ...
                 1:height(obj.ActiveTerminalFates),:) = [];
             obj = obj.flushCompleteChunks();
@@ -291,6 +287,13 @@ classdef PacketFateTraceRecorder < v2xsim.hook.Hook
                 reconcileActiveTerminalState(obj,terminalFates)
             retain = true(height(terminalFates),1);
             for fateIndex = 1:height(terminalFates)
+                % A block has already been counted by the global PRR
+                % recorder. Preserve that exact event row immediately;
+                % only radio terminal outcomes participate in active-state
+                % reconciliation.
+                if terminalFates.Outcome(fateIndex) == "blocked"
+                    continue
+                end
                 isExisting = ...
                     obj.ActiveTerminalFates.Technology == ...
                         terminalFates.Technology(fateIndex) & ...
@@ -304,25 +307,12 @@ classdef PacketFateTraceRecorder < v2xsim.hook.Hook
                 if isempty(existingRow)
                     obj.ActiveTerminalFates(end + 1,:) = ...
                         terminalFates(fateIndex,:);
-                    if terminalFates.Outcome(fateIndex) == "blocked"
-                        retain(fateIndex) = false;
-                    end
                     continue
                 end
                 existingOutcome = ...
                     obj.ActiveTerminalFates.Outcome(existingRow);
                 newOutcome = terminalFates.Outcome(fateIndex);
-                if existingOutcome == "blocked" && ...
-                        ismember(newOutcome,["correct","error"])
-                    obj.ActiveTerminalFates(existingRow,:) = ...
-                        terminalFates(fateIndex,:);
-                    continue
-                elseif ismember( ...
-                        existingOutcome,["correct","error"]) && ...
-                        newOutcome == "blocked"
-                    retain(fateIndex) = false;
-                    continue
-                elseif existingOutcome ~= newOutcome
+                if existingOutcome ~= newOutcome
                     error( ...
                         "v2xsim:analysis:" + ...
                         "ConflictingTerminalPacketFates", ...
@@ -349,10 +339,6 @@ classdef PacketFateTraceRecorder < v2xsim.hook.Hook
                 obj.ActiveTerminalFates.Technology == technology & ...
                 obj.ActiveTerminalFates.TransmitterUeId == ...
                     transmitterUeId;
-            blocked = obj.ActiveTerminalFates( ...
-                isTransmitter & ...
-                obj.ActiveTerminalFates.Outcome == "blocked",:);
-            obj.BufferedFates = [obj.BufferedFates;blocked];
             obj.ActiveTerminalFates(isTransmitter,:) = [];
         end
 
