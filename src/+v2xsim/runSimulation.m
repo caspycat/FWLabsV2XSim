@@ -11,6 +11,8 @@ function result = runSimulation(configuration, options)
 %   dotted name-value overrides. ProgressFcn is an optional run-owned
 %   observer that receives structured initialization, simulated-time, and
 %   finalization events without changing scientific state.
+%   PositionErrorChainSpecification optionally provides an explicit
+%   ordered chain containing configured and researcher-supplied modules.
 %
 %   The FWLabsV2XSim MATLAB Project must be active before calling this
 %   function, either because it is open directly or because a research
@@ -41,6 +43,8 @@ arguments (Input)
     options.OutputDirectory (1, 1) string
     options.RunLabel (1, 1) string = ""
     options.ProgressFcn {mustBeProgressFunctionOrEmpty} = []
+    options.PositionErrorChainSpecification ...
+        {mustBePositionErrorChainSpecificationOrEmpty} = []
 end
 arguments (Output)
     result (1, 1) v2xsim.runtime.SimulationResult
@@ -72,6 +76,11 @@ randomCleanup = onCleanup(@() rng(callerRandomState));
 [simParams,appParams,phyParams,outParams,outputHookOptions] = ...
     v2xsim.runtime.internal.initializeEstablishedEngine( ...
         plan, engineRunOptions);
+if ~isempty(options.PositionErrorChainSpecification)
+    simParams = v2xsim.runtime.internal.composePositionErrorChain( ...
+        simParams, plan.Positioning, ...
+        options.PositionErrorChainSpecification);
+end
 fprintf('FWLabsV2XSim %s\n\n',constants.SIM_VERSION);
 fprintf('Full path of the output directory = %s\n', ...
     outputSession.RunDirectory);
@@ -259,7 +268,8 @@ artifacts = collectArtifactPaths(outputSession.RunDirectory);
 outputSession.close();
 result = v2xsim.runtime.SimulationResult( ...
     configuration, plan, metricSnapshot, artifacts, ...
-    outputSession.RunDirectory);
+    outputSession.RunDirectory, ...
+    summary.Configuration.Positioning.ErrorChain);
 clear outputCleanup randomCleanup
 
 end
@@ -311,5 +321,19 @@ if ~(isa(value, "function_handle") && isscalar(value))
     error( ...
         "v2xsim:runtime:InvalidProgressFunction", ...
         "ProgressFcn must be empty or a scalar function handle.");
+end
+end
+
+function mustBePositionErrorChainSpecificationOrEmpty(value)
+if isequal(value, [])
+    return
+end
+if ~isa(value, ...
+        "v2xsim.positioning.PositionErrorChainSpecification") || ...
+        ~isscalar(value)
+    error( ...
+        "v2xsim:runtime:InvalidPositionErrorChainSpecification", ...
+        "PositionErrorChainSpecification must be empty or one " + ...
+        "v2xsim.positioning.PositionErrorChainSpecification.");
 end
 end

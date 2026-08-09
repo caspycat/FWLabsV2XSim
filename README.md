@@ -84,6 +84,11 @@ slice-scoped allocator contracts. See the
 centralized and autonomous interfaces, available algorithms, coexistence
 boundary, and named V7 selectors.
 
+Research projects can supply run-scoped positioning-error implementations and
+interleave them with TOML-configured built-ins. See
+[custom position-error modules](docs/position-error-extensions.md) for the
+subclass contract, ordered-chain API, and reproducibility requirements.
+
 # Dependencies
 
 To run and develop the simulator in the MATLAB IDE, the following MathWorks products are required:

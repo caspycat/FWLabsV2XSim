@@ -227,6 +227,12 @@ Supported error types are `Gaussian`, `Delay`, `FalseExit`, and `FalseMerge`.
 A patch replaces the complete `Positioning.Errors` array; entries are not
 merged by index.
 
+Researcher-supplied MATLAB implementations are composed at the run boundary,
+not named or loaded from TOML. See
+[custom position-error modules](position-error-extensions.md). When a run uses
+an explicit chain specification, every TOML-configured error must occur in it
+exactly once.
+
 `Gaussian.ActiveRoutes` is either `["All"]` or a nonempty, duplicate-free
 array drawn from `"Ramp"`, `"Merge"`, and `"Adjacent"`.
 

@@ -155,6 +155,14 @@ configured error module receive chain-level rows with `ModuleIndex` zero and
 an empty `StatusEffectType`. This makes both the realized active-error
 magnitude and each vehicle's observed status-effect lifecycle observable.
 
+The semantic JSON summary records the exact applied error-chain order under
+`Configuration.Positioning.ErrorChain`. Researcher-supplied entries contain
+`Origin="Custom"`, their full MATLAB class name in `Type`, and the JSON-safe
+caller descriptor. The in-memory `SimulationResult.AppliedPositionErrorChain`
+contains the same value. Reproducing such a run also requires the referenced
+research code; the resolved TOML configuration contains only built-in module
+parameters.
+
 The Ramp study reducer also writes
 `position_error_lifecycle_events.csv`. It is a compact, sorted projection of
 the full trace containing only evaluation, selection, active-segment
