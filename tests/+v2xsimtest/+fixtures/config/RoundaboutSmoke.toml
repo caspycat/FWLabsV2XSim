@@ -1,0 +1,65 @@
+# Package-local four-arm roundabout smoke-test baseline.
+SchemaVersion = 1
+
+[Simulation]
+RandomSeed = 10
+DurationSeconds = 10
+
+[Scenario]
+Type = "Roundabout"
+
+[Scenario.Roundabout]
+ExitLengths = [120, 140, 160, 180]
+RoadWidth = 4
+InnerCircleDiameter = 60
+
+[Application]
+PacketSizeBytes = 190
+
+[Application.ChannelLoad]
+Enabled = true
+
+[Radio]
+Type = "NrV2X"
+ReceiverNoiseFigureDb = 6
+TransmitAntennaGainDb = 3
+ReceiveAntennaGainDb = 3
+FixedPowerDensityEnabled = false
+
+[Radio.NrV2X]
+SubcarrierSpacingKilohertz = 15
+DmrsResourceElementCountPerSlot = 24
+Mcs = 7
+
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 10
+PartialFrequencyOverlapEnabled = false
+
+[Awareness]
+RangesMeters = [300]
+
+[ResourceAllocation]
+Type = "MaximumReuseDistance"
+
+[ResourceAllocation.MaximumReuseDistance]
+
+[Outputs.PacketReceptionRatio]
+Enabled = true
+
+[Outputs.UpdateDelay]
+Enabled = true
+
+[Outputs.PacketDelay]
+Enabled = true
+
+[Outputs.DataAge]
+Enabled = true
+
+[Outputs.WirelessBlindSpot]
+Enabled = true
+
+[Outputs.AverageNeighborCount]
+Enabled = true
+
+[Outputs.ChannelBusyRatio]
+Enabled = true

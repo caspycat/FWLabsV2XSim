@@ -140,6 +140,12 @@ roadsideUnits = plan.Infrastructure.RoadsideUnits;
                     "VehicleSpeedStandardDeviation", ...
                     "RerollSpeedOnWrapAround", ...
                     "ExitProbability", "MergeDistance"];
+            case "Roundabout"
+                fields = [ ...
+                    "VehicleCount", "ExitLengths", "RoadWidth", ...
+                    "InnerCircleDiameter", "MeanVehicleSpeed", ...
+                    "VehicleSpeedStandardDeviation", ...
+                    "RerollSpeedOnWrapAround"];
         end
         for field = fields
             append("scenarioOptions." + field, values.(field));
@@ -560,6 +566,8 @@ switch type
         result = "EtsiHighwayScenario";
     case "ExitRampHighway"
         result = "ExitRampHighwayScenario";
+    case "Roundabout"
+        result = "RoundaboutScenario";
 end
 end
 

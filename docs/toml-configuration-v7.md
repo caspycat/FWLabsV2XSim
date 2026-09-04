@@ -143,10 +143,44 @@ discriminator and branch name is case-sensitive.
 | `BidirectionalHighway` | `Scenario.BidirectionalHighway` |
 | `EtsiHighway` | `Scenario.EtsiHighway` |
 | `ExitRampHighway` | `Scenario.ExitRampHighway` |
+| `Roundabout` | `Scenario.Roundabout` |
 
 An authored table for a different scenario is an error. A patch that changes
 `Type` atomically replaces the prior selected branch before defaults are
 applied.
+
+`Scenario.Roundabout` describes a four-arm roundabout. `ExitLengths` is either
+one positive length shared by every arm or four positive lengths ordered
+`[North, East, South, West]`. Its other options are `RandomSeed`,
+`VehicleCount`, `RoadWidth`, `InnerCircleDiameter`, `MeanVehicleSpeed`,
+`VehicleSpeedStandardDeviation`, and `RerollSpeedOnWrapAround`.
+
+The scenario models left-hand traffic: each arm has one inbound and one
+outbound lane, and the single circulating lane travels clockwise. `RoadWidth`
+is both the width of one directional arm lane and the radial width of the
+circulating annulus. Each exit length is measured along its arm axis from the
+outer roundabout pavement edge to the simulation boundary.
+
+Each vehicle chooses its entry arm and exit arm independently and uniformly,
+so all 16 ordered routes are possible, including a U-turn back to the entry
+arm. The initial fixed-size population is distributed uniformly by physical
+distance over each vehicle's complete chosen route. At the end of an outbound
+arm, the same vehicle identity is recycled onto a newly sampled route; its
+speed is sampled again only when `RerollSpeedOnWrapAround` is true. The model
+does not add yielding, car-following, or collision avoidance.
+
+The inner-circle diameter `D` must be at least twice the road width `W`.
+The smooth straight-to-roundabout connector places its axial tangent at
+
+\[
+a = \sqrt{0.75D^2 + DW}.
+\]
+
+With outer pavement radius `r_o = D/2 + W`, every exit length must be at least
+`a - r_o`. The defaults are `RandomSeed = 1`, `VehicleCount = 100`,
+`ExitLengths = 500`, `RoadWidth = 4`, `InnerCircleDiameter = 60`,
+`MeanVehicleSpeed = 20`, `VehicleSpeedStandardDeviation = 2`, and
+`RerollSpeedOnWrapAround = true`.
 
 ### Radio
 
@@ -227,6 +261,18 @@ DelaySeconds = 0.1
 Supported error types are `Gaussian`, `Delay`, `FalseExit`, and `FalseMerge`.
 A patch replaces the complete `Positioning.Errors` array; entries are not
 merged by index.
+
+`FalseExit` is supported by both `ExitRampHighway` and `Roundabout`.
+`FalseMerge` remains specific to `ExitRampHighway`. Route-filtered Gaussian
+errors also remain specific to the exit-ramp route names.
+
+For a roundabout, an active `FalseExit` error follows an exit that the true
+vehicle has just passed, using the same physical distance along that false
+exit. The counterfactual ends at the next outbound junction or at the end of
+the false arm, whichever comes first; outside such a skipped-exit window the
+module reports the true position. Affected-vehicle selection is stable for
+each vehicle identity, and the existing `ResetAfterSeconds` timer begins on
+the identity's first active false-exit window.
 
 Researcher-supplied MATLAB implementations are composed at the run boundary,
 not named or loaded from TOML. See

@@ -21,7 +21,7 @@ path. The `examples` folder is intentionally not on that path.
 | `06_run_density_sweep` | `run_density_sweep.m` | Give every campaign case its own run directory and aggregate completion summaries. |
 | `07_run_nr_mode1` | `run_nr_mode1.m` | Run NR-V2X with a centralized allocator and inspect Mode 1 metadata and PRR. |
 | `08_run_nr_mode1_etsi_campaign` | `run_nr_mode1_etsi_campaign.m` | Sweep the three 3GPP freeway traffic presets with paired Mode 1 seeds. |
-| `09_explore_traffic_scenarios` | `explore_traffic_scenarios.m` | Run and plot all four public mobility scenarios under one NR Mode 1 baseline. |
+| `09_explore_traffic_scenarios` | `explore_traffic_scenarios.m` | Run and plot all five public mobility scenarios under one NR Mode 1 baseline. |
 | `10_run_nr_mode2` | `run_nr_mode2.m` | Run NR-V2X Mode 2 with every sensing/SPS option and inspect the derived beacon-resource grid. |
 | `11_compare_lte_modes` | `compare_lte_modes.m` | Compare centralized LTE-V2X Mode 3 with autonomous Mode 4. |
 | `12_compare_ieee80211p` | `compare_ieee80211p.m` | Compare native/surrogate IEEE PHYs and static/adaptive repetition. |

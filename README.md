@@ -73,7 +73,7 @@ The [progressive V7 examples](examples/README.md) provide short runnable
 scripts and canonical configuration files for a first simulation,
 component-owned random streams, named resource allocators, positioning-error
 chains, hook-backed outputs, isolated multi-run sweeps, centralized NR Mode 1
-allocation, the three 3GPP freeway traffic presets, and all four public
+allocation, the three 3GPP freeway traffic presets, and all five public
 mobility scenarios, plus NR Mode 2 and its derived beacon-resource grid. The
 [V7 researcher wiki](https://github.com/caspycat/FWLabsV2XSim/wiki)
 provides the task-oriented tutorials and data-analysis reference.
