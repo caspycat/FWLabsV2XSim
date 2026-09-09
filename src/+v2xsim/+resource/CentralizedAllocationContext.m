@@ -1,6 +1,7 @@
 classdef CentralizedAllocationContext < ...
         v2xsim.resource.ResourceAllocationContext
     %CENTRALIZEDALLOCATIONCONTEXT Slice-wide observations for a controller.
+    %   X contains the controller-visible apparent longitudinal position.
     %   Pairwise matrices use the row and column order declared by UeIds.
 
     properties (SetAccess = immutable)

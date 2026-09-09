@@ -43,6 +43,11 @@ DisplacementScale = 1
 SelectionRandomSeed = 604
 
 [[Positioning.Errors]]
+Type = "PacketLoss"
+LossProbability = 0.25
+RandomSeed = 704
+
+[[Positioning.Errors]]
 Type = "Delay"
 DelaySeconds = 0.1
 

@@ -16,7 +16,7 @@ path. The `examples` folder is intentionally not on that path.
 | `01_run_first_simulation` | `run_first_simulation.m` | Load and resolve a namespaced TOML configuration, run NR-V2X Mode 2, and read `simulation_summary.json`. |
 | `02_reproduce_traffic` | `reproduce_traffic.m` | Keep traffic fixed with a scenario-owned seed while changing radio and allocator seeds through nested patches. |
 | `03_compare_named_allocators` | `compare_named_allocators.m` | Select each cellular-sidelink resource allocator by name and inspect its metadata. |
-| `04_apply_position_errors` | `apply_position_errors.m` | Compose Gaussian, false-route, and delay errors on an exit-ramp scenario. |
+| `04_apply_position_errors` | `apply_position_errors.m` | Compose Gaussian, false-route, packet-loss, and fixed-delay errors on an exit-ramp scenario. |
 | `05_inspect_output_artifacts` | `inspect_output_artifacts.m` | Enable hook-backed JSON and CSV outputs and read them in MATLAB. |
 | `06_run_density_sweep` | `run_density_sweep.m` | Give every campaign case its own run directory and aggregate completion summaries. |
 | `07_run_nr_mode1` | `run_nr_mode1.m` | Run NR-V2X with a centralized allocator and inspect Mode 1 metadata and PRR. |

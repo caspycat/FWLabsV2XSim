@@ -79,7 +79,8 @@ resource allocation, and awareness ranges.
 Within `Configuration.Positioning.ErrorChain`, a status-effect-backed module
 is represented as `Type="PositionErrorStatusEffectInflictor"` with a nested
 `StatusEffect` object containing its concrete `Type` and normalized `Options`.
-Direct modules such as `PositionDelayError` retain module-level options.
+Direct modules such as `PositionPacketLossError` and `PositionDelayError`
+retain module-level options.
 
 `Results` contains fixed `CellularSidelink`, `Ieee80211p`, and `Combined`
 objects. Awareness results are arrays of disjoint range records. Each record
@@ -154,6 +155,19 @@ even when that first observation is at simulation time zero. Vehicles with no
 configured error module receive chain-level rows with `ModuleIndex` zero and
 an empty `StatusEffectType`. This makes both the realized active-error
 magnitude and each vehicle's observed status-effect lifecycle observable.
+
+The final three columns describe network-update provenance:
+`NetworkUpdateOutcome`, `OutputSourceTimeSeconds`, and `OutputAgeSeconds`.
+Packet loss reports `BootstrapReceived`, `Received`, or `Dropped`; fixed delay
+reports `Delayed`, `WarmupHeld`, or `CurrentFallback`. Source time is the
+module-local time at which the emitted upstream sample was captured, and age
+is current simulation time minus that source time. These ages are not additive
+or end-to-end when more than one network module is chained. Non-network and
+chain-identity rows use an empty outcome and `NaN` times.
+
+These position-error fields describe the abstract controller-bound update
+path. They are independent of PHY packet fates and the application-packet
+latency histogram controlled by `Outputs.PacketDelay`.
 
 The semantic JSON summary records the exact applied error-chain order under
 `Configuration.Positioning.ErrorChain`. Researcher-supplied entries contain

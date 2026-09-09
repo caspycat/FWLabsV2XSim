@@ -45,8 +45,12 @@ must own its random stream and accept an explicit seed; it must not consume or
 replace MATLAB's global random stream.
 
 The base class generates displacement diagnostics automatically. Override its
-protected diagnostic builder only when the model has additional lifecycle
-facts that fit the normalized position-error diagnostic schema.
+protected diagnostic builder only when the model has additional lifecycle or
+network-update facts that fit the normalized position-error diagnostic schema.
+The built-in packet-loss and fixed-delay modules use
+`NetworkUpdateOutcome`, `OutputSourceTimeSeconds`, and `OutputAgeSeconds` for
+this purpose; custom network models should preserve the same source-time/age
+relationship while using a stable, nonblank outcome vocabulary.
 
 ## Compose a run
 

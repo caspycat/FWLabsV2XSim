@@ -4,7 +4,8 @@ classdef PositionDelayError < v2xsim.positioning.PositionErrorModule
     %   the newest stored snapshot whose timestamp is no later than
     %   t - DelaySeconds. Before that history exists, it holds the earliest
     %   available snapshot. Vehicles without history are reported at their
-    %   current apparent position.
+    %   current apparent position. Diagnostics report which module-input
+    %   snapshot supplied each output and its module-local age.
 
     properties (SetAccess = immutable)
         DelaySeconds (1, 1) double ...
@@ -14,6 +15,8 @@ classdef PositionDelayError < v2xsim.positioning.PositionErrorModule
     properties (Access = private)
         HistoryTimesSeconds (:, 1) double = zeros(0, 1)
         HistorySnapshots (1, :) cell = cell(1, 0)
+        LastNetworkUpdateOutcomes (:, 1) string = strings(0, 1)
+        LastOutputSourceTimesSeconds (:, 1) double = zeros(0, 1)
     end
 
     methods
@@ -36,18 +39,50 @@ classdef PositionDelayError < v2xsim.positioning.PositionErrorModule
             targetTime = currentTime - obj.DelaySeconds;
             snapshotIndex = find( ...
                 obj.HistoryTimesSeconds <= targetTime, 1, "last");
-            if isempty(snapshotIndex)
+            isWarmupHold = isempty(snapshotIndex);
+            if isWarmupHold
                 snapshotIndex = 1;
             end
 
             delayedSnapshot = obj.HistorySnapshots{snapshotIndex};
-            outputPositions = obj.copyAvailableVehicleHistory( ...
+            [outputPositions, hasSelectedHistory] = ...
+                obj.copyAvailableVehicleHistory( ...
                 inputPositions, delayedSnapshot);
+            vehicleCount = height(inputPositions);
+            sourceTimeSeconds = ...
+                obj.HistoryTimesSeconds(snapshotIndex);
+            obj.LastOutputSourceTimesSeconds = repmat( ...
+                sourceTimeSeconds, vehicleCount, 1);
+            if isWarmupHold
+                historyOutcome = "WarmupHeld";
+            else
+                historyOutcome = "Delayed";
+            end
+            obj.LastNetworkUpdateOutcomes = repmat( ...
+                historyOutcome, vehicleCount, 1);
+            obj.LastOutputSourceTimesSeconds(~hasSelectedHistory) = ...
+                currentTime;
+            obj.LastNetworkUpdateOutcomes(~hasSelectedHistory) = ...
+                "CurrentFallback";
 
             obj.HistoryTimesSeconds = ...
                 obj.HistoryTimesSeconds(snapshotIndex:end);
             obj.HistorySnapshots = ...
                 obj.HistorySnapshots(snapshotIndex:end);
+        end
+
+        function diagnostics = buildDiagnostics( ...
+                obj, inputPositions, outputPositions, context)
+            diagnostics = v2xsim.positioning.diagnostics.createRows( ...
+                inputPositions, outputPositions, ...
+                context.SimulationTimeSeconds, string(class(obj)));
+            diagnostics.NetworkUpdateOutcome = ...
+                obj.LastNetworkUpdateOutcomes;
+            diagnostics.OutputSourceTimeSeconds = ...
+                obj.LastOutputSourceTimesSeconds;
+            diagnostics.OutputAgeSeconds = ...
+                context.SimulationTimeSeconds - ...
+                obj.LastOutputSourceTimesSeconds;
         end
     end
 
@@ -71,13 +106,14 @@ classdef PositionDelayError < v2xsim.positioning.PositionErrorModule
             obj.HistorySnapshots{end + 1} = positions;
         end
 
-        function outputPositions = copyAvailableVehicleHistory( ...
+        function [outputPositions, hasHistory] = ...
+                copyAvailableVehicleHistory( ...
                 ~, inputPositions, delayedSnapshot)
             outputPositions = inputPositions;
-            currentVehicleIds = string( ...
-                inputPositions.Properties.RowNames);
-            delayedVehicleIds = string( ...
-                delayedSnapshot.Properties.RowNames);
+            currentVehicleIds = reshape(string( ...
+                inputPositions.Properties.RowNames), [], 1);
+            delayedVehicleIds = reshape(string( ...
+                delayedSnapshot.Properties.RowNames), [], 1);
             hasHistory = ismember(currentVehicleIds, delayedVehicleIds);
             vehicleIdsWithHistory = currentVehicleIds(hasHistory);
             outputPositions( ...

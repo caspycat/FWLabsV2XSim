@@ -21,7 +21,7 @@ Set `ResourceAllocation.Type` to one of the canonical string values below.
 | `MinimumReusePower` | Centralized | Chooses reuse assignments that minimize estimated received reuse power. |
 | `SensingBased` | Autonomous | Implements the current 3GPP sensing-based semi-persistent selection procedure for LTE Mode 4 and NR Mode 2. |
 | `Random` | Benchmark | Selects packet-triggered resources randomly from the eligible set. |
-| `Ordered` | Benchmark | Assigns frequency-first resources in longitudinal-position order. |
+| `Ordered` | Benchmark | Assigns frequency-first resources in controller-visible apparent longitudinal-position order. |
 
 `ResourceAllocation.RandomSeed` seeds an allocator-owned random stream. Its
 default is `Simulation.RandomSeed`. Allocator randomness is stored as value
@@ -45,6 +45,10 @@ continue to use true geometry. When controller diagnostics are enabled, the
 allocator also evaluates a one-step oracle with true distances from the same
 pre-decision state and the same pre-generated random priorities; that oracle
 is observational and never changes the live allocation.
+
+`Ordered` likewise sorts on controller-visible apparent X coordinates, not
+privileged true X coordinates. Position-error modules can therefore change its
+deterministic ordering while physical propagation continues to use truth.
 
 The diagnostic comparison keeps two distinct pair graphs. The exact-resource
 graph asks whether two UEs share one resource, while the interference-overlap
@@ -84,8 +88,9 @@ the legacy transmission matrices at one integration boundary.
 
 The two algorithm families differ in the information their contracts permit:
 
-- `CentralizedAllocationContext` provides controller-wide position, distance,
-  received-power, and shadowing observations.
+- `CentralizedAllocationContext` provides controller-wide apparent position,
+  estimated distance, true-distance diagnostic/oracle data, received-power,
+  and shadowing observations.
 - `AutonomousAllocationContext` provides UE-local eligibility and a
   `SensingSnapshot`. `ThreeGppAllocationContext` extends it with SPS,
   packet-state, and per-UE transmission-count facts. The only standards-based

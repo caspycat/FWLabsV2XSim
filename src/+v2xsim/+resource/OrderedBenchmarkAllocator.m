@@ -1,11 +1,12 @@
 classdef OrderedBenchmarkAllocator < v2xsim.resource.ResourceAllocator
-    %ORDEREDBENCHMARKALLOCATOR Position-ordered deterministic benchmark.
+    %ORDEREDBENCHMARKALLOCATOR Apparent-position-ordered benchmark.
 
     properties (Constant)
         Type = "OrderedBenchmark"
         Category = "Benchmark"
         Description = ...
-            "Frequency-first resources ordered by longitudinal position"
+            "Frequency-first resources ordered by apparent " + ...
+            "longitudinal position"
         ContextContract = "Centralized"
         UsesSelectionWindow = false
     end

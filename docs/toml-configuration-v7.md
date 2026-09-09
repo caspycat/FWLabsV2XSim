@@ -219,7 +219,7 @@ The coexistence branch permits only `Radio.Coexistence`,
 | `MinimumReusePower` | Controlled minimum-received-power assignment |
 | `SensingBased` | 3GPP autonomous sensing and semi-persistent scheduling |
 | `Random` | Random benchmark |
-| `Ordered` | Position-ordered benchmark |
+| `Ordered` | Benchmark ordered by controller-visible apparent X position |
 
 `RandomSeed` and `FullDuplex` are common fields. Options in an inactive
 allocator table are rejected.
@@ -254,13 +254,34 @@ ResetAfterSeconds = inf
 ActiveRoutes = ["Merge", "Adjacent"]
 
 [[Positioning.Errors]]
+Type = "PacketLoss"
+LossProbability = 0.1
+RandomSeed = 123
+
+[[Positioning.Errors]]
 Type = "Delay"
 DelaySeconds = 0.1
 ```
 
-Supported error types are `Gaussian`, `Delay`, `FalseExit`, and `FalseMerge`.
+Supported error types are `Gaussian`, `PacketLoss`, `Delay`, `FalseExit`, and
+`FalseMerge`.
 A patch replaces the complete `Positioning.Errors` array; entries are not
 merged by index.
+
+`PacketLoss` independently drops each known vehicle's position update at each
+position-update epoch and holds that vehicle's last successfully received
+apparent position. The first observation of an identity is always accepted so
+the controller has a bootstrap value. `LossProbability` is in `[0,1]`; an
+omitted `RandomSeed` is derived from `Simulation.RandomSeed` with salt `205019`.
+The stream is component-owned and does not consume MATLAB's global stream.
+
+`Delay` is a fixed controller-bound position-update transport latency. It
+returns the newest stored apparent-position sample no later than
+`t - DelaySeconds`, with sample-and-hold warm-up and no interpolation. Both
+network modules operate on the preceding apparent chain state. They abstract
+the shared controller's update path; they do not create link-specific radio
+packets, alter PHY packet fates, or replace the separate `Outputs.PacketDelay`
+metric.
 
 `FalseExit` is supported by both `ExitRampHighway` and `Roundabout`.
 `FalseMerge` remains specific to `ExitRampHighway`. Route-filtered Gaussian
