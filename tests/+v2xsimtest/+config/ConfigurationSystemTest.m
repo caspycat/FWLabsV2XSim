@@ -2,6 +2,22 @@ classdef ConfigurationSystemTest < matlab.unittest.TestCase
     %CONFIGURATIONSYSTEMTEST Focused tests for the TOML-only config core.
 
     methods (Test)
+        function highwaySpeedDefaultsAreScenarioSpecific(testCase)
+            defaults = v2xsim.config.ConfigurationTemplate( ...
+                struct(SchemaVersion=1)).resolve();
+            highway = defaults.Data.Scenario.BidirectionalHighway;
+            testCase.verifyEqual(highway.MeanVehicleSpeed, 22.2);
+            testCase.verifyEqual(highway.VehicleSpeedStandardDeviation, 2.78);
+
+            % The shared highway schema must preserve exit-ramp defaults.
+            exitDefaults = v2xsim.config.ConfigurationTemplate(struct( ...
+                SchemaVersion=1, ...
+                Scenario=struct(Type="ExitRampHighway"))).resolve();
+            exitHighway = exitDefaults.Data.Scenario.ExitRampHighway;
+            testCase.verifyEqual(exitHighway.MeanVehicleSpeed, 80);
+            testCase.verifyEqual(exitHighway.VehicleSpeedStandardDeviation, 10);
+        end
+
         function loadsAndResolvesAllMigratedFixtures(testCase)
             repositoryRoot = testCase.repositoryRoot();
             searchRoots = [ ...

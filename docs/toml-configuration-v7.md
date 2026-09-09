@@ -135,6 +135,11 @@ discriminator and branch name is case-sensitive.
 
 ### Scenario
 
+`Scenario.BidirectionalHighway` defaults to `MeanVehicleSpeed = 22.2` m/s
+and `VehicleSpeedStandardDeviation = 2.78` m/s. These defaults also apply
+when constructing `v2xsim.vehicle.scenarios.BidirectionalHighwayScenario`
+directly. Explicitly configured speed values override these defaults.
+
 `Scenario.Type` selects exactly one branch:
 
 | Type | Selected table |

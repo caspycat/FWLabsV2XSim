@@ -21,9 +21,9 @@ classdef BidirectionalHighwayScenarioTest < matlab.unittest.TestCase
             testCase.verifyEqual(scenario.LaneWidth, 2.5);
             testCase.verifyEqual(scenario.RoadLength, 2000);
             testCase.verifyEqual(scenario.CentralDividerWidth, 0);
-            testCase.verifyEqual(scenario.MeanVehicleSpeed, 80);
+            testCase.verifyEqual(scenario.MeanVehicleSpeed, 22.2);
             testCase.verifyEqual( ...
-                scenario.VehicleSpeedStandardDeviation, 10);
+                scenario.VehicleSpeedStandardDeviation, 2.78);
             testCase.verifyTrue(scenario.RerollSpeedOnWrapAround);
             testCase.verifyClass( ...
                 scenario.Geometry, ...
