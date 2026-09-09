@@ -143,6 +143,47 @@ numbered chunks. `<chunk>` is a zero-padded six-digit sequence. Packet fates
 can instead use CSV when `Outputs.PacketFateTrace.FileFormat` is `csv`; a run
 never mixes the two packet-fate formats.
 
+## Packet delay and data age
+
+Packet delay measures the successful reception time minus **that packet's
+original generation time**. It includes waiting in the packet buffer, channel
+access, and any elapsed unsuccessful attempts before reception. Queue admission,
+head selection, and retries never rewrite the generation timestamp. The existing
+coexistence adjustment from application generation to access-layer admission is
+also preserved.
+
+Data age records reception-sampled **peak age**: the current successful reception
+time minus the generation time of the previously successfully received packet
+on that directed link and awareness range. The first success establishes history
+without recording an age sample. Failed and blocked packets do not supply a new
+generation timestamp. This is not a time-averaged age measurement. Both metrics
+therefore include buffering time through their generation timestamps; for example,
+generation at 0 s and reception at 0.35 s yields 0.35 s packet delay even if
+transmission started at 0.30 s.
+
+Packet-delay CSVs retain their columns and configured bin width, but now grow
+beyond the original approximately two-allocation-period extent when a successful
+reception has a longer delay. Consumers must read the row count from the file.
+Counts already recorded in other technologies, channels, and packet types are
+preserved when the histogram grows. Blocked/error outcomes do not extend it.
+Data age retains its existing maximum-age allocation and final overflow bin.
+
+Packet sequences are assigned at generation per stable UE, including packets
+that are subsequently dropped, and survive retries and departure/re-entry of the
+same identity. Fate rows are in reporting order, which need not be packet-sequence
+order: a waiting packet can be dropped while an older packet is on air. The hook
+transmitter metadata includes logical `IsPacketComplete`; true requires an
+explicit sequence and retires the packet's reconciliation state after processing
+that invocation. No further observations may be emitted for a completed packet.
+Departure completion notifications contain no receiver fates and add no PRR counts.
+
+IEEE 802.11p summary counters now commit the same first-success and final-error
+events as PRR and packet-fate outputs. A failed intermediate copy is not counted
+as a terminal error. This corrects historical overcounts when a simulation ended
+with a packet awaiting repetition; overflow after an attempted packet commits
+errors only for receivers that have not already received it. Consequently, runs
+with unfinished repetitions can deliberately differ from archived summary counts.
+
 ## Position-error trace
 
 `position_error_trace_<chunk>.csv` contains one row per vehicle and

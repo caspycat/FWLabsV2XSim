@@ -5,6 +5,8 @@ function [timeManagement,stationManagement,sinrManagement,outputValues] = endOfB
 % - The backoff counter is reset
 % - The end of the transmission is set
 stationManagement.vehicleState(idEvent) = 3; % tx
+stationManagement.packetBuffers{idEvent} = ...
+    stationManagement.packetBuffers{idEvent}.startAttempt();
 stationManagement.nSlotBackoff11p(idEvent) = -1;
 
 if phyParams.fadingRayleigh
@@ -49,4 +51,3 @@ end
 
 stationManagement.pckTxOccurring(idEvent) = stationManagement.pckNextAttempt(idEvent);
 stationManagement.pckNextAttempt(idEvent) = stationManagement.pckNextAttempt(idEvent) + 1;
-

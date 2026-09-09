@@ -1,5 +1,24 @@
 classdef PacketFateTraceRecorderTest < matlab.unittest.TestCase
     methods (Test)
+        function waitingDropCanPrecedeOlderPacketCompletion(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            recorder = v2xsim.hooks.common.PacketFateTraceRecorder(FlushRowCount=2);
+            recorder = recorder.build(v2xsim.hook.dependencies.OutputDirectory(string(fixture.Folder)));
+            first = testCase.makeInvocation(0.1,0,1,4,1,["correct";"none"]);
+            first = testCase.withIdentity(first,1,false);
+            recorder = recorder.invoke(first);
+            dropped = testCase.makeInvocation(0.2,0.15,0,nan,1,["blocked";"blocked"]);
+            recorder = recorder.invoke(testCase.withIdentity(dropped,2,true));
+            % A repeated success for the still-live older packet stays deduplicated.
+            recorder = recorder.invoke(first);
+            last = testCase.makeInvocation(0.3,0,2,4,1,["none";"error"]);
+            recorder = recorder.invoke(testCase.withIdentity(last,1,true));
+            recorder = recorder.cleanup();
+            fates = recorder.terminalFates();
+            testCase.verifyEqual(fates.PacketSequence,[1;2;2;1]);
+            testCase.verifyEqual(fates.Outcome,["correct";"blocked";"blocked";"error"]);
+        end
+
         function reconcilesAttemptsAndFlushesBoundedChunks(testCase)
             fixture = testCase.applyFixture( ...
                 matlab.unittest.fixtures.TemporaryFolderFixture);
@@ -159,6 +178,15 @@ classdef PacketFateTraceRecorderTest < matlab.unittest.TestCase
     end
 
     methods (Access = private)
+        function result = withIdentity(~,invocation,sequence,complete)
+            tx = invocation.Transmitters;
+            tx.PacketSequence(:) = sequence;
+            tx.IsPacketComplete = complete;
+            result = v2xsim.hook.invocations.AfterPacketFatesDeterminedInvocation( ...
+                invocation.SimulationTimeSeconds,invocation.Technology,invocation.MaximumUeId, ...
+                invocation.AwarenessRangesMeters,tx,invocation.Links);
+        end
+
         function invocation = makeInvocation( ...
                 ~,fateTime,generationTime,attempt,resource, ...
                 allocationEpoch,outcomes,distances)

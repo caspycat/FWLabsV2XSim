@@ -92,6 +92,26 @@ paper READMEs and are not registered test methods.
 
 ## Integration contracts
 
+Packet buffering has three complementary deterministic checks:
+
+- `v2xsimtest.packet.PacketBufferTest` compares admission, eviction, retries,
+  and drain operations against an independent list oracle at capacities 1, 2,
+  3, and 64, checking conservation after every operation.
+- `v2xsimtest.runtime.PacketBufferBridgeTest` verifies active reception/SINR
+  preservation, packet identity on queued drops, and sidelink block handling.
+  Recorder tests assert exact generation-to-reception delays, peak age, and
+  histogram growth without lost counts.
+- `OutputCountOracleTest` reconciles summary, PRR, and packet-fate output for
+  capacity 1 and 3 across IEEE 802.11p, LTE, NR, and coexistence, and exercises
+  overflow with saturated traffic both with and without repetitions. The repeated
+  sidelink cases use the Random allocator, which supports multiple transmissions.
+  Larger buffers are not required to reproduce
+  the default one-slot blocked-packet count.
+
+Repetition and coexistence shortened publication regressions remain the
+scientific guardrails for the default capacity. They do not validate full-duration
+publication conclusions or establish the scientific benefit of a larger buffer.
+
 The integration suite protects these cross-component behaviors:
 
 - vehicle names remain stable while vehicles enter and exit, with exact

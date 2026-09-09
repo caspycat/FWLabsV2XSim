@@ -1,61 +1,23 @@
 function [stationManagement,outputValues] = bufferOverflowLTE(idOverflow,timeManagement,positionManagement,stationManagement,phyParams,~,outputValues,simValues,technology)
-
-pckType = stationManagement.pckType(idOverflow);
-iChannel = stationManagement.vehicleChannel(idOverflow);
-
-%if (stationManagement.cv2xNumberOfReplicas(idOverflow) - stationManagement.pckRemainingTx(idOverflow)) > 0
-if stationManagement.pckNextAttempt(idOverflow) > 1 % means that one attempt was made
-    notYetReceived = stationManagement.activeIDsCV2X(stationManagement.pckReceived(stationManagement.activeIDsCV2X,idOverflow)<=0);
+% Finalize the active packet blocked by allocation or a reduced retry budget.
+% Admission overflow is handled by the native FIFO at generation time.
+queue = stationManagement.packetBuffers{idOverflow};
+if queue.OnAir
+    % Reception processing at attempt end owns finalization while on air.
+    return
 end
-
-
-for iPhyRaw=1:length(phyParams.Raw)
-    % from v 5.4.15, retransmissions are possible - thus packets are
-    % discarded if this is the first transmission, otherwise is an error
-    %if (stationManagement.cv2xNumberOfReplicas(idOverflow) - stationManagement.pckRemainingTx(idOverflow)) > 0
-    if stationManagement.pckNextAttempt(idOverflow) > 1 
-        % Count as an error if not already received
-         NtxBeacons = nnz(positionManagement.distanceReal(idOverflow,notYetReceived) < phyParams.Raw(iPhyRaw)) - 1; % -1 to remove self
-         outputValues.NerrorsCV2X(iChannel,pckType,iPhyRaw) = outputValues.NerrorsCV2X(iChannel,pckType,iPhyRaw) + NtxBeacons;
-         outputValues.NerrorsTOT(iChannel,pckType,iPhyRaw) = outputValues.NerrorsTOT(iChannel,pckType,iPhyRaw) + NtxBeacons;
-         outputValues.NtxBeaconsCV2X(iChannel,pckType,iPhyRaw) = outputValues.NtxBeaconsCV2X(iChannel,pckType,iPhyRaw) + NtxBeacons;
-         outputValues.NtxBeaconsTOT(iChannel,pckType,iPhyRaw) = outputValues.NtxBeaconsTOT(iChannel,pckType,iPhyRaw) + NtxBeacons;
-    else    
-        % Count as a blocked transmission (previous packet is discarded without any attempt)
-        outputValues.NblockedCV2X(iChannel,pckType,iPhyRaw) = outputValues.NblockedCV2X(iChannel,pckType,iPhyRaw) + nnz(positionManagement.distanceReal(idOverflow,stationManagement.activeIDsCV2X) < phyParams.Raw(iPhyRaw)) - 1; % -1 to remove self
-        outputValues.NblockedTOT(iChannel,pckType,iPhyRaw) = outputValues.NblockedTOT(iChannel,pckType,iPhyRaw) + nnz(positionManagement.distanceReal(idOverflow,stationManagement.activeIDsCV2X) < phyParams.Raw(iPhyRaw)) - 1;
-    end
+packet = queue.head();
+simParams = struct(stringCV2X=string(technology));
+outputValues = v2xsim.runtime.internal.discardEnginePacket( ...
+    idOverflow,packet,stationManagement.pckNextAttempt(idOverflow)>1, ...
+    timeManagement,stationManagement,positionManagement,phyParams, ...
+    simParams,simValues,outputValues);
+stationManagement.packetBuffers{idOverflow} = queue.removeHead();
+stationManagement.pckBuffer(idOverflow) = stationManagement.packetBuffers{idOverflow}.Count;
+if stationManagement.pckBuffer(idOverflow) > 0
+    stationManagement.packetHeadSelectionTime(idOverflow) = timeManagement.timeNow;
 end
-errorPairs = zeros(0,2);
-if stationManagement.pckNextAttempt(idOverflow) > 1
-    errorReceiverIds = notYetReceived( ...
-        notYetReceived~=idOverflow);
-    errorPairs = [ ...
-        repmat(idOverflow,numel(errorReceiverIds),1), ...
-        errorReceiverIds(:)];
-    defaultOutcome = "none";
-    generationTime = ...
-        timeManagement.timeGeneratedPacketInTxLTE(idOverflow);
-    if generationTime < 0
-        generationTime = timeManagement.timeLastPacket(idOverflow);
-    end
-else
-    defaultOutcome = "blocked";
-    generationTime = timeManagement.timeLastPacket(idOverflow);
+stationManagement.pckNextAttempt(idOverflow) = 1;
+stationManagement.pckTxOccurring(idOverflow) = 0;
+stationManagement.pckReceived(:,idOverflow) = 0;
 end
-if defaultOutcome == "blocked"
-    dispatchBlockedPacketFates( ...
-        simValues,timeManagement.timeNow,technology, ...
-        phyParams.Raw,stationManagement,positionManagement,idOverflow, ...
-        max(0,generationTime));
-else
-    candidateReceiverIds = stationManagement.activeIDsCV2X(:).';
-    candidateReceiverIds(candidateReceiverIds==idOverflow) = 0;
-    dispatchAfterPacketFatesDetermined( ...
-        simValues,timeManagement.timeNow,technology, ...
-        phyParams.Raw,stationManagement,positionManagement,idOverflow, ...
-        max(0,generationTime),candidateReceiverIds, ...
-        zeros(0,2),errorPairs,defaultOutcome);
-end
-
-stationManagement.pckBuffer(idOverflow) = stationManagement.pckBuffer(idOverflow) - 1;

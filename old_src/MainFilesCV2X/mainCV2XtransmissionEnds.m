@@ -84,6 +84,14 @@ if ~isempty(stationManagement.transmittingIDsCV2X)
     %% KPIs Computation (Snapshot)
 [stationManagement,sinrManagement,outputValues,simValues] = updateKPICV2X(activeIDsTXLTE,indexInActiveIDsOnlyLTE,neighborsID_LTE,timeManagement,stationManagement,positionManagement,sinrManagement,outputValues,simParams,appParams,phyParams,simValues);
 
+for packetId = reshape(activeIDsTXLTE,1,[])
+    stationManagement.packetBuffers{packetId} = stationManagement.packetBuffers{packetId}.endAttempt();
+    if stationManagement.pckNextAttempt(packetId) > effectiveCv2xTransmissionCount(stationManagement,packetId)
+        [stationManagement,sinrManagement] = ...
+            v2xsim.runtime.internal.completeEnginePacket(stationManagement,sinrManagement,packetId,timeManagement.timeNow);
+    end
+end
+
             
 else
 % No LTE transmitting (Vittorio)

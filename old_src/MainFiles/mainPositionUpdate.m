@@ -179,6 +179,12 @@ timeManagement.timeNextPacket(stationManagement.activeIDsExit) = Inf;
 
 % Reset time next packet and tx-rx for vehicles that exit the scenario
 stationManagement.pckBuffer(stationManagement.activeIDsExit) = 0;
+for packetId = reshape(stationManagement.activeIDsExit,1,[])
+    v2xsim.runtime.internal.retireDepartedPackets(packetId,timeManagement, ...
+        stationManagement,positionManagement,phyParams,simParams,simValues);
+    stationManagement.packetBuffers{packetId} = stationManagement.packetBuffers{packetId}.clear();
+    stationManagement.packetHeadSelectionTime(packetId) = -1;
+end
 stationManagement.pckReceived(:,stationManagement.activeIDsExit) = 0;
 sinrManagement.cumulativeSINR(:,stationManagement.activeIDsExit) = 0;
 stationManagement.preambleAlreadyDetected(:,stationManagement.activeIDsExit) = 0;

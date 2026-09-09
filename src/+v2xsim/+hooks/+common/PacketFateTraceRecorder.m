@@ -81,6 +81,7 @@ classdef PacketFateTraceRecorder < v2xsim.hook.Hook
             [obj,terminalFates] = ...
                 obj.reconcileActiveTerminalState( ...
                     terminalFates);
+            obj = obj.retireCompletedPackets(invocation);
             if isempty(terminalFates)
                 obj = obj.flushCompleteChunks();
                 return
@@ -133,6 +134,25 @@ classdef PacketFateTraceRecorder < v2xsim.hook.Hook
     end
 
     methods (Access = private)
+        function obj = retireCompletedPackets(obj,invocation)
+            transmitters = invocation.Transmitters;
+            if ~ismember("IsPacketComplete",string(transmitters.Properties.VariableNames))
+                return
+            end
+            ueIds = obj.transmitterUeIds(transmitters);
+            for index = reshape(find(transmitters.IsPacketComplete),1,[])
+                sequence = transmitters.PacketSequence(index);
+                key = invocation.Technology + "|" + ueIds(index);
+                remove = obj.SequenceState.TransmitterKey == key & ...
+                    obj.SequenceState.PacketSequence == sequence;
+                obj.SequenceState(remove,:) = [];
+                remove = obj.ActiveTerminalFates.Technology == invocation.Technology & ...
+                    obj.ActiveTerminalFates.TransmitterUeId == ueIds(index) & ...
+                    obj.ActiveTerminalFates.PacketSequence == sequence;
+                obj.ActiveTerminalFates(remove,:) = [];
+            end
+        end
+
         function [obj,observations] = ...
                 observationsFromInvocation(obj,invocation)
             links = invocation.Links;
@@ -233,36 +253,20 @@ classdef PacketFateTraceRecorder < v2xsim.hook.Hook
             stateRow = find( ...
                 obj.SequenceState.TransmitterKey == key,1);
             if ~isnan(providedSequence)
+                % Explicit packet identities may arrive out of order: a
+                % waiting packet can be discarded before an older attempt
+                % completes. Reconcile by identity, not reporting order.
                 sequence = providedSequence;
+                stateRow = find(obj.SequenceState.TransmitterKey == key & ...
+                    obj.SequenceState.PacketSequence == sequence,1);
                 if isempty(stateRow)
-                    obj.SequenceState(end + 1,:) = { ...
-                        key,generationTime,sequence};
-                else
-                    previousSequence = ...
-                        obj.SequenceState.PacketSequence(stateRow);
-                    previousGenerationTime = ...
-                        obj.SequenceState.GenerationTimeSeconds( ...
-                            stateRow);
-                    if sequence < previousSequence || ...
-                            (sequence == previousSequence && ...
-                            generationTime ~= previousGenerationTime)
-                        error( ...
-                            "v2xsim:hook:outputs:" + ...
-                            "InvalidPacketSequence", ...
-                            "Explicit packet sequences must increase " + ...
-                            "when generation time changes.");
-                    end
-                    if sequence > previousSequence
-                        obj = obj.clearActiveTerminalState( ...
-                            technology,transmitterUeId);
-                    end
-                    obj.SequenceState.GenerationTimeSeconds( ...
-                        stateRow) = generationTime;
-                    obj.SequenceState.PacketSequence(stateRow) = sequence;
+                    obj.SequenceState(end+1,:) = {key,generationTime,sequence};
+                elseif obj.SequenceState.GenerationTimeSeconds(stateRow) ~= generationTime
+                    error("v2xsim:hook:outputs:InvalidPacketSequence", ...
+                        "A packet sequence cannot change its generation timestamp.");
                 end
                 return
             end
-
             if isempty(stateRow)
                 sequence = 1;
                 obj.SequenceState(end + 1,:) = { ...

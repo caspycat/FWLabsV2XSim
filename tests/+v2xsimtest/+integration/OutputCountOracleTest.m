@@ -2,6 +2,7 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
     %OUTPUTCOUNTORACLETEST Reconcile full-run artifacts with the summary.
 
     properties (TestParameter)
+        BufferCapacity = {1,3}
         RadioAccessMode = { ...
             "80211p", ...
             "LTE-V2X", ...
@@ -47,12 +48,12 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
 
     methods (Test)
         function testArtifactsReconcileAndObserversArePassive( ...
-                testCase, RadioAccessMode)
+                testCase, RadioAccessMode, BufferCapacity)
             radioAccessMode = string(RadioAccessMode);
             [enabledSummary, enabledDirectory] = ...
-                testCase.runSimulation(radioAccessMode, true);
+                testCase.runSimulation(radioAccessMode, true, BufferCapacity);
             [disabledSummary, disabledDirectory] = ...
-                testCase.runSimulation(radioAccessMode, false);
+                testCase.runSimulation(radioAccessMode, false, BufferCapacity);
 
             specification = testCase.specification(radioAccessMode);
             testCase.verifySummaryContract( ...
@@ -64,7 +65,7 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
             testCase.verifyArtifactSchemas( ...
                 enabledDirectory, enabledSummary, specification);
             testCase.verifyCountsReconcile( ...
-                enabledDirectory, enabledSummary, specification);
+                enabledDirectory, enabledSummary, specification, BufferCapacity == 1);
 
             testCase.verifyOnlySummaryExists(disabledDirectory);
             testCase.verifyEqual( ...
@@ -73,11 +74,40 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
                 "Enabling output observers must not change " + ...
                 "simulation results or configuration.");
         end
+
+        function testSaturatedQueueReconcilesEveryTerminalOutcome(testCase,RadioAccessMode)
+            [summary,directory] = testCase.runSimulation(string(RadioAccessMode),true,3,true);
+            testCase.verifyCountsReconcile(directory,summary,testCase.specification(string(RadioAccessMode)),false);
+            files = dir(fullfile(directory,"packet_fates_*.csv"));
+            parts = cell(numel(files),1);
+            for index = 1:numel(files)
+                parts{index} = readtable(fullfile(files(index).folder,files(index).name),TextType="string");
+            end
+            fates = vertcat(parts{:});
+            testCase.verifyGreaterThan(nnz(fates.Outcome == "blocked"),0);
+            keys = fates(:,["Technology","TransmitterUeId","PacketSequence","ReceiverUeId"]);
+            testCase.verifyEqual(height(unique(keys)),height(fates));
+            successful = fates.Outcome == "correct";
+            testCase.verifyGreaterThan(nnz(successful),0);
+            testCase.verifyGreaterThan(max(fates.FateTimeSeconds(successful) - ...
+                fates.GenerationTimeSeconds(successful)),0.001);
+        end
+
+        function testSaturatedRepetitionsReconcileTerminalOutcomes(testCase,RadioAccessMode)
+            [summary,directory] = testCase.runSimulation(string(RadioAccessMode),true,3,true,2);
+            testCase.verifyCountsReconcile(directory,summary,testCase.specification(string(RadioAccessMode)),false);
+        end
     end
 
     methods (Access = private)
         function [summary, outputDirectory] = runSimulation( ...
-                testCase, radioAccessMode, outputsEnabled)
+                testCase, radioAccessMode, outputsEnabled, capacity, saturated, repetitions)
+            if nargin < 5
+                saturated = false;
+            end
+            if nargin < 6
+                repetitions = 1;
+            end
             specification = testCase.specification(radioAccessMode);
             if outputsEnabled
                 outputState = "enabled";
@@ -86,7 +116,7 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
             end
             outputDirectory = fullfile( ...
                 testCase.TemporaryDirectory, ...
-                specification.DirectoryToken + "-" + outputState);
+                specification.DirectoryToken + "-" + outputState + "-capacity" + capacity + "-saturated" + saturated + "-repetitions" + repetitions);
             configurationFile = fullfile( ...
                 testCase.projectRoot(), "tests", "+v2xsimtest", ...
                 "+fixtures", "config", ...
@@ -137,6 +167,25 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
                         ItsG5VehicleCount=3));
             end
             template = v2xsim.config.load(configurationFile);
+            patchData.Application = struct(PacketBuffer=struct(CapacityPackets=capacity));
+            if saturated
+                patchData.Application.PacketGeneration = struct(IntervalSeconds=0.001);
+                % Keep packets within the fixture's sidelink transport block.
+                if radioAccessMode == "80211p"
+                    patchData.Application.PacketSizeBytes = 1000;
+                end
+            end
+            if repetitions > 1
+                if radioAccessMode == "80211p" || radioAccessMode == "COEX-NO-INTERF"
+                    patchData.Radio.Ieee80211p.Repetition = struct(MaximumTransmissionCount=repetitions);
+                end
+                if radioAccessMode ~= "80211p"
+                    patchData.Radio.Sidelink = struct(MaximumTransmissionCount=repetitions);
+                    % The ordinary fixture's ordered allocator intentionally
+                    % does not support multiple transmissions.
+                    patchData.ResourceAllocation = struct(Type="Random",RandomSeed=29);
+                end
+            end
             configuration = template.resolve( ...
                 Patch=v2xsim.config.patch(patchData)); %#ok<NASGU>
             runLabel = "output-count-oracle-" + ...
@@ -586,7 +635,7 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
         end
 
         function verifyCountsReconcile( ...
-                testCase, outputDirectory, summary, specification)
+                testCase, outputDirectory, summary, specification, requireBlocks)
             rangeCount = numel(testCase.AwarenessRangesMeters);
             cellularCounts = zeros(rangeCount, 3);
             ieee80211pCounts = zeros(rangeCount, 3);
@@ -620,7 +669,7 @@ classdef OutputCountOracleTest < matlab.unittest.TestCase
                 summary.Results.Combined, combinedCounts);
             testCase.verifyGreaterThan(sum(combinedCounts, "all"), 0, ...
                 "The test run must exercise real packet fates.");
-            if specification.RadioAccessMode == "LTE-V2X"
+            if specification.RadioAccessMode == "LTE-V2X" && requireBlocks
                 testCase.verifyGreaterThan( ...
                     sum(cellularCounts(:,3)),0, ...
                     "The LTE oracle must exercise allocator blocks.");

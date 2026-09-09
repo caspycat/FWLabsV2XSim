@@ -40,7 +40,7 @@ totalSINR = sinrManagement.cumulativeSINR(IDvehicle11p, idEvent) +...
 % earlier - from this packet was first transmitted to the last time
 % thisTime - during this packet is transmitted this time
 % now - including all of the history of this packet
-rxOK_earlier = stationManagement.pckReceived(indexVehicle11p, idEvent);
+rxOK_earlier = stationManagement.pckReceived(IDvehicle11p, idEvent);
 rxOK_thisTime = (stationManagement.vehicleState(IDvehicle11p)==constants.V_STATE_11P_RX) .* (sinrManagement.idFromWhichRx11p(IDvehicle11p)==idEvent)...
     .* (totalSINR >= sinrThr');
 rxOK_now = rxOK_earlier | rxOK_thisTime;
@@ -78,77 +78,35 @@ candidateReceiverIds(candidateReceiverIds==idEvent) = 0;
 dispatchAfterPacketFatesDetermined( ...
     simValues,timeManagement.timeNow,"11p",phyParams.Raw, ...
     stationManagement,positionManagement,idEvent, ...
-    timeManagement.timeLastPacket(idEvent),candidateReceiverIds, ...
+    stationManagement.packetBuffers{idEvent}.head().GenerationTimeSeconds,candidateReceiverIds, ...
     correctPairs,errorPairs,"none");
 
 pckType = stationManagement.pckType(idEvent);
 iChannel = stationManagement.vehicleChannel(idEvent);
-
-for iPhyRaw = 1:length(phyParams.Raw)
-    awarenessID11p = stationManagement.awarenessID11p(indexEvent11p,:,iPhyRaw)';
-    
-    % Vehicles' ID inside Raw
-    IDIn_thisTime = awarenessID11p(awarenessID11p~=0) .* sameChannel(awarenessID11p(awarenessID11p~=0));
-    
-    % Index of activeIDs11p in the range of Raw:
-    % earlier - from this packet was first transmitted to the last time
-    % thisTime - during this packet is transmitted this time
-    % now - including all of the history of this packet
-    indexInRaw_earlier = stationManagement.indexInRaw_earler(:, idEvent, iPhyRaw);
-    indexInRaw_thisTime = ismember(IDvehicle11p,IDIn_thisTime);
-    indexInRaw_now = indexInRaw_thisTime | indexInRaw_earlier;
-    
-    % Rx OK of "earlier", "this time" and "till now"
-    rxOKRaw_earlier = indexInRaw_earlier & stationManagement.pckReceived(indexVehicle11p, idEvent);
-    rxOKRaw_thisTime = indexInRaw_thisTime & rxOK_thisTime;
-    rxOKRaw_now = rxOKRaw_thisTime | rxOKRaw_earlier;
-    % number of neighbors in history
-    NneighborsRaw_earlier = nnz(indexInRaw_earlier);
-    % number of neighbors now (includes history)
-    NneighborsRaw_now = nnz(indexInRaw_now);
-    NcorrectlyTxBeacons_earlier = nnz(rxOKRaw_earlier);
-    NcorrectlyTxBeacons_now = nnz(rxOKRaw_now);
-    % printDebugKPI(fid,timeManagement.timeNow,'NcorrTxBeacon',phyParams.Raw(iPhyRaw),idEvent,stationManagement.pckTxOccurring(idEvent), NcorrectlyTxBeacons_earlier,NcorrectlyTxBeacons_now);
-    
-    outputValues.NcorrectlyTxBeacons11p(iChannel,pckType,iPhyRaw) =...
-        outputValues.NcorrectlyTxBeacons11p(iChannel,pckType,iPhyRaw) -...
-        NcorrectlyTxBeacons_earlier +...
-        NcorrectlyTxBeacons_now;
-    outputValues.NcorrectlyTxBeaconsTOT(iChannel,pckType,iPhyRaw) =...
-        outputValues.NcorrectlyTxBeaconsTOT(iChannel,pckType,iPhyRaw) -...
-        NcorrectlyTxBeacons_earlier +...
-        NcorrectlyTxBeacons_now;
-
-    % Number of errors
-    Nerrors_earlier = NneighborsRaw_earlier - NcorrectlyTxBeacons_earlier;
-    Nerrors_now = NneighborsRaw_now - NcorrectlyTxBeacons_now;
-    % printDebugKPI(fid,timeManagement.timeNow,'Nerrs_Raw',phyParams.Raw(iPhyRaw),idEvent,stationManagement.pckTxOccurring(idEvent), Nerrors_earlier,Nerrors_now);
-    
-    outputValues.Nerrors11p(iChannel,pckType,iPhyRaw) =...
-        outputValues.Nerrors11p(iChannel,pckType,iPhyRaw) -...
-        Nerrors_earlier + Nerrors_now;
-    outputValues.NerrorsTOT(iChannel,pckType,iPhyRaw) =...
-        outputValues.NerrorsTOT(iChannel,pckType,iPhyRaw) -...
-        Nerrors_earlier + Nerrors_now;
-
-    % Number of received beacons (correct + errors == neighbors)
-    outputValues.NtxBeacons11p(iChannel,pckType,iPhyRaw) =...
-        outputValues.NtxBeacons11p(iChannel,pckType,iPhyRaw) -...
-        NneighborsRaw_earlier + NneighborsRaw_now;
-    % printDebugKPI(fid,timeManagement.timeNow,'NtxBeacons11p',phyParams.Raw(iPhyRaw),idEvent,stationManagement.pckTxOccurring(idEvent), -1,outputValues.NtxBeacons11p(iChannel,pckType,iPhyRaw));
-
-    outputValues.NtxBeaconsTOT(iChannel,pckType,iPhyRaw) =...
-        outputValues.NtxBeaconsTOT(iChannel,pckType,iPhyRaw) -...
-        NneighborsRaw_earlier + NneighborsRaw_now;
-    % printDebugKPI(fid,timeManagement.timeNow,'NtxBeaconsTOT',phyParams.Raw(iPhyRaw),idEvent,stationManagement.pckTxOccurring(idEvent), -1,outputValues.NtxBeaconsTOT(iChannel,pckType,iPhyRaw));
-
-    % update index of activeIDs11p in the range of Raw earlier (during one packet
-    % and it's retransmission)
-    stationManagement.indexInRaw_earler(:, idEvent, iPhyRaw) = indexInRaw_now;
+% Count the same first-success and final-error observations sent to hooks.
+% Provisional failures during repetitions are not terminal errors: a later
+% copy may succeed, the packet may be evicted, or the simulation may end.
+% Committing them here previously inflated summaries for unfinished packets.
+correctDistances = positionManagement.distanceReal(idEvent,correctPairs(:,2));
+errorDistances = positionManagement.distanceReal(idEvent,errorPairs(:,2));
+for rangeIndex = 1:numel(phyParams.Raw)
+    correctCount = nnz(correctDistances < phyParams.Raw(rangeIndex));
+    errorCount = nnz(errorDistances < phyParams.Raw(rangeIndex));
+    for suffix = ["11p","TOT"]
+        name = "NcorrectlyTxBeacons" + suffix;
+        outputValues.(name)(iChannel,pckType,rangeIndex) = ...
+            outputValues.(name)(iChannel,pckType,rangeIndex) + correctCount;
+        name = "Nerrors" + suffix;
+        outputValues.(name)(iChannel,pckType,rangeIndex) = ...
+            outputValues.(name)(iChannel,pckType,rangeIndex) + errorCount;
+        name = "NtxBeacons" + suffix;
+        outputValues.(name)(iChannel,pckType,rangeIndex) = ...
+            outputValues.(name)(iChannel,pckType,rangeIndex) + correctCount + errorCount;
+    end
 end
 % update packet Rx OK
-stationManagement.pckReceived(indexVehicle11p, idEvent) =...
-    stationManagement.pckReceived(indexVehicle11p, idEvent) | rxOK_thisTime;
+stationManagement.pckReceived(IDvehicle11p, idEvent) =...
+    stationManagement.pckReceived(IDvehicle11p, idEvent) | rxOK_thisTime;
 %% printDebugKPI
 % fclose(fid);
 %% printDebugKPI

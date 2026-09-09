@@ -14,6 +14,44 @@ classdef Ieee80211pStateMachineTest < matlab.unittest.TestCase
     end
 
     methods (Test)
+        function testQueuedPacketStartsInitialBackoffAfterLastReplica(testCase)
+            original = RandStream.getGlobalStream();
+            testCase.addTeardown(@() RandStream.setGlobalStream(original));
+            RandStream.setGlobalStream(RandStream("mt19937ar",Seed=91));
+            [time,station,sinr,sim,phy] = testCase.transmissionEndState();
+            queue = v2xsim.packet.PacketBuffer("UE2",3);
+            queue = queue.enqueue(0,0,1);
+            queue = queue.enqueue(0.1,0.1,1);
+            queue = queue.enqueue(0.2,0.2,1);
+            station.packetBuffers{2} = queue.startAttempt();
+            station.pckBuffer(2) = 3;
+            station.ITSNumberOfReplicas(2) = 2;
+            station.pckNextAttempt(2) = 3;
+            station.pckTxOccurring(2) = 2;
+            station.CW_11p = ones(2,1);
+            station.tAifs_11p = [0.02;0.02];
+            phy.ITSNumberOfReplicasMax = 2;
+            phy.ITSRetransBackoffInterval = 0.001;
+            phy.tSlot = 0.01;
+            sim.cbrActive = false;
+            [time,station,sinr] = updateVehicleEndingTx11p(2,2,time,station,sinr,phy,sim,struct());
+            testCase.verifyEqual(station.packetBuffers{2}.head().Sequence,1);
+            [station,sinr] = v2xsim.runtime.internal.completeEnginePacket(station,sinr,2,time.timeNow);
+            testCase.verifyEqual(station.packetBuffers{2}.head().Sequence,2);
+            testCase.verifyEqual(station.pckBuffer(2),2);
+            testCase.verifyEqual(station.pckNextAttempt(2),1);
+            testCase.verifyEqual(time.timeNextTxRx11p(2),0.53,AbsTol=1e-12);
+            % Drain another head without any application generation event.
+            station.packetBuffers{2} = station.packetBuffers{2}.startAttempt();
+            station.pckNextAttempt(2) = 3;
+            time.timeNow = 0.6;
+            [time,station] = updateVehicleEndingTx11p(2,2,time,station,sinr,phy,sim,struct());
+            [station,sinr] = v2xsim.runtime.internal.completeEnginePacket(station,sinr,2,time.timeNow); %#ok<ASGLU>
+            testCase.verifyEqual(station.packetBuffers{2}.head().Sequence,3);
+            testCase.verifyEqual(station.pckBuffer(2),1);
+            testCase.verifyEqual(time.timeNextTxRx11p(2),0.63,AbsTol=1e-12);
+        end
+
         function testReceptionFreezesEligibleBackoff(testCase)
             [timeManagement,stationManagement,sinrManagement, ...
                 simParams,phyParams] = testCase.startState();
@@ -241,6 +279,18 @@ classdef Ieee80211pStateMachineTest < matlab.unittest.TestCase
             sinrManagement = struct( ...
                 "P_RX_MHz",zeros(2), ...
                 "coex_virtualInterference",zeros(2,1));
+            queue = v2xsim.packet.PacketBuffer("UE2",1);
+            queue = queue.enqueue(0,0,1);
+            queue = queue.startAttempt();
+            stationManagement.packetBuffers = {v2xsim.packet.PacketBuffer("UE1",1);queue};
+            stationManagement.pckBuffer(2) = 1;
+            stationManagement.pckNextAttempt(2) = 2;
+            stationManagement.pckReceived = zeros(2);
+            stationManagement.pckTxOccurring = [0;1];
+            stationManagement.preambleAlreadyDetected = zeros(2);
+            stationManagement.alreadyStartCBR = zeros(2);
+            stationManagement.indexInRaw_earler = zeros(2);
+            sinrManagement.cumulativeSINR = zeros(2);
             simParams = struct( ...
                 "technology",constants.TECH_ONLY_11P, ...
                 "cbrActive",true);

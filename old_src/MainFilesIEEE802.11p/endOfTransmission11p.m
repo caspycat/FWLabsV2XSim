@@ -1,7 +1,7 @@
 function [simValues,outputValues,timeManagement,stationManagement,sinrManagement] = endOfTransmission11p(idEvent,indexEvent,positionManagement,phyParams,outParams,simParams,simValues,outputValues,timeManagement,stationManagement,sinrManagement,appParams)
 % A transmission ends in IEEE 802.11p
 
-% The transmitting vehicle is first updated
+% Schedule the MAC transition, retaining the packet and reception state.
 [timeManagement,stationManagement,sinrManagement] = updateVehicleEndingTx11p(idEvent,indexEvent,timeManagement,stationManagement,sinrManagement,phyParams,simParams,outParams);
 
 % The average SINR of all vehicles is then updated
@@ -12,6 +12,11 @@ printDebugTx(timeManagement.timeNow,false,idEvent,stationManagement,positionMana
 
 % Update KPIs
 [simValues,outputValues,sinrManagement,stationManagement] = updateKPI11p(idEvent,indexEvent,timeManagement,stationManagement,positionManagement,sinrManagement,simParams,phyParams,simValues,outputValues);
+
+if stationManagement.pckNextAttempt(idEvent) > stationManagement.ITSNumberOfReplicas(idEvent)
+    [stationManagement,sinrManagement] = ...
+        v2xsim.runtime.internal.completeEnginePacket(stationManagement,sinrManagement,idEvent,timeManagement.timeNow);
+end
 
 % The nodes that may stop receiving must be checked
 [timeManagement,stationManagement,sinrManagement,outputValues] = checkVehiclesStopReceiving11p(timeManagement,stationManagement,sinrManagement,simParams,phyParams,outParams,outputValues);

@@ -2,6 +2,29 @@ classdef ConfigurationSystemTest < matlab.unittest.TestCase
     %CONFIGURATIONSYSTEMTEST Focused tests for the TOML-only config core.
 
     methods (Test)
+        function packetCapacityReachesCompiledPlan(testCase)
+            template = v2xsim.config.ConfigurationTemplate(struct(SchemaVersion=1));
+            defaults = template.resolve();
+            testCase.verifyEqual(defaults.Data.Application.PacketBuffer.CapacityPackets,1);
+            configured = template.resolve(Patch=v2xsim.config.patch( ...
+                struct(Application=struct(PacketBuffer=struct(CapacityPackets=37)))));
+            plan = v2xsim.runtime.CompiledSimulationPlan(configured);
+            testCase.verifyEqual(plan.Application.PacketBuffer.CapacityPackets,37);
+        end
+
+        function rejectsInvalidPacketCapacities(testCase)
+            values = {0,-1,flintmax*2,1.5,nan,inf,-inf,[1,2],"3",true,1i};
+            ids = ["ValueOutOfRange","ValueOutOfRange","ValueOutOfRange", ...
+                "InvalidType","InvalidType","NonfiniteValue","ValueOutOfRange", ...
+                "InvalidType","InvalidType","InvalidType","InvalidType"];
+            for index = 1:numel(values)
+                testCase.verifyError(@() v2xsim.config.ConfigurationTemplate( ...
+                    struct(SchemaVersion=1,Application=struct( ...
+                    PacketBuffer=struct(CapacityPackets=values{index})))).resolve(), ...
+                    "v2xsim:config:" + ids(index));
+            end
+        end
+
         function highwaySpeedDefaultsAreScenarioSpecific(testCase)
             defaults = v2xsim.config.ConfigurationTemplate( ...
                 struct(SchemaVersion=1)).resolve();

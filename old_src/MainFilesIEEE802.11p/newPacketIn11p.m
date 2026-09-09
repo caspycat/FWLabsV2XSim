@@ -1,42 +1,7 @@
-function [timeManagement,stationManagement,sinrManagement,outputValues] = newPacketIn11p(idEvent,indexEvent,simParams,positionManagement,phyParams,timeManagement,stationManagement,sinrManagement,outputValues,simValues)
+function [timeManagement,stationManagement,sinrManagement,outputValues] = newPacketIn11p(idEvent,~,simParams,~,phyParams,timeManagement,stationManagement,sinrManagement,outputValues,~)
 % A new packet is generated in IEEE 802.11p
 
-% The queue is updated
-% If one packet is already enqueued, the old packet is removed, the
-% number of errors is updated, and the number of packets discarded
-% is increased by one
-stationManagement.pckBuffer(idEvent) = stationManagement.pckBuffer(idEvent)+1;
-
-% Part dealing with new packets introduced in a non-empty queue
-if stationManagement.pckBuffer(idEvent)>1
-    % Count as a blocked transmission (previous packet is discarded)
-    % Condsider only 11p
-    % program not going to this "if" state, when the copy of packet has
-    % been transmitted one or more times
-    if stationManagement.pckTxOccurring(idEvent)==0
-        allNeighbors = (stationManagement.activeIDs11p~=idEvent);
-        distance11pFromTx = positionManagement.distanceReal(stationManagement.vehicleState(stationManagement.activeIDs)~=constants.V_STATE_LTE_TXRX,indexEvent);
-        % Remove the transmitting vehicle.
-        distance11pFromTx = distance11pFromTx(allNeighbors);
-        % count 
-        pckType = stationManagement.pckType(idEvent);
-        iChannel = stationManagement.vehicleChannel(idEvent);
-    
-    
-        for iPhyRaw = 1:length(phyParams.Raw)
-            outputValues.Nblocked11p(iChannel,pckType,iPhyRaw) = outputValues.Nblocked11p(iChannel,pckType,iPhyRaw) + nnz(distance11pFromTx<phyParams.Raw(iPhyRaw));
-            outputValues.NblockedTOT(iChannel,pckType,iPhyRaw) = outputValues.NblockedTOT(iChannel,pckType,iPhyRaw) + nnz(distance11pFromTx<phyParams.Raw(iPhyRaw));
-        end
-
-    
-        dispatchBlockedPacketFates( ...
-            simValues,timeManagement.timeNow,"11p",phyParams.Raw, ...
-            stationManagement,positionManagement,idEvent, ...
-            max(0,timeManagement.timeLastPacket(idEvent)));
-    end
-    stationManagement.pckBuffer(idEvent) = stationManagement.pckBuffer(idEvent)-1;
-    %fprintf('CAM message discarded\n');
-end
+% Queue admission and packet-state reset are owned by the V7 buffer.
 
 % Part dealing with transmission start
 % If coexistence Method A during the LTE part, the vehicle must go in State 9
@@ -79,15 +44,3 @@ if stationManagement.vehicleState(idEvent) == constants.V_STATE_11P_IDLE % idle
     end        
 %     printDebugBackoff11p(timeManagement.timeNow,'11p backoff started',idEvent,stationManagement,outParams,timeManagement);
 end
-
-% reset of pckReceive and cumulativeSINR
-stationManagement.pckReceived(:,idEvent) = 0;
-sinrManagement.cumulativeSINR(:,idEvent) = 0;
-stationManagement.preambleAlreadyDetected(:,idEvent) = 0;
-stationManagement.alreadyStartCBR(:,idEvent) = 0;
-
-stationManagement.pckTxOccurring(idEvent) = 0;
-stationManagement.pckNextAttempt(idEvent) = 1;
-% reset index of activeIDs11p in the range of Raw earlier (during one packet
-% and it's retransmission)
-stationManagement.indexInRaw_earler(:, idEvent, :) = 0;

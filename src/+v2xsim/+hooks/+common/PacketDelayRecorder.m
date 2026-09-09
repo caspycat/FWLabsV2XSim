@@ -65,6 +65,26 @@ classdef PacketDelayRecorder < v2xsim.hook.Hook
                 return
             end
             obj.mustAcceptChannels(invocation.Transmitters.Channel);
+            delays = invocation.SimulationTimeSeconds - invocation.Transmitters.GenerationTimeSeconds;
+            if any(delays < 0)
+                error("v2xsim:hook:outputs:NegativePacketDelay", ...
+                    "Packet generation time cannot follow fate time.");
+            end
+            % Grow only for successful receptions, never for dropped packets.
+            successfulIds = invocation.Links.TransmitterId(string(invocation.Links.Outcome) == "correct");
+            successfulDelays = delays(ismember(invocation.Transmitters.TransmitterId,successfulIds));
+            if ~isempty(successfulDelays)
+                requiredBins = max(1,ceil(max(successfulDelays) / obj.BinWidthSeconds));
+                if requiredBins > obj.BinCount
+                    obj.BinCount = requiredBins;
+                    for index = 1:numel(obj.Entries)
+                        old = obj.Entries{index};
+                        old.Counts = obj.expandCounts(old.Counts,size(old.Counts,1), ...
+                            size(old.Counts,2),numel(old.AwarenessRangesMeters));
+                        obj.Entries{index} = old;
+                    end
+                end
+            end
             [obj, entryIndex] = obj.ensureEntry( ...
                 invocation.Technology, ...
                 invocation.AwarenessRangesMeters);
@@ -168,7 +188,7 @@ classdef PacketDelayRecorder < v2xsim.hook.Hook
         function counts = expandCounts( ...
                 obj, counts, channelCount, packetTypeCount, rangeCount)
             if size(counts, 1) >= channelCount && ...
-                    size(counts, 2) >= packetTypeCount
+                    size(counts, 2) >= packetTypeCount && size(counts,3) >= obj.BinCount
                 return
             end
             expanded = zeros( ...
@@ -178,7 +198,7 @@ classdef PacketDelayRecorder < v2xsim.hook.Hook
             if ~isempty(counts)
                 expanded( ...
                     1:size(counts, 1), ...
-                    1:size(counts, 2), :, :) = counts;
+                    1:size(counts, 2), 1:size(counts,3), :) = counts;
             end
             counts = expanded;
         end

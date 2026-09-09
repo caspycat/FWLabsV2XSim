@@ -5,6 +5,11 @@ function context = buildResourceAllocationContext( ...
 %BUILDRESOURCEALLOCATIONCONTEXT Adapt legacy arrays at one sealed boundary.
 
 activeIds = stationManagement.activeIDsCV2X(:);
+% Resource selection belongs to the head becoming eligible, not to a newer
+% application arrival behind it. This is distinct from metric generation time.
+if isfield(stationManagement,"packetHeadSelectionTime")
+    timeManagement.timeLastPacket = stationManagement.packetHeadSelectionTime;
+end
 ueIds = simValues.world.UeIds(activeIds);
 grid = allocator.Grid;
 selectionOriginSlot = selectionOriginSlots( ...
@@ -33,6 +38,9 @@ switch allocator.ContextContract
         end
 
         assignments = allocator.Assignments.ResourceIds;
+        if isfield(stationManagement,"firstTransmissionIdsThisSlot")
+            firstTransmissionMask = ismember(activeIds,stationManagement.firstTransmissionIdsThisSlot);
+        end
         hasPrimaryThisSlot = false(numel(activeIds),1);
         assigned = ~isnan(assignments(:,1));
         primaryTime = zeros(numel(activeIds),1);

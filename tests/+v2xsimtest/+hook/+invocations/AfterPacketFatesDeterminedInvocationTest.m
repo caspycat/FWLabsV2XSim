@@ -1,6 +1,20 @@
 classdef AfterPacketFatesDeterminedInvocationTest < ...
         matlab.unittest.TestCase
     methods (Test)
+        function completionRequiresLogicalFlagAndExplicitIdentity(testCase)
+            tx = table(1,1,1,0,VariableNames=["TransmitterId","Channel","PacketType","GenerationTimeSeconds"]);
+            links = table(1,2,10,"correct",VariableNames=["TransmitterId","ReceiverId","DistanceMeters","Outcome"]);
+            tx.IsPacketComplete = true;
+            testCase.verifyError(@() v2xsim.hook.invocations.AfterPacketFatesDeterminedInvocation( ...
+                1,"LTE",2,100,tx,links),"v2xsim:hook:invocations:InvalidTransmitters");
+            tx.PacketSequence = 1;
+            result = v2xsim.hook.invocations.AfterPacketFatesDeterminedInvocation(1,"LTE",2,100,tx,links);
+            testCase.verifyTrue(result.Transmitters.IsPacketComplete);
+            tx.IsPacketComplete = 1;
+            testCase.verifyError(@() v2xsim.hook.invocations.AfterPacketFatesDeterminedInvocation( ...
+                1,"LTE",2,100,tx,links),"v2xsim:hook:invocations:InvalidTransmitters");
+        end
+
         function acceptsStableIdentityAndPacketMetadata(testCase)
             transmitters = table( ...
                 2,"beta",1,1,0.1,nan,2,7,4,3,9, ...

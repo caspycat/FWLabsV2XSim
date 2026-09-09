@@ -231,6 +231,32 @@ allocator table are rejected.
 
 ### Packet generation
 
+`Application.PacketBuffer.CapacityPackets` is a positive integer (default
+`1`) shared by all transmitting UEs. For example:
+
+```toml
+[Application.PacketBuffer]
+CapacityPackets = 8
+```
+
+Each UE owns its own FIFO. Capacity includes the active packet and all waiting
+packets, including packets awaiting repetitions. On overflow the oldest packet
+not currently on air is replaced. If capacity is one and its packet is on air,
+the new arrival is dropped. Between attempts the active packet can be replaced;
+receivers that already decoded it retain their successful outcome. Waiting
+packets are served in arrival order, with fresh initial attempt state.
+
+The capacity has no simulator-selected operational ceiling; values must be
+finite, positive, and exactly representable integers, and actual occupancy is
+limited by available memory. Storage grows with occupancy; FIFO removal uses
+MATLAB struct-array indexing, so very large occupied buffers also increase
+per-operation copying cost. There is no new
+toolbox dependency, packet expiration, priority policy, or per-UE override.
+Larger buffers intentionally change loss, delay, and data age. The default
+retains one-slot freshness behavior, with corrected identity handling and
+protection of on-air packets. Departing UEs release all queued state; packets
+pending at simulation end do not receive fabricated terminal outcomes.
+
 `Application.PacketGeneration.Mode` is `Periodic` or `EtsiCam`. The
 `Application.PacketGeneration.Cam` table is active only for `EtsiCam`;
 authoring it for periodic generation is an error.

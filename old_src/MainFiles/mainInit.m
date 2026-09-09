@@ -84,6 +84,15 @@ outputValues.NUEs11p = outputValues.NUEs11p + ...
 %% Initialization of packets management 
 % Number of packets in the queue of each node
 stationManagement.pckBuffer = zeros(simValues.maxID,1);
+% The numerical engine consumes a count projection; packet identity and
+% ownership live in the native V7 FIFO, never in timeLastPacket.
+stationManagement.packetBuffers = cell(simValues.maxID,1);
+stationManagement.packetHeadSelectionTime = -ones(simValues.maxID,1);
+for packetUeIndex = 1:simValues.maxID
+    stationManagement.packetBuffers{packetUeIndex} = v2xsim.packet.PacketBuffer( ...
+        simValues.world.UeIds(packetUeIndex), ...
+        simParams.compiledPlan.Application.PacketBuffer.CapacityPackets);
+end
 % Type of packets
 % 1 = CAM
 % 2 = DENM
@@ -111,11 +120,6 @@ stationManagement.pckNextAttempt = ones(simValues.maxID,1);
 % pckTxOccurring is used in LTE and set at the beginning of the subframe,
 % because pckRemainingTx might change during the subframe
 stationManagement.pckTxOccurring = zeros(simValues.maxID,1);
-
-% Parameter for 11p retransmission KPI calculation, the index of active11p
-% in the range during earlier retransmission
-NactiveIDs11p = length(stationManagement.activeIDs11p);
-stationManagement.indexInRaw_earler = zeros(NactiveIDs11p, NactiveIDs11p, length(phyParams.Raw)); % (to, from, idRaw)
 
 % HARQ init
 stationManagement.cv2xNumberOfReplicas = phyParams.cv2xNumberOfReplicasMax * ones(simValues.maxID,1);

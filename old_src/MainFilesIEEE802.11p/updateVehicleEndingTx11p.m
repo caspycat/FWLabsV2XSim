@@ -6,10 +6,12 @@ function [timeManagement,stationManagement,sinrManagement] = updateVehicleEnding
 if indexEvent<=0
     error('Call to updateVehicleEndingTx11p with indexEvent<=0');
 end
-% The number of packets in the queue is reduced
-if stationManagement.pckNextAttempt(idEvent) > stationManagement.ITSNumberOfReplicas(idEvent)
-    stationManagement.pckBuffer(idEvent) = stationManagement.pckBuffer(idEvent)-1;
-end
+% Schedule the next MAC event before reception evaluation, preserving the
+% engine's random-draw order. Retain the head and SINR until KPI processing.
+stationManagement.packetBuffers{idEvent} = ...
+    stationManagement.packetBuffers{idEvent}.endAttempt();
+isLastAttempt = stationManagement.pckNextAttempt(idEvent) > stationManagement.ITSNumberOfReplicas(idEvent);
+pendingPacketCount = stationManagement.packetBuffers{idEvent}.Count - double(isLastAttempt);
 % The medium is sensed to check if it is free
 % (note: 'vState(idEvent)' is set to 9 in order not to contribute
 % to the sensed power)
@@ -37,23 +39,22 @@ if P_RX_MHz > (phyParams.PrxSensNotSynch/phyParams.BwMHz)
 else
     % If it is free, then: the idle state is entered if the queue is empty
     % otherwise a new backoff is started
-    if stationManagement.pckBuffer(idEvent) == 0
+    if pendingPacketCount == 0
         % If no other packets are in the queue, the node goes
         % in idle state
         stationManagement.vehicleState(idEvent) = constants.V_STATE_11P_IDLE; % idle
         timeManagement.timeNextTxRx11p(idEvent) = Inf;
-    elseif stationManagement.pckBuffer(idEvent) >= 1
+    elseif pendingPacketCount >= 1
         % If there are other packets in the queue, a new
         % backoff is initialized and started
-        % in this case is retransmission, because the queue only has one
-        % packet
+        % A retained head repeats; the next FIFO head starts a new packet.
         stationManagement.vehicleState(idEvent)=constants.V_STATE_11P_BACKOFF; % backoff
         if simParams.technology ~= constants.TECH_COEX_STD_INTERF || ...
             simParams.coexMethod ~= constants.COEX_METHOD_C || ~simParams.coexCmodifiedCW
             % New NGV packet format (Tx persective), back-to-back copy, no
             % idle time [Michael Fischer, et al. Interoperable NGV PHY
             % Improvements]
-            if phyParams.ITSNumberOfReplicasMax > 1
+            if phyParams.ITSNumberOfReplicasMax > 1 && ~isLastAttempt
                 [stationManagement.nSlotBackoff11p(idEvent), timeManagement.timeNextTxRx11p(idEvent)] =...
                     startNewBackoff11p(timeManagement.timeNow,stationManagement.CW_11p(idEvent),phyParams.ITSRetransBackoffInterval,0);
             else

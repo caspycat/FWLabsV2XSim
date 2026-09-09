@@ -46,10 +46,17 @@ for idLte = idLteHasPck'
     end
 end
 % hasTransmissionThisSlot introduced from version 6.2
+stationManagement.firstTransmissionIdsThisSlot = stationManagement.transmittingIDsCV2X( ...
+    stationManagement.pckNextAttempt(stationManagement.transmittingIDsCV2X) == 1);
 stationManagement.hasTransmissionThisSlot(stationManagement.transmittingIDsCV2X)=1;
 %%
 
-timeManagement.timeGeneratedPacketInTxLTE(stationManagement.transmittingIDsCV2X) = timeManagement.timeLastPacket(stationManagement.transmittingIDsCV2X);
+for packetId = reshape(stationManagement.transmittingIDsCV2X,1,[])
+    queue = stationManagement.packetBuffers{packetId};
+    packet = queue.head();
+    timeManagement.timeGeneratedPacketInTxLTE(packetId) = packet.GenerationTimeSeconds;
+    stationManagement.packetBuffers{packetId} = queue.startAttempt();
+end
 
 if ~isempty(stationManagement.transmittingIDsCV2X)     
     % Find index of vehicles that are currently transmitting
@@ -69,23 +76,10 @@ if simParams.technology == constants.TECH_COEX_STD_INTERF
     [timeManagement,stationManagement,sinrManagement,outputValues] = coexistenceAtLTEsubframeStart(timeManagement,sinrManagement,stationManagement,appParams,simParams,simValues,phyParams,outParams,outputValues);    
 end
     
-% Remove the packet from the queue
-% the packet is removed from the queue after the last transmission.
-% If the last transmission is disabled (BRids=-1) the packet remains in the queue.
-% At the next generation an of overflow will occur, which will bring back
-% the pckBuffer to one and properly account for the correct/incorrect reception of the packet.
-% This has been done to allow the possibility of allowing the possibility
-% of triggering retransmissions
+% Advance attempts; dequeue only after final reception outcomes are known.
 if ~isempty(stationManagement.transmittingIDsCV2X)
     stationManagement.pckTxOccurring(stationManagement.transmittingIDsCV2X) = stationManagement.pckNextAttempt(stationManagement.transmittingIDsCV2X);
  	stationManagement.pckNextAttempt(stationManagement.transmittingIDsCV2X) = stationManagement.pckNextAttempt(stationManagement.transmittingIDsCV2X) + 1;
-    transmittingIds = stationManagement.transmittingIDsCV2X(:);
-    effectiveTransmissionCount = effectiveCv2xTransmissionCount( ...
-        stationManagement,transmittingIds);
-    txIDlastTx = transmittingIds( ...
-        stationManagement.pckNextAttempt(transmittingIds) > ...
-        effectiveTransmissionCount);
-    stationManagement.pckBuffer(txIDlastTx) = stationManagement.pckBuffer(txIDlastTx)-1;
     % reset of pckReceive and cumulativeSINR
     stationManagement.pckReceived(:,stationManagement.transmittingIDsCV2X(stationManagement.pckTxOccurring(stationManagement.transmittingIDsCV2X)==1)) = 0;
     sinrManagement.cumulativeSINR(:,stationManagement.transmittingIDsCV2X(stationManagement.pckTxOccurring(stationManagement.transmittingIDsCV2X)==1)) = 0;
