@@ -1,12 +1,15 @@
 function trace = evaluateMaximumReuseDistanceTrace( ...
-        decisionTrace,assignmentsBefore,trueDistanceMeters,gridSize)
+        decisionTrace,assignmentsBefore,trueDistanceMeters,gridSize,options)
 %EVALUATEMAXIMUMREUSEDISTANCETRACE Score live decisions in true geometry.
+%   EligibilityMask rows follow AssignmentsBefore; columns are local resource
+%   IDs. Omission (or a 0-by-0 mask) makes every resource eligible.
 
 arguments (Input)
     decisionTrace table
     assignmentsBefore table
     trueDistanceMeters (:,:) double {mustBeReal,mustBeNonnegative}
     gridSize (1,2) double {mustBeInteger,mustBePositive}
+    options.EligibilityMask (:,:) logical = false(0,0)
 end
 
 expectedTraceVariables = [ ...
@@ -24,6 +27,16 @@ if ~isequal( ...
 end
 ueIds = assignmentsBefore.UeId;
 ueCount = numel(ueIds);
+eligibility = options.EligibilityMask;
+if isequal(size(eligibility),[0 0])
+    eligibility = true(ueCount,prod(gridSize));
+end
+if ~isequal(size(eligibility),[ueCount prod(gridSize)]) || ...
+        any(~any(eligibility,2))
+    error("v2xsim:resource:metrics:InvalidEligibility", ...
+        "EligibilityMask must align with UEs and resources and " + ...
+        "provide at least one eligible resource per UE.");
+end
 if ~isequal(size(trueDistanceMeters),[ueCount ueCount])
     error( ...
         "v2xsim:resource:metrics:DistanceMatrixSizeMismatch", ...
@@ -55,7 +68,7 @@ for traceIndex = reshape(traceOrder,1,[])
         decisionTrace.SelectedResourceId(traceIndex);
     quality = resourceQuality( ...
         ueRow,resourceIds,trueDistanceMeters,gridSize, ...
-        selectedResourceId,ueIds);
+        selectedResourceId,ueIds,eligibility(ueRow,:));
     trueResourceRank(traceIndex) = quality.ResourceRank;
     trueTimeRank(traceIndex) = quality.TimeRank;
     trueSelectionScore(traceIndex) = quality.ResourceScoreMeters;
@@ -77,17 +90,32 @@ end
 
 function quality = resourceQuality( ...
         ueRow,resourceIds,distanceMeters,gridSize, ...
-        selectedResourceId,ueIds)
+        selectedResourceId,ueIds,eligible)
 timeCount = gridSize(1);
 frequencyCount = gridSize(2);
 assignedRows = find(~isnan(resourceIds));
 assignedTimes = ceil(resourceIds(assignedRows) / frequencyCount);
 assignedFrequencies = ...
     mod(resourceIds(assignedRows) - 1,frequencyCount) + 1;
-timeScores = inf(timeCount,1);
-resourceScores = inf(prod(gridSize),1);
+% Unavailable empty slots must never look like infinitely good alternatives.
+timeEligible = any(reshape(eligible,frequencyCount,timeCount),1).';
+timeScores = -inf(timeCount,1);
+timeScores(timeEligible) = Inf;
+resourceScores = -inf(prod(gridSize),1);
+resourceScores(eligible) = Inf;
+% Validate the ID before indexing, including malformed imported traces.
+if ~isfinite(selectedResourceId) || selectedResourceId < 1 || ...
+        selectedResourceId > numel(eligible) || ...
+        fix(selectedResourceId) ~= selectedResourceId || ...
+        ~eligible(selectedResourceId)
+    error("v2xsim:resource:metrics:IneligibleSelection", ...
+        "Selected resource must be a valid eligible resource ID.");
+end
 
 for timeSlot = 1:timeCount
+    if ~timeEligible(timeSlot)
+        continue
+    end
     rowsAtTime = assignedRows(assignedTimes == timeSlot);
     if ~isempty(rowsAtTime)
         timeScores(timeSlot) = ...
@@ -96,6 +124,9 @@ for timeSlot = 1:timeCount
     for frequency = 1:frequencyCount
         resourceId = ...
             (timeSlot - 1) * frequencyCount + frequency;
+        if ~eligible(resourceId)
+            continue
+        end
         rowsAtResource = assignedRows( ...
             assignedTimes == timeSlot & ...
             assignedFrequencies == frequency);
@@ -111,10 +142,10 @@ selectedTimeScore = timeScores(selectedTime);
 selectedResourceScore = resourceScores(selectedResourceId);
 timeRank = 1 + nnz(timeScores > selectedTimeScore);
 resourceTimes = ceil((1:prod(gridSize)).' / frequencyCount);
-resourceRank = 1 + nnz( ...
+resourceRank = 1 + nnz(eligible(:) & ( ...
     timeScores(resourceTimes) > selectedTimeScore | ...
     (timeScores(resourceTimes) == selectedTimeScore & ...
-    resourceScores > selectedResourceScore));
+    resourceScores > selectedResourceScore)));
 bestTimeScore = max(timeScores);
 timeRegret = distanceRegret(bestTimeScore,selectedTimeScore);
 

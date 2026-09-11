@@ -105,6 +105,7 @@ average_neighbor_count_over_time_<technology>.csv
 average_neighbor_count_simulation_wide_<technology>.csv
 position_error_trace_<chunk>.csv
 position_error_lifecycle_events.csv
+controller_state.csv
 controller_topology.csv
 controller_rank_displacement.csv
 controller_range_topology.csv
@@ -246,6 +247,14 @@ allocations. Every row carries `SimulationTimeSeconds`, `AllocationEpoch`,
 `AbsoluteSlot`, and `NetworkSliceId`. An allocation epoch increments only
 when the allocator makes a decision.
 
+- `controller_state.csv` contains one row for every active allocator UE at
+  each recorded allocation epoch, including UEs retaining an assignment.
+  `UeId`, `EstimatedXMeters`, `LiveResourceId`, and `OracleResourceId` preserve
+  identity, consumed apparent longitudinal position, and live/immediate-shadow
+  assignments. `NearestTrueCoResourceMeters` and `NearestTrueSameSlotMeters`
+  use the context's true pairwise geometry; the latter includes all frequencies
+  in the same slot. Both exclude self and are `Inf` when no co-user exists.
+  `RandomPlanFingerprint` repeats the epoch's complete random-priority digest.
 - `controller_topology.csv` contains per-ego normalized Kendall inversion
   distance, mean and maximum rank displacement, and top-k neighbor Jaccard.
 - `controller_rank_displacement.csv` contains every ego-neighbor true and
@@ -287,6 +296,41 @@ The true-geometry oracle is evaluated from the same pre-decision allocator
 state and the same pre-generated random priority plan. It does not mutate the
 live allocator and is deliberately a one-step counterfactual, not an
 independent closed-loop simulation.
+
+`evaluateMaximumReuseDistanceTrace` accepts an optional `EligibilityMask`,
+whose rows follow `AssignmentsBefore` and whose columns are local resource
+IDs. Omission or a 0-by-0 mask means all resources are eligible. Each UE must
+have at least one eligible resource, and every selected ID must be valid and
+eligible. Resource ranks, time-slot ranks, and regret exclude unavailable
+alternatives. Occupants on any frequency still affect an eligible slot's
+quality. An unavailable empty slot cannot cause infinite regret; a genuinely
+eligible empty slot can. Tied infinite best/selected scores have zero regret.
+Invalid masks raise `v2xsim:resource:metrics:InvalidEligibility`; invalid or
+unavailable selections raise `v2xsim:resource:metrics:IneligibleSelection`.
+
+`RandomPlanFingerprint` is lowercase SHA-256 of the concatenated
+`DecisionPriority(:)`, `TimePriority(:)`, and `FrequencyPriority(:)` arrays,
+serialized as little-endian IEEE-754 doubles in column-major order. It includes
+priorities for all allocator UEs, including those not deciding in this epoch.
+The live replay must reproduce committed assignments and decision UE rows
+before its plan is shared with the oracle. Hashing consumes no random draws.
+Compare fingerprints together with the ordered UE identities, grid dimensions,
+and epoch keys: the digest encodes priorities, not those contextual keys.
+It provides allocator-pairing evidence, not identical channel samples or a
+standalone reconstruction of the plan. MATLAB's JVM is required for this
+diagnostic hash; no additional toolbox is required. Runs with diagnostics
+disabled do not require this hashing capability. Imported diagnostic payloads
+without a fingerprint retain a blank field, which provides no pairing evidence.
+
+To join consumed inputs to source timestamps, carry the final module's
+`position_error_trace_<chunk>.csv` output forward by stable vehicle identity
+to `SimulationTimeSeconds`, then join by UE and slice. Inspect
+`OutputSourceTimeSeconds` and `OutputAgeSeconds` for the relevant network
+module: these are module-local input timestamps, not end-to-end ages through
+an arbitrary module chain. `EstimatedXMeters` records the consumed position,
+so a coordinate wrap must not be mistaken for an identity change. Custom
+re-entry episode policies belong to the research positioning module; the
+controller recorder does not invent episode keys or reset native histories.
 
 Seed-level Ramp summaries average controller diagnostics over all eligible
 egos, pairs, and decision epochs, representing total network impact.

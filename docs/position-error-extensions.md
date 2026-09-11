@@ -52,6 +52,18 @@ The built-in packet-loss and fixed-delay modules use
 this purpose; custom network models should preserve the same source-time/age
 relationship while using a stable, nonblank outcome vocabulary.
 
+`PositionDelayError` selects the newest stored module-input snapshot at or
+before `currentTime - DelaySeconds`, allowing a comparison tolerance of
+`16 * eps(max(1,currentTime))` seconds for floating-point arithmetic. Thus a
+0.2-second delay at time 0.3 selects the report at 0.1 instead of adding an
+unintended report interval. Differences within that tolerance are treated as
+the same boundary; earlier targets outside it retain sample-and-hold behavior.
+The reported source timestamp remains the actual stored time and the age is
+current time minus that timestamp. Warm-up holds, current-position fallback
+for identities absent from the selected snapshot, and native history semantics
+remain unchanged. Research-specific wrap/re-entry episode resets must be
+implemented explicitly in the custom module.
+
 ## Compose a run
 
 TOML continues to configure built-in errors. A configured entry refers to a

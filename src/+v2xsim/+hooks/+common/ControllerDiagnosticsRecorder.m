@@ -195,6 +195,8 @@ classdef ControllerDiagnosticsRecorder < v2xsim.hook.Hook
     methods (Static, Access = private)
         function suffix = filenameSuffix(kind)
             switch kind
+                case "State"
+                    suffix = "state";
                 case "Topology"
                     suffix = "topology";
                 case "RankDisplacement"

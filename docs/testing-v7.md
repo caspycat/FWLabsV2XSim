@@ -137,6 +137,18 @@ These contracts intentionally avoid asserting the layout of
 `positionManagement` or `stationManagement`. When those containers are split
 or removed, adapters may change while the integration assertions remain.
 
+Controller-information coverage includes decimal fixed-delay boundaries,
+source timestamps and report identities (`PositionDelayErrorTest`), eligible
+resource/time ranks and regret (`MaximumReuseTraceTest`), reordered identity
+tables and nearest co-user geometry (`ControllerDiagnosticsRecorderTest`),
+and complete-priority fingerprint stability and allocator non-interference
+(`ConcreteAllocatorTest`). `ControllerStateRunTest` runs a short delayed-MRD
+simulation across highway coordinate wraps, joins consumed X values to the
+position trace, and compares packet-fate and position traces with recording
+disabled. Computation time is excluded from equality checks. These are bounded
+correctness checks, not evidence for a full-duration imperfect-information
+campaign or for a research module's custom re-entry policy.
+
 ## Long-running behavioral regressions
 
 The controlled [density regression](../regression-tests/+v2xsimregression/+density/README.md)

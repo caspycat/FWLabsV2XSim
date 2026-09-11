@@ -24,7 +24,7 @@ classdef ControllerDiagnosticsRecorderTest < ...
 
             testCase.verifyEqual(returnedInvocation,invocation);
             expectedSuffixes = [ ...
-                "topology","rank_displacement","range_topology", ...
+                "state","topology","rank_displacement","range_topology", ...
                 "allocation_decision","allocation_summary","co_user", ...
                 "reuse_candidate"];
             for suffix = expectedSuffixes
@@ -42,6 +42,17 @@ classdef ControllerDiagnosticsRecorderTest < ...
                 outputDirectory,"study_reuse_candidate.csv"), ...
                 TextType="string");
             testCase.verifyEqual(height(topology),3);
+            state = readtable(fullfile(outputDirectory,"study_state.csv"), ...
+                TextType="string");
+            testCase.verifyEqual(state.UeId,result.Diagnostics.UeIds);
+            testCase.verifyEqual(state.EstimatedXMeters,context.X);
+            testCase.verifyEqual(state.LiveResourceId,result.Assignments.ResourceIds);
+            testCase.verifyEqual(state.OracleResourceId, ...
+                result.Diagnostics.OracleAssignments.ResourceIds);
+            testCase.verifyEqual(state.RandomPlanFingerprint, ...
+                repmat(result.Diagnostics.RandomPlanFingerprint,3,1));
+            testCase.verifyEqual(state.AllocationEpoch,repmat(9,3,1));
+            testCase.verifyEqual(state.SimulationTimeSeconds,repmat(0.002,3,1));
             testCase.verifyEqual( ...
                 topology.AllocationEpoch,repmat(9,3,1));
             testCase.verifyEqual( ...
@@ -141,6 +152,77 @@ classdef ControllerDiagnosticsRecorderTest < ...
             testCase.verifyEqual( ...
                 summary. ...
                     InterferenceOverlapPairGraphXorRate,0);
+        end
+
+        function stateRowsAlignIdentitiesAndUseWrappedTrueGeometry(testCase)
+            grid = v2xsim.resource.BRResourceGrid( ...
+                v2xsim.network.NetworkSliceId("global"),2,2,0.001);
+            ids = ["a";"b";"c";"d"];
+            x = [98;2;4;40];
+            linear = abs(x-x.');
+            wrapped = min(linear,100-linear);
+            % Force two co-resource users and a third on another frequency
+            % in the same slot, with the final UE alone in its time slot.
+            mask = logical([1 0 0 0;1 0 0 0;0 1 0 0;0 0 1 0]);
+            order = [3 1 4 2];
+            consumedX = [198;-98;4;40];
+            context = v2xsim.resource.CentralizedAllocationContext( ...
+                grid.NetworkSliceId,ids(order),1,false(4,1),mask(order,:), ...
+                consumedX(order),wrapped(order,order),wrapped(order,order), ...
+                zeros(4),zeros(4));
+            allocator = v2xsim.resource.MaximumReuseDistanceAllocator( ...
+                grid,7,1,DiagnosticsEnabled=true).synchronizeUes(ids);
+            [allocator,~] = allocator.initialize(context);
+            [~,result] = allocator.step(context);
+            originalRows = v2xsim.resource.metrics.buildControllerDiagnosticRows( ...
+                0.3,uint64(3),context,result,10);
+            % Independently reorder all named tables, including pre-state.
+            diagnostics = result.Diagnostics;
+            diagnostics.AssignmentsBefore = diagnostics.AssignmentsBefore([4 3 2 1],:);
+            diagnostics.OracleAssignments = diagnostics.OracleAssignments(order,:);
+            diagnostics.LiveDecisionTrace = diagnostics.LiveDecisionTrace(order,:);
+            diagnostics.OracleDecisionTrace = diagnostics.OracleDecisionTrace([4 2 1 3],:);
+            result = v2xsim.resource.ResourceAllocationResult( ...
+                result.NetworkSliceId,result.Assignments(order,:), ...
+                result.DecisionUeIds,result.ReassignedUeIds,result.BlockedUeIds, ...
+                result.Reservations,diagnostics);
+            rows = v2xsim.resource.metrics.buildControllerDiagnosticRows( ...
+                0.3,uint64(3),context,result,10);
+            testCase.verifyEqual(rows.State,originalRows.State);
+            testCase.verifyEqual(sortrows(rows.AllocationDecision,"UeId"), ...
+                sortrows(originalRows.AllocationDecision,"UeId"));
+            testCase.verifyEqual(rows.State.UeId,ids);
+            testCase.verifyEqual(rows.State.EstimatedXMeters,consumedX);
+            testCase.verifyEqual(rows.State.LiveResourceId,[1;1;2;3]);
+            testCase.verifyEqual(rows.State.OracleResourceId,[1;1;2;3]);
+            testCase.verifyEqual(rows.State.NearestTrueCoResourceMeters,[4;4;Inf;Inf]);
+            testCase.verifyEqual(rows.State.NearestTrueSameSlotMeters,[4;2;2;Inf]);
+            testCase.verifyEqual(rows.AllocationDecision.TrueTimeRegretMeters,zeros(4,1));
+            testCase.verifyEqual(rows.State.AbsoluteSlot,ones(4,1));
+            testCase.verifyEqual(rows.State.NetworkSliceId,repmat("global",4,1));
+        end
+
+        function bufferedStateAppendsEachEpochOnce(testCase)
+            outputDirectory = testCase.makeOutputDirectory();
+            [context,result] = testCase.createDiagnosticAllocation();
+            recorder = v2xsim.hooks.common.ControllerDiagnosticsRecorder( ...
+                2,FlushRowCount=100000);
+            recorder = recorder.build( ...
+                v2xsim.hook.dependencies.OutputDirectory(outputDirectory));
+            for epoch = 1:2
+                invocation = v2xsim.hook.invocations. ...
+                    AfterResourceAllocationDecisionInvocation( ...
+                        0.1*epoch,uint64(epoch),context,result);
+                [recorder,returned] = recorder.invoke(invocation);
+                testCase.verifyEqual(returned,invocation);
+            end
+            recorder = recorder.cleanup();
+            recorder.cleanup();
+            state = readtable(fullfile(outputDirectory,"controller_state.csv"), ...
+                TextType="string");
+            testCase.verifyEqual(height(state),6);
+            testCase.verifyEqual(state.AllocationEpoch,[1;1;1;2;2;2]);
+            testCase.verifyEqual(state.UeId,repmat(result.Diagnostics.UeIds,2,1));
         end
 
         function ignoresAllocatorsWithoutDiagnostics(testCase)

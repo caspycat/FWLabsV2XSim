@@ -46,6 +46,12 @@ allocator also evaluates a one-step oracle with true distances from the same
 pre-decision state and the same pre-generated random priorities; that oracle
 is observational and never changes the live allocation.
 
+Diagnostics preserve the complete random-priority plan as a SHA-256
+fingerprint, evaluate regret only over each UE's eligible alternatives, and
+export consumed X coordinates and per-UE live/oracle assignments in
+`controller_state.csv`. See [controller diagnostic outputs](simulation-output-v7.md#controller-diagnostics)
+for schemas, identity alignment, source-time joins, and pairing limits.
+
 `Ordered` likewise sorts on controller-visible apparent X coordinates, not
 privileged true X coordinates. Position-error modules can therefore change its
 deterministic ordering while physical propagation continues to use truth.

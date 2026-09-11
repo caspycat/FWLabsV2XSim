@@ -2,6 +2,56 @@ classdef PositionDelayErrorTest < matlab.unittest.TestCase
     %POSITIONDELAYERRORTEST Tests timestamped apparent-position history.
 
     methods (Test)
+        function decimalBoundaryPreservesReportIdentityAndAge(testCase)
+            module = v2xsim.positioning.PositionDelayError(0.2);
+            times = [0 0.1 0.2 0.3 0.4];
+            expectedSource = [0 0 0 0.1 0.2];
+            for index = 1:numel(times)
+                positions = table([100;200] + 10*index,[0;0], ...
+                    VariableNames=["X","Y"],RowNames=["a","b"]);
+                if mod(index,2) == 0
+                    positions = positions([2 1],:);
+                end
+                [module,output,diagnostics] = module.apply( ...
+                    positions,testCase.createContext(positions,times(index)));
+                sourceIndex = find(times == expectedSource(index),1);
+                testCase.verifyEqual(output{"a","X"},100 + 10*sourceIndex);
+                testCase.verifyEqual(output{"b","X"},200 + 10*sourceIndex);
+                testCase.verifyEqual(diagnostics.OutputSourceTimeSeconds, ...
+                    repmat(expectedSource(index),2,1));
+                testCase.verifyEqual(diagnostics.OutputAgeSeconds, ...
+                    repmat(times(index)-expectedSource(index),2,1));
+                expectedOutcome = "Delayed";
+                if index <= 2
+                    expectedOutcome = "WarmupHeld";
+                end
+                testCase.verifyEqual(diagnostics.NetworkUpdateOutcome, ...
+                    repmat(expectedOutcome,2,1));
+            end
+        end
+
+        function adjacentTimesOutsideToleranceRetainSampleAndHold(testCase)
+            offsets = [-64*eps(1) 0 64*eps(1)];
+            expectedSources = [0 0.1 0.1];
+            for index = 1:numel(offsets)
+                module = v2xsim.positioning.PositionDelayError(0.2);
+                for time = [0 0.1 0.2]
+                    positions = testCase.createPositions(time*100);
+                    module = module.apply(positions, ...
+                        testCase.createContext(positions,time));
+                end
+                currentTime = 0.3 + offsets(index);
+                positions = testCase.createPositions(30);
+                [~,output,diagnostics] = module.apply(positions, ...
+                    testCase.createContext(positions,currentTime));
+                testCase.verifyEqual(output.X,100*expectedSources(index));
+                testCase.verifyEqual(diagnostics.OutputSourceTimeSeconds, ...
+                    expectedSources(index));
+                testCase.verifyEqual(diagnostics.OutputAgeSeconds, ...
+                    currentTime-expectedSources(index));
+            end
+        end
+
         function testReturnsPositionsFromConfiguredDelay(testCase)
             module = v2xsim.positioning.PositionDelayError(1);
             sampleTimes = [0, 0.5, 1, 1.5];

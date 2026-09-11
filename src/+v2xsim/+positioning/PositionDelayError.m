@@ -37,8 +37,11 @@ classdef PositionDelayError < v2xsim.positioning.PositionErrorModule
             obj = obj.storeSnapshot(currentTime, inputPositions);
 
             targetTime = currentTime - obj.DelaySeconds;
+            % Decimal report intervals need an ULP-scaled comparison: e.g.
+            % 0.3 - 0.2 must select the report at 0.1, not the previous tick.
+            tolerance = 16 * eps(max(1,currentTime));
             snapshotIndex = find( ...
-                obj.HistoryTimesSeconds <= targetTime, 1, "last");
+                obj.HistoryTimesSeconds <= targetTime + tolerance, 1, "last");
             isWarmupHold = isempty(snapshotIndex);
             if isWarmupHold
                 snapshotIndex = 1;

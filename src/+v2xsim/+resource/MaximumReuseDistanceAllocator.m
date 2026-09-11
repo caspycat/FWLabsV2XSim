@@ -107,7 +107,8 @@ classdef MaximumReuseDistanceAllocator < ...
                 "AssignmentsBefore",obj.Assignments, ...
                 "OracleAssignments",oracleAssignments, ...
                 "LiveDecisionTrace",liveDecisionTrace, ...
-                "OracleDecisionTrace",oracleDecisionTrace);
+                "OracleDecisionTrace",oracleDecisionTrace, ...
+                "RandomPlanFingerprint",randomPlanFingerprint(randomPlan));
         end
 
         function value = configurationMetadata(obj)
@@ -115,4 +116,25 @@ classdef MaximumReuseDistanceAllocator < ...
             value.DiagnosticsEnabled = obj.DiagnosticsEnabled;
         end
     end
+end
+
+function fingerprint = randomPlanFingerprint(plan)
+% Hash every priority in column-major order without accessing a random stream.
+% Canonical little-endian doubles keep the digest independent of host byte order.
+if ~usejava("jvm")
+    error("v2xsim:resource:MaximumReuseFingerprintRequiresJvm", ...
+        "Maximum-reuse controller diagnostics require MATLAB's JVM " + ...
+        "to compute SHA-256 random-plan fingerprints.");
+end
+values = [ ...
+    plan.DecisionPriority(:);plan.TimePriority(:);plan.FrequencyPriority(:)];
+[~,~,byteOrder] = computer;
+if byteOrder == 'B'
+    values = swapbytes(values);
+end
+bytes = typecast(values,"uint8");
+digest = java.security.MessageDigest.getInstance("SHA-256");
+digest.update(bytes);
+hashBytes = typecast(digest.digest(),"uint8");
+fingerprint = lower(join(compose("%02x",hashBytes),""));
 end
