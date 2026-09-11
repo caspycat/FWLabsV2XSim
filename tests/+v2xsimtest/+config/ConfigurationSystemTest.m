@@ -68,7 +68,8 @@ classdef ConfigurationSystemTest < matlab.unittest.TestCase
 
             % Lesson 17 owns a copy of the output-artifact input so every
             % tutorial directory remains self-contained.
-            testCase.verifyNumElements(files, 28);
+            % The resource-usage NR study adds one dedicated configuration fixture.
+            testCase.verifyNumElements(files, 29);
             for file = reshape(files, 1, [])
                 configuration = v2xsim.config.load(file).resolve();
                 testCase.verifyEqual(configuration.Data.SchemaVersion, 1);
