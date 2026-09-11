@@ -6,6 +6,10 @@ classdef ResourceUsageRecorder < v2xsim.hook.Hook
     properties (Constant, Access=protected)
         DependencyTypes = ?v2xsim.hook.dependencies.OutputDirectory
     end
+    properties (Constant, Access=private)
+        TransmissionColumns = ["TimeSeconds","VehicleId","PacketSequence","AttemptNumber","ResourceId"]
+        ChangeColumns = ["TimeSeconds","ReassignedVehicles","BlockedVehicles","SelectedVehicles"]
+    end
     properties (SetAccess=immutable)
         Grid
         Pressure
@@ -68,7 +72,7 @@ classdef ResourceUsageRecorder < v2xsim.hook.Hook
                 blocked=numel(invocation.Result.BlockedUeIds);
                 if changed>0 || selected>0 || blocked>0
                     obj.ChangeRows{end+1}=table(t,changed,blocked,selected, ...
-                        VariableNames=["TimeSeconds","ReassignedVehicles","BlockedVehicles","SelectedVehicles"]);
+                        VariableNames=obj.ChangeColumns);
                 end
             elseif isa(invocation,"v2xsim.hook.invocations.AfterPacketFatesDeterminedInvocation")
                 obj=obj.recordTransmission(invocation);
@@ -81,6 +85,17 @@ classdef ResourceUsageRecorder < v2xsim.hook.Hook
         end
         function obj = cleanup(obj)
             obj=obj.closeInterval(obj.DurationSeconds);
+            % Finalize inactive event streams with their normal schema. Empty
+            % tables add no observations and use the same first-write path as
+            % real events; Written prevents duplicate headers on later cleanup.
+            emptyColumn = zeros(0,1);
+            if ~obj.Written(3) && isempty(obj.TransmissionRows)
+                obj.TransmissionRows={table(emptyColumn,strings(0,1),emptyColumn,emptyColumn,emptyColumn, ...
+                    VariableNames=obj.TransmissionColumns)};
+            end
+            if ~obj.Written(4) && isempty(obj.ChangeRows)
+                obj.ChangeRows={table(emptyColumn,emptyColumn,emptyColumn,emptyColumn,VariableNames=obj.ChangeColumns)};
+            end
             obj=obj.flush();
         end
     end
@@ -134,7 +149,7 @@ classdef ResourceUsageRecorder < v2xsim.hook.Hook
             % invocations at the same TTI to capture overlap across callbacks.
             obj.TransmissionRows{end+1}=table(repmat(t,height(tx),1), ...
                 tx.TransmitterUeId,tx.PacketSequence,tx.AttemptNumber,tx.ResourceId, ...
-                VariableNames=["TimeSeconds","VehicleId","PacketSequence","AttemptNumber","ResourceId"]);
+                VariableNames=obj.TransmissionColumns);
         end
         function obj = flush(obj)
             groups={obj.Rows,obj.DistributionRows,obj.TransmissionRows,obj.ChangeRows};

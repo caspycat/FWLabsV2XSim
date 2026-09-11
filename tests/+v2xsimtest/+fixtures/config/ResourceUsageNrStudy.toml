@@ -1,0 +1,71 @@
+# Short software fixture from UPSTREAM_REQUIREMENTS.md section 7 (2026-09-12).
+SchemaVersion = 1
+[Simulation]
+RandomSeed = 101
+DurationSeconds = 1.2
+[Scenario]
+Type = "BidirectionalHighway"
+UpdateIntervalSeconds = 0.1
+[Scenario.BidirectionalHighway]
+RandomSeed = 101
+VehicleCount = 100
+MeanVehicleSpeed = 22.22222222222222
+VehicleSpeedStandardDeviation = 2.777777777777778
+RoadLength = 2000
+NLanes = 1
+LaneWidth = 2.5
+CentralDividerWidth = 0
+RerollSpeedOnWrapAround = false
+[Application]
+ResourceReservationIntervalSeconds = 0.1
+PacketSizeBytes = 190
+[Application.PacketBuffer]
+CapacityPackets = 2
+[Application.PacketGeneration]
+Mode = "Periodic"
+IntervalSeconds = 0.1
+IntervalVariationSeconds = 0
+RandomComponentMeanSeconds = 0
+[Application.CongestionControl]
+Enabled = false
+[Radio]
+Type = "NrV2X"
+BandwidthMHz = 20
+TransmitPowerDbm = 23
+FixedPowerDensityEnabled = true
+ReceiverNoiseFigureDb = 9
+[Radio.NrV2X]
+SubcarrierSpacingKilohertz = 15
+Mcs = 7
+[Radio.Sidelink]
+MaximumTransmissionCount = 1
+DuplexMode = "Half"
+[Radio.Sidelink.ResourcePool]
+SubchannelSizeResourceBlocks = 10
+PartialFrequencyOverlapEnabled = false
+[Radio.Sidelink.ResourcePool.ResourcePressure]
+TimeAvailabilityPercent = 16
+FrequencyAvailabilityPercent = 100
+[Channel]
+RayleighFadingEnabled = false
+[ResourceAllocation]
+Type = "MaximumReuseDistance"
+RandomSeed = 101
+[ResourceAllocation.MaximumReuseDistance]
+ReassignmentIntervalSeconds = 0.1
+[Awareness]
+RangesMeters = [150]
+[Outputs.ResourceUsage]
+Enabled = true
+[Outputs.ControllerDiagnostics]
+Enabled = false
+[Outputs.VehicleKinematics]
+Enabled = true
+[Outputs.PacketReceptionRatio]
+Enabled = true
+DistanceBinWidthMeters = 10
+[Outputs.PacketFateTrace]
+Enabled = true
+FileFormat = "parquet"
+FlushRowCount = 50000
+

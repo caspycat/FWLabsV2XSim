@@ -13,7 +13,9 @@ valid = isfinite(resourceIds);
 ids = resourceIds(valid);
 assert(all(ids>=1 & ids<=numel(mask) & ids==fix(ids)) && all(mask(ids)), ...
     "v2xsim:resource:UsageEligibility","Assignments must use selectable resources.");
-occupancy = accumarray(ids,1,[numel(mask),1]);
+% Selecting no values from a scalar can produce a 0-by-0 array. Preserve
+% the subscript column required by accumarray, including an unassigned UE.
+occupancy = accumarray(ids(:),1,[numel(mask),1]);
 occupancy = occupancy(mask);
 n = numel(resourceIds); assigned = numel(ids); used = nnz(occupancy);
 pairs = sum(occupancy.*(occupancy-1)/2);

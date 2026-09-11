@@ -19,6 +19,35 @@ classdef LegacySemanticDispatchTest < matlab.unittest.TestCase
     end
 
     methods (Test)
+        function onAirProducerKeepsZeroReceiverAttemptAndBlockedProvenance(testCase)
+            [world,registry,dispatcher] = testCase.createCaptureRegistry( ...
+                v2xsim.hook.points.AfterPacketFatesDetermined);
+            station = struct(activeIDs=(1:4).',activeIDsCV2X=(1:4).', ...
+                vehicleChannel=ones(4,1),pckType=ones(4,1), ...
+                pckTxOccurring=ones(4,1),BRid=[4;3;2;1],neighborsIDLTE=zeros(4,0));
+            station.packetFateMetadata = struct(Sequence=7,GenerationTimeSeconds=0.05, ...
+                PacketType=1,AttemptNumber=1,IsPacketComplete=true);
+            sim = struct(world=world,maxID=4,hookDispatcher=dispatcher);
+            positions = struct(distanceReal=testCase.distanceMatrix());
+            % Same physical producer used by updateKPICV2X, but no receivers.
+            dispatchAfterPacketFatesDetermined(sim,0.2,"5G",150,station,positions, ...
+                1,0.05,zeros(1,0),zeros(0,2),zeros(0,2),"none");
+            % A cleanup still carries the earlier packet/attempt metadata.
+            dispatchBlockedPacketFates(sim,0.3,"5G",150,station,positions,1,0.05);
+            hook = testCase.capturedHook(registry,v2xsim.hook.points.AfterPacketFatesDetermined);
+            testCase.assertNumElements(hook.Invocations,2);
+            actual = hook.Invocations{1};
+            blocked = hook.Invocations{2};
+            testCase.verifyEmpty(actual.Links);
+            testCase.verifyTrue(actual.Transmitters.IsOnAirObservation);
+            testCase.verifyFalse(blocked.Transmitters.IsOnAirObservation);
+            testCase.verifyEqual(actual.SimulationTimeSeconds,0.2);
+            testCase.verifyEqual(actual.Transmitters.TransmitterUeId,"alpha");
+            testCase.verifyEqual(actual.Transmitters.PacketSequence,7);
+            testCase.verifyEqual(actual.Transmitters.ResourceId,4);
+            testCase.verifyEqual(blocked.Transmitters.AttemptNumber,1);
+        end
+
         function testNeighborSnapshotPreservesWorldIdentity(testCase)
             [world,registry,dispatcher] = ...
                 testCase.createCaptureRegistry( ...

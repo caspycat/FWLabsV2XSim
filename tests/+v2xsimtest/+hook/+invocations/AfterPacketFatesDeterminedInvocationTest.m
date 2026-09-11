@@ -1,6 +1,26 @@
 classdef AfterPacketFatesDeterminedInvocationTest < ...
         matlab.unittest.TestCase
     methods (Test)
+        function onAirProvenanceIsLogicalAndIndependentOfLinks(testCase)
+            import v2xsimtest.fixtures.ResourceUsageEvents
+            event = ResourceUsageEvents.transmission(0.1);
+            testCase.verifyTrue(event.Transmitters.IsOnAirObservation);
+            testCase.verifyEmpty(event.Links);
+            event = ResourceUsageEvents.transmission(0.2,"alpha",1,1,4,false,"blocked");
+            testCase.verifyFalse(event.Transmitters.IsOnAirObservation);
+            testCase.verifyEqual(event.Transmitters.AttemptNumber,1);
+        end
+
+        function rejectsMalformedOnAirProvenance(testCase)
+            import v2xsimtest.fixtures.ResourceUsageEvents
+            invalid = {1,0,nan,"true",{true},[true false]};
+            for index = 1:numel(invalid)
+                testCase.verifyError(@() ResourceUsageEvents.transmission( ...
+                    0.1,"alpha",1,1,4,invalid{index}), ...
+                    "v2xsim:hook:invocations:InvalidTransmitters");
+            end
+        end
+
         function completionRequiresLogicalFlagAndExplicitIdentity(testCase)
             tx = table(1,1,1,0,VariableNames=["TransmitterId","Channel","PacketType","GenerationTimeSeconds"]);
             links = table(1,2,10,"correct",VariableNames=["TransmitterId","ReceiverId","DistanceMeters","Outcome"]);

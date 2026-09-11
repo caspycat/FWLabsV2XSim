@@ -149,6 +149,101 @@ disabled. Computation time is excluded from equality checks. These are bounded
 correctness checks, not evidence for a full-duration imperfect-information
 campaign or for a research module's custom re-entry policy.
 
+## Resource-usage observer contracts
+
+The resource-usage tests implement sections 5–7 of the 12 September 2026
+`UPSTREAM_REQUIREMENTS.md` handoff for the imperfect-state-information study.
+They use upstream-owned fixtures and do not read the campaign workspace.
+The four required CSV contracts are tested with these suites:
+
+| Suite | Contract evidence |
+| --- | --- |
+| `v2xsimtest.resource.ResourceUsageTest` | Hand-calculated masked occupancy, unassigned/empty/singleton populations, missing geometry, inclusive 150 m Euclidean distance, native-ID eligibility and relabeling invariance |
+| `v2xsimtest.hooks.common.ResourceUsageRecorderTest` | Unequal intervals, same-time callbacks, geometry-only updates, final partial intervals, clipped histogram conservation, stable identities and selection/change counts, real attempt deduplication, header-only empty outputs and incremental flushing |
+| `v2xsimtest.hook.invocations.AfterPacketFatesDeterminedInvocationTest` | Logical on-air provenance, including malformed values and zero-receiver events |
+| `v2xsimtest.legacy.LegacySemanticDispatchTest` | Physical producer provenance for zero-receiver transmissions and later blocked events retaining a positive attempt number |
+| `v2xsimtest.integration.ResourceUsageRunTest` | Native switch validation/composition, A–D resource masks, NR observer off/on equality with MRD diagnostics off/on and SensingBased, plus delay/loss/Gaussian output coexistence |
+
+Run the focused gate in an open simulator project:
+
+```matlab
+addpath("tests")
+names = ["v2xsimtest.resource.ResourceUsageTest", ...
+    "v2xsimtest.hooks.common.ResourceUsageRecorderTest", ...
+    "v2xsimtest.hook.invocations.AfterPacketFatesDeterminedInvocationTest", ...
+    "v2xsimtest.legacy.LegacySemanticDispatchTest", ...
+    "v2xsimtest.integration.ResourceUsageRunTest"];
+parts = arrayfun(@testsuite,names,UniformOutput=false);
+results = run([parts{:}]);
+assertSuccess(results)
+```
+
+The checked-in `tests/+v2xsimtest/+fixtures/config/ResourceUsageNrStudy.toml`
+copies the handoff's 1.2 s, 100-vehicle, 20 MHz NR fixture. It keeps all five
+frequency resources and 16% of time resources: 80 selectable BRs out of 500.
+Separate initialization probes check 80%, 20%, 16% and 15% time availability
+without running statistical campaigns. SensingBased starts from a fresh
+unresolved allocator branch. The paired runs explicitly use the same
+`twister` generator and seed, compare native metrics, packet-fate records and
+trajectories, and verify restoration of caller random state. With controller
+diagnostics enabled they also compare every controller CSV, including live
+assignments and allocation fingerprints. With diagnostics disabled, whole-run
+committed assignments are not separately exported; their observation is covered
+by the typed recorder fixtures and the diagnostic-enabled pair.
+
+Study integration exposure is checked on `[0.2,1.1)` and must close at 1.2 s;
+the tests do not invent startup coverage before the first committed allocation.
+The recorder fixtures separately require coverage from time zero when an
+assignment is supplied at zero. Interruption coverage is tested by inspecting
+already-flushed intervals before successful cleanup, not by a mid-run engine
+fault injection. No new toolbox dependency is introduced. These tests do not
+establish long-duration PRR, d95, convergence or production readiness.
+
+The metric helper preserves the subscript column passed to `accumarray` when
+an unassigned singleton produces an empty selection. Recorder cleanup writes
+typed empty change/transmission tables through the normal flush path; shared
+column definitions keep empty and populated files consistent. Repeated cleanup
+preserves both headers and existing rows. Additional regressions cover a run
+with no callbacks and a singleton's complete unassigned interval.
+
+The original four failing cases exposed these defects on source revision
+`ea9322e2127c3ba1c21218f6e6d368ef7234ba67`. The source corrections keep those
+assertions intact and introduce no allocator, geometry or radio-model changes.
+
+Validation on MATLAB R2026a with the working-tree corrections based on that
+source revision:
+
+| Suite | Passed / total |
+| --- | --- |
+| `ResourceUsageTest` | 9 / 9 |
+| `ResourceUsageRecorderTest` | 13 / 13 |
+| `AfterPacketFatesDeterminedInvocationTest` | 5 / 5 |
+| `LegacySemanticDispatchTest` | 4 / 4 |
+| `ResourceUsageRunTest` | 8 / 8 |
+| `v2xsimtest.positioning.PositionDelayErrorTest` | 8 / 8 |
+| `v2xsimtest.positioning.PositionPacketLossErrorTest` | 14 / 14 |
+| `v2xsimtest.positioning.IsotropicGaussianPositionErrorStatusEffectTest` | 11 / 11 |
+| `v2xsimtest.positioning.PositionErrorDiagnosticsTest` | 5 / 5 |
+| `v2xsimtest.resource.metrics.MaximumReuseTraceTest` | 7 / 7 |
+| `v2xsimtest.resource.metrics.ControllerMetricsTest` | 12 / 12 |
+| `v2xsimtest.hooks.common.ControllerDiagnosticsRecorderTest` | 5 / 5 |
+| `v2xsimtest.integration.ControllerStateRunTest` | 1 / 1 |
+| `v2xsimtest.resource.ConcreteAllocatorTest` | 20 / 20 |
+| `v2xsimtest.resource.algorithm.AllocationKernelTest` | 12 / 12 |
+
+All 134 distinct tests passed, with no failures or incomplete tests. Thirty-three
+cases are newly added by the resource-usage work, including the three additional
+cleanup/singleton cases accompanying the source corrections.
+All nine simulations in the new NR integration suite completed successfully
+(three off/on pairs and three impairment variants), each lasting 1.2 s.
+
+The existing 0.45 s wrap regression remains separate from the 1.2 s NR study
+fixture. `checkcode(file,"-id")` reports no findings on the eight added/modified
+MATLAB files. The complete ordinary suite, publication campaigns, and timing
+benchmarks were not run; allocation, mobility and radio algorithms and scientific
+parameters are unchanged. The flushing tests establish output conservation across buffer
+boundaries, not a performance bound for large populations.
+
 ## Long-running behavioral regressions
 
 The controlled [density regression](../regression-tests/+v2xsimregression/+density/README.md)

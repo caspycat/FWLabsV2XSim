@@ -113,6 +113,10 @@ controller_allocation_decision.csv
 controller_allocation_summary.csv
 controller_co_user.csv
 controller_reuse_candidate.csv
+resource_usage.csv
+resource_occupancy.csv
+resource_changes.csv
+resource_transmissions.csv
 packet_fates_<chunk>.parquet
 interference_attempts_<chunk>.csv
 interference_counterfactuals_<chunk>.csv
@@ -143,6 +147,35 @@ The position-error, packet-fate, and interference-evidence traces are bounded
 numbered chunks. `<chunk>` is a zero-padded six-digit sequence. Packet fates
 can instead use CSV when `Outputs.PacketFateTrace.FileFormat` is `csv`; a run
 never mixes the two packet-fate formats.
+
+## Resource-usage evidence
+
+Enable the optional cellular sidelink observer with
+`Outputs.ResourceUsage.Enabled=true` (default `false`). It supports the study's
+single `global` slice and one transmission per packet, including
+`MaximumReuseDistance` and `SensingBased`, independently of controller
+diagnostics. It observes committed assignments, true X/Y geometry and actual
+transmitter attempts.
+
+`resource_usage.csv` describes positive-length assignment/geometry intervals;
+`resource_occupancy.csv` gives the matching distribution of users per selectable
+resource, including unused resources. Clip intervals to the measurement window
+and weight by elapsed seconds. Masked resources never contribute to the unused
+count. Unassigned vehicles remain in `VehicleCount`, even for a singleton; they
+add no occupied resources or sharing pairs.
+
+`resource_changes.csv` separates actual continuing-vehicle assignment changes
+from selections and allocator blocks. `resource_transmissions.csv` records one
+row per actual attempt, independent of receiver count. Successful recorder
+cleanup writes both event files even when they have no rows: the normal column
+headers identify supported recording with no activity. Repeated cleanup does
+not duplicate headers or previously written rows. No artificial event or
+assignment exposure is added to fill an empty stream. These CSVs are not a
+completion signal; use `simulation_summary.json` to identify completed runs.
+
+The [resource-usage contract tests](testing-v7.md#resource-usage-observer-contracts)
+cover the schemas, empty streams, identity, geometry, time weighting and short
+NR integrations.
 
 ## Packet delay and data age
 
